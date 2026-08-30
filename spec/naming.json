@@ -2,6 +2,7 @@
     "languages": [
         "go",
         "java",
+        "kotlin",
         "php",
         "python",
         "rust",
@@ -10,206 +11,288 @@
     "names": {
         "bench-max-allocs": {
             "go": "bench.Contract.MaxAllocs",
+            "java": "Contract.maxAllocs",
+            "kotlin": "Contract.maxAllocs",
             "python": "bench.Contract.max_allocs",
             "typescript": "bench.Contract.maxAllocs"
         },
         "bench-max-bytes": {
             "go": "bench.Contract.MaxBytes",
+            "java": "Contract.maxBytes",
+            "kotlin": "Contract.maxBytes",
             "python": "bench.Contract.max_bytes",
             "typescript": "bench.Contract.maxBytes"
         },
         "bench-max-latency": {
             "go": "bench.Contract.MaxLatency",
+            "java": "Contract.maxLatency",
+            "kotlin": "Contract.maxLatency",
             "python": "bench.Contract.max_latency",
             "typescript": "bench.Contract.maxLatency"
         },
         "bench-max-mean": {
             "go": "bench.Contract.MaxMean",
+            "java": "Contract.maxMean",
+            "kotlin": "Contract.maxMean",
             "python": "bench.Contract.max_mean",
             "typescript": "bench.Contract.maxMean"
         },
         "close-to": {
             "go": "CloseTo",
+            "java": "closeTo",
+            "kotlin": "closeTo",
             "python": "close_to",
             "typescript": "closeTo"
         },
         "completes-within": {
             "go": "CompletesWithin",
+            "java": "completesWithin",
+            "kotlin": "completesWithin",
             "python": "completes_within",
             "typescript": "completesWithin"
         },
         "contains": {
             "go": "Contains",
+            "java": "contains",
+            "kotlin": "contains",
             "python": "contains",
             "typescript": "contains"
         },
         "contains-in-order": {
             "go": "ContainsInOrder",
+            "java": "containsInOrder",
+            "kotlin": "containsInOrder",
             "python": "contains_in_order",
             "typescript": "containsInOrder"
         },
         "empty": {
             "go": "Empty",
+            "java": "isEmpty",
+            "kotlin": "isEmpty",
             "python": "is_empty",
             "typescript": "isEmpty"
         },
         "equal": {
             "go": "Equal",
+            "java": "equal",
+            "kotlin": "equal",
             "python": "equal",
             "typescript": "equal"
         },
         "err-absent": {
             "go": "NoError",
+            "java": "noError",
+            "kotlin": "noError",
             "python": "no_error",
             "typescript": "noError"
         },
         "err-as": {
             "go": "ErrorAs",
+            "java": "errorAs",
+            "kotlin": "errorAs",
             "python": "error_as",
             "typescript": "errorAs"
         },
         "err-is": {
             "go": "ErrorIs",
+            "java": "errorIs",
+            "kotlin": "errorIs",
             "python": "error_is",
             "typescript": "errorIs"
         },
         "err-is-not": {
             "go": "ErrorIsNot",
+            "java": "errorIsNot",
+            "kotlin": "errorIsNot",
             "python": "error_is_not",
             "typescript": "errorIsNot"
         },
         "err-present": {
             "go": "HasError",
+            "java": "hasError",
+            "kotlin": "hasError",
             "python": "has_error",
             "typescript": "hasError"
         },
         "eventually": {
             "go": "Eventually",
+            "java": "eventually",
+            "kotlin": "eventually",
             "python": "eventually",
             "typescript": "eventually"
         },
         "eventually-true": {
             "go": "EventuallyTrue",
+            "java": "eventuallyTrue",
+            "kotlin": "eventuallyTrue",
             "python": "eventually_true",
             "typescript": "eventuallyTrue"
         },
         "false": {
             "go": "False",
+            "java": "isFalse",
+            "kotlin": "isFalse",
             "python": "is_false",
             "typescript": "isFalse"
         },
         "golden-match": {
             "go": "golden.Match",
+            "java": "Golden.match",
+            "kotlin": "Golden.match",
             "python": "golden.match",
             "typescript": "golden.match"
         },
         "golden-match-at": {
             "go": "golden.MatchAt",
+            "java": "Golden.matchAt",
+            "kotlin": "Golden.matchAt",
             "python": "golden.match_at",
             "typescript": "golden.matchAt"
         },
         "golden-match-json-field": {
             "go": "golden.MatchJSONField",
+            "java": "Golden.matchJsonField",
+            "kotlin": "Golden.matchJsonField",
             "python": "golden.match_json_field",
             "typescript": "golden.matchJsonField"
         },
         "has-prefix": {
             "go": "HasPrefix",
+            "java": "hasPrefix",
+            "kotlin": "hasPrefix",
             "python": "has_prefix",
             "typescript": "hasPrefix"
         },
         "has-suffix": {
             "go": "HasSuffix",
+            "java": "hasSuffix",
+            "kotlin": "hasSuffix",
             "python": "has_suffix",
             "typescript": "hasSuffix"
         },
         "honours-cancellation": {
             "go": "HonoursCancellation",
+            "java": "honoursCancellation",
+            "kotlin": "honoursCancellation",
             "python": "honours_cancellation",
             "typescript": "honoursCancellation"
         },
         "honours-deadline": {
             "go": "HonoursDeadline",
+            "java": "honoursDeadline",
+            "kotlin": "honoursDeadline",
             "python": "honours_deadline",
             "typescript": "honoursDeadline"
         },
         "in-range": {
             "go": "InRange",
+            "java": "inRange",
+            "kotlin": "inRange",
             "python": "in_range",
             "typescript": "inRange"
         },
         "length": {
             "go": "Length",
+            "java": "length",
+            "kotlin": "length",
             "python": "length",
             "typescript": "length"
         },
         "matches": {
             "go": "Matches",
+            "java": "matches",
+            "kotlin": "matches",
             "python": "matches",
             "typescript": "matches"
         },
         "nil": {
             "go": "Nil",
+            "java": "isNull",
+            "kotlin": "isNull",
             "python": "is_none",
             "typescript": "isNil"
         },
         "nil-context-safe": {
             "go": "NilContextSafe",
+            "java": "nullHandleSafe",
+            "kotlin": "nullHandleSafe",
             "python": "none_handle_safe",
             "typescript": "nullHandleSafe"
         },
         "no-task-leaks": {
             "go": "NoGoroutineLeaks",
+            "java": "noTaskLeaks",
+            "kotlin": "noTaskLeaks",
             "python": "no_task_leaks",
             "typescript": "noTaskLeaks"
         },
         "not-contains": {
             "go": "NotContains",
+            "java": "notContains",
+            "kotlin": "notContains",
             "python": "not_contains",
             "typescript": "notContains"
         },
         "not-empty": {
             "go": "NotEmpty",
+            "java": "isNotEmpty",
+            "kotlin": "isNotEmpty",
             "python": "is_not_empty",
             "typescript": "isNotEmpty"
         },
         "not-equal": {
             "go": "NotEqual",
+            "java": "notEqual",
+            "kotlin": "notEqual",
             "python": "not_equal",
             "typescript": "notEqual"
         },
         "not-nil": {
             "go": "NotNil",
+            "java": "isNotNull",
+            "kotlin": "isNotNull",
             "python": "is_not_none",
             "typescript": "isNotNil"
         },
         "not-throws": {
             "go": "NotPanics",
+            "java": "doesNotThrow",
+            "kotlin": "doesNotThrow",
             "python": "does_not_raise",
             "typescript": "doesNotThrow"
         },
         "pairwise": {
             "go": "Pairwise",
+            "java": "pairwise",
+            "kotlin": "pairwise",
             "python": "pairwise",
             "typescript": "pairwise"
         },
         "pure": {
             "go": "Pure",
+            "java": "isPure",
+            "kotlin": "isPure",
             "python": "is_pure",
             "typescript": "isPure"
         },
         "rejects": {
             "go": "Rejects",
+            "java": "rejects",
+            "kotlin": "rejects",
             "python": "rejects",
             "typescript": "rejects"
         },
         "throws": {
             "go": "Panics",
+            "java": "throwsException",
+            "kotlin": "throwsException",
             "python": "raises",
             "typescript": "throws"
         },
         "true": {
             "go": "True",
+            "java": "isTrue",
+            "kotlin": "isTrue",
             "python": "is_true",
             "typescript": "isTrue"
         }

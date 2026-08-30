@@ -97,13 +97,18 @@ class Validator(unittest.TestCase):
         )
         self.assert_caught("equal has no entry")
 
-    def test_a_name_outside_its_package_is_caught(self) -> None:
-        """A qualified name must sit in the package the definition gives."""
+    def test_an_unqualified_name_for_a_packaged_assertion_is_caught(self) -> None:
+        """An assertion in a subpackage is reached through a qualifier.
+
+        What the qualifier is stays the language's business: Python
+        qualifies by module and Java by type. That it is there at all
+        is what the two tables have to agree on.
+        """
         _edit(
             self.tree / "spec" / "naming.json",
-            lambda d: d["names"]["golden-match"].update(python="wrong.match"),
+            lambda d: d["names"]["golden-match"].update(python="match"),
         )
-        self.assert_caught("does not sit in package 'golden'")
+        self.assert_caught("is not qualified")
 
     def test_a_qualified_name_with_no_package_is_caught(self) -> None:
         """A root-namespace assertion may not carry a package prefix."""

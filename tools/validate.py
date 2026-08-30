@@ -132,6 +132,12 @@ def check_naming(
     That is the check worth having: the two tables are edited apart,
     and a name that says ``golden.match`` for an assertion in the root
     namespace sends every implementation looking in the wrong place.
+
+    What the qualifier is stays the language's business. Python and
+    TypeScript qualify by module, so the head is the package name. Java
+    and Kotlin qualify by type and reach the package through an import,
+    so theirs is a class name. Requiring the package name would be
+    requiring one language's conventions of all of them.
     """
     defined = spec.get("assertions", {})
     languages = naming.get("languages", [])
@@ -156,11 +162,12 @@ def check_naming(
                 isinstance(name, str) and name.strip() != "", where, "is empty"
             )
             package = defined.get(aid, {}).get("package", "")
-            head, dot, _ = str(name).partition(".")
+            qualified = "." in str(name)
             problems.unless(
-                (head if dot else "") == package,
+                qualified == bool(package),
                 where,
-                f"{name!r} does not sit in package {package!r}"
+                f"{name!r} is not qualified, but the assertion names "
+                f"package {package!r}"
                 if package
                 else f"{name!r} is qualified, but the assertion names no package",
             )
