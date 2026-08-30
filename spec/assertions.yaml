@@ -1,10 +1,14 @@
 # Canonical assertion definitions. Language-neutral.
+#
 # arity counts required arguments to the function form, excluding the
 # failure seat and including the trailing message.
-version: "1.0.0-draft"
+#
+# package is empty for an assertion in the language's root namespace,
+# and names a subpackage otherwise.
+version: "1.0.0"
 
 assertions:
-  equal:
+  "equal":
     arity: 3
     summary: >
       Structural equality. A null collection does not equal an empty
@@ -12,7 +16,258 @@ assertions:
       exactly, cycles stop, functions compare by identity.
     message_fields: [want, got]
 
-  not-equal:
+  "not-equal":
     arity: 3
-    summary: Negation of equal.
+    summary: >
+      Negation of equal.
     message_fields: [got]
+
+  "true":
+    arity: 2
+    summary: >
+      The condition holds. The failure carries the caller's message
+      alone.
+    message_fields: []
+
+  "false":
+    arity: 2
+    summary: >
+      The condition does not hold.
+    message_fields: []
+
+  "nil":
+    arity: 2
+    summary: >
+      The value is absent. A typed nil counts as nil.
+    message_fields: [nil]
+
+  "not-nil":
+    arity: 2
+    summary: >
+      The value is present. A typed nil counts as nil.
+    message_fields: [nil]
+
+  "length":
+    arity: 3
+    summary: >
+      The container holds the stated number of items. Answers for any
+      sized container or text.
+    message_fields: [length]
+
+  "empty":
+    arity: 2
+    summary: >
+      The container holds nothing.
+    message_fields: [empty]
+
+  "not-empty":
+    arity: 2
+    summary: >
+      The container holds something.
+    message_fields: [empty]
+
+  "contains":
+    arity: 3
+    summary: >
+      Text holds a substring, a sequence holds an element, or a map
+      holds a key.
+    message_fields: [contain]
+
+  "not-contains":
+    arity: 3
+    summary: >
+      Negation of contains.
+    message_fields: [contain]
+
+  "contains-in-order":
+    arity: 3
+    summary: >
+      Text holds every needle, each after the previous one's match ends.
+    message_fields: [found]
+
+  "has-prefix":
+    arity: 3
+    summary: >
+      Text starts with the given prefix.
+    message_fields: [start]
+
+  "has-suffix":
+    arity: 3
+    summary: >
+      Text ends with the given suffix.
+    message_fields: [end]
+
+  "matches":
+    arity: 3
+    summary: >
+      Text matches a regular expression. A pattern that does not compile
+      is a failure, not an error.
+    message_fields: [match]
+
+  "close-to":
+    arity: 4
+    summary: >
+      A number is within a tolerance of another, by absolute difference.
+      NaN is outside every tolerance.
+    message_fields: [within]
+
+  "in-range":
+    arity: 4
+    summary: >
+      A number falls in a closed interval. NaN is in no range.
+    message_fields: [range]
+
+  "pairwise":
+    arity: 4
+    summary: >
+      Every adjacent pair of a sequence satisfies a predicate. Nought or
+      one item passes.
+    message_fields: [order]
+
+  "err-absent":
+    arity: 3
+    summary: >
+      No failure value is present.
+    message_fields: [error]
+
+  "err-present":
+    arity: 3
+    summary: >
+      Some failure value is present.
+    message_fields: [error]
+
+  "err-is":
+    arity: 4
+    summary: >
+      A failure matches a sentinel, through the chain of wrapped causes.
+    message_fields: [want]
+
+  "err-is-not":
+    arity: 4
+    summary: >
+      A failure does not match a sentinel.
+    message_fields: [distinct]
+
+  "err-as":
+    arity: 3
+    summary: >
+      A failure of the given type is in the chain. Yields it.
+    message_fields: [type]
+
+  "throws":
+    arity: 3
+    summary: >
+      A callable raises. Yields what was raised.
+    message_fields: [panic]
+
+  "not-throws":
+    arity: 3
+    summary: >
+      A callable does not raise.
+    message_fields: [panic]
+
+  "honours-cancellation":
+    arity: 3
+    summary: >
+      A subject given a cancelled handle reports a cancellation failure.
+    message_fields: [cancel]
+
+  "honours-deadline":
+    arity: 3
+    summary: >
+      A subject given an expired deadline reports a deadline failure.
+    message_fields: [deadline]
+
+  "completes-within":
+    arity: 4
+    summary: >
+      A subject finishes before the stated duration.
+    message_fields: [within]
+
+  "pure":
+    arity: 4
+    summary: >
+      Observed state is unchanged across a call.
+    message_fields: [changed]
+
+  "nil-context-safe":
+    arity: 3
+    summary: >
+      A subject given an absent cancellation handle does not crash.
+    message_fields: [panic]
+
+  "eventually":
+    arity: 5
+    summary: >
+      An assertion body passes within a timeout, retried at an interval.
+      Reports the last failure.
+    message_fields: [still]
+
+  "eventually-true":
+    arity: 4
+    summary: >
+      A predicate becomes true within a timeout, retried with backoff.
+    message_fields: [still]
+
+  "no-task-leaks":
+    arity: 2
+    summary: >
+      No concurrent task started in the scope outlives it.
+    message_fields: [running]
+
+  "golden-match":
+    arity: 5
+    package: golden
+    summary: >
+      Output matches the golden file resolved against the conventional
+      directory.
+    message_fields: [want, got]
+
+  "golden-match-at":
+    arity: 5
+    package: golden
+    summary: >
+      Output matches the golden file at a given path.
+    message_fields: [want, got]
+
+  "golden-match-json-field":
+    arity: 6
+    package: golden
+    summary: >
+      Output matches one named field of a golden JSON object.
+    message_fields: [want, got]
+
+  "bench-max-latency":
+    arity: 1
+    package: bench
+    summary: >
+      The p99 latency per iteration stays within a ceiling.
+    message_fields: [ceiling]
+
+  "bench-max-mean":
+    arity: 1
+    package: bench
+    summary: >
+      The mean latency per iteration stays within a ceiling.
+    message_fields: [ceiling]
+
+  "bench-max-allocs":
+    arity: 1
+    package: bench
+    summary: >
+      The allocations per iteration stay within a ceiling.
+    message_fields: [ceiling]
+
+  "bench-max-bytes":
+    arity: 1
+    package: bench
+    summary: >
+      The bytes allocated per iteration stay within a ceiling.
+    message_fields: [ceiling]
+
+  "rejects":
+    arity: 3
+    summary: >
+      A check fails against an implementation it is meant to reject.
+      Yields the failure message.
+    message_fields: [reject]

@@ -1,0 +1,136 @@
+{
+    "languages": [
+        "go",
+        "java",
+        "php",
+        "python",
+        "rust",
+        "typescript"
+    ],
+    "names": {
+        "bench-max-allocs": {
+            "go": "bench.Contract.MaxAllocs"
+        },
+        "bench-max-bytes": {
+            "go": "bench.Contract.MaxBytes"
+        },
+        "bench-max-latency": {
+            "go": "bench.Contract.MaxLatency"
+        },
+        "bench-max-mean": {
+            "go": "bench.Contract.MaxMean"
+        },
+        "close-to": {
+            "go": "CloseTo"
+        },
+        "completes-within": {
+            "go": "CompletesWithin"
+        },
+        "contains": {
+            "go": "Contains"
+        },
+        "contains-in-order": {
+            "go": "ContainsInOrder"
+        },
+        "empty": {
+            "go": "Empty"
+        },
+        "equal": {
+            "go": "Equal"
+        },
+        "err-absent": {
+            "go": "NoError"
+        },
+        "err-as": {
+            "go": "ErrorAs"
+        },
+        "err-is": {
+            "go": "ErrorIs"
+        },
+        "err-is-not": {
+            "go": "ErrorIsNot"
+        },
+        "err-present": {
+            "go": "HasError"
+        },
+        "eventually": {
+            "go": "Eventually"
+        },
+        "eventually-true": {
+            "go": "EventuallyTrue"
+        },
+        "false": {
+            "go": "False"
+        },
+        "golden-match": {
+            "go": "golden.Match"
+        },
+        "golden-match-at": {
+            "go": "golden.MatchAt"
+        },
+        "golden-match-json-field": {
+            "go": "golden.MatchJSONField"
+        },
+        "has-prefix": {
+            "go": "HasPrefix"
+        },
+        "has-suffix": {
+            "go": "HasSuffix"
+        },
+        "honours-cancellation": {
+            "go": "HonoursCancellation"
+        },
+        "honours-deadline": {
+            "go": "HonoursDeadline"
+        },
+        "in-range": {
+            "go": "InRange"
+        },
+        "length": {
+            "go": "Length"
+        },
+        "matches": {
+            "go": "Matches"
+        },
+        "nil": {
+            "go": "Nil"
+        },
+        "nil-context-safe": {
+            "go": "NilContextSafe"
+        },
+        "no-task-leaks": {
+            "go": "NoGoroutineLeaks"
+        },
+        "not-contains": {
+            "go": "NotContains"
+        },
+        "not-empty": {
+            "go": "NotEmpty"
+        },
+        "not-equal": {
+            "go": "NotEqual"
+        },
+        "not-nil": {
+            "go": "NotNil"
+        },
+        "not-throws": {
+            "go": "NotPanics"
+        },
+        "pairwise": {
+            "go": "Pairwise"
+        },
+        "pure": {
+            "go": "Pure"
+        },
+        "rejects": {
+            "go": "Rejects"
+        },
+        "throws": {
+            "go": "Panics"
+        },
+        "true": {
+            "go": "True"
+        }
+    },
+    "version": "1.0.0"
+}

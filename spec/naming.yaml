@@ -1,10 +1,91 @@
 # Assertion id to the name a user types. No user types an id.
-version: "1.0.0-draft"
+#
+# A name qualified with a dot names a member of the subpackage the
+# assertion table gives it.
+version: "1.0.0"
 
 languages: [go, java, php, python, rust, typescript]
 
 names:
-  equal:
-    go: Equal
-  not-equal:
-    go: NotEqual
+  "equal":
+    go: "Equal"
+  "not-equal":
+    go: "NotEqual"
+  "true":
+    go: "True"
+  "false":
+    go: "False"
+  "nil":
+    go: "Nil"
+  "not-nil":
+    go: "NotNil"
+  "length":
+    go: "Length"
+  "empty":
+    go: "Empty"
+  "not-empty":
+    go: "NotEmpty"
+  "contains":
+    go: "Contains"
+  "not-contains":
+    go: "NotContains"
+  "contains-in-order":
+    go: "ContainsInOrder"
+  "has-prefix":
+    go: "HasPrefix"
+  "has-suffix":
+    go: "HasSuffix"
+  "matches":
+    go: "Matches"
+  "close-to":
+    go: "CloseTo"
+  "in-range":
+    go: "InRange"
+  "pairwise":
+    go: "Pairwise"
+  "err-absent":
+    go: "NoError"
+  "err-present":
+    go: "HasError"
+  "err-is":
+    go: "ErrorIs"
+  "err-is-not":
+    go: "ErrorIsNot"
+  "err-as":
+    go: "ErrorAs"
+  "throws":
+    go: "Panics"
+  "not-throws":
+    go: "NotPanics"
+  "honours-cancellation":
+    go: "HonoursCancellation"
+  "honours-deadline":
+    go: "HonoursDeadline"
+  "completes-within":
+    go: "CompletesWithin"
+  "pure":
+    go: "Pure"
+  "nil-context-safe":
+    go: "NilContextSafe"
+  "eventually":
+    go: "Eventually"
+  "eventually-true":
+    go: "EventuallyTrue"
+  "no-task-leaks":
+    go: "NoGoroutineLeaks"
+  "golden-match":
+    go: "golden.Match"
+  "golden-match-at":
+    go: "golden.MatchAt"
+  "golden-match-json-field":
+    go: "golden.MatchJSONField"
+  "bench-max-latency":
+    go: "bench.Contract.MaxLatency"
+  "bench-max-mean":
+    go: "bench.Contract.MaxMean"
+  "bench-max-allocs":
+    go: "bench.Contract.MaxAllocs"
+  "bench-max-bytes":
+    go: "bench.Contract.MaxBytes"
+  "rejects":
+    go: "Rejects"
