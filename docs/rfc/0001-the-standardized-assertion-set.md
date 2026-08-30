@@ -2,13 +2,13 @@
 rfc: 0001
 title: The standardized assertion set
 author: Roy Klopper <roy.klopper@stealthscale.io>
-status: Draft
+status: Accepted
 created: 2026-08-30
 updated: 2026-08-30
 discussion: none
 supersedes: none
 superseded-by: none
-produces-adr: tbd
+produces-adr: none
 ---
 
 # RFC-0001: The standardized assertion set
@@ -220,6 +220,12 @@ The golden-file and benchmark assertions abort only. A test that
 continues past a golden mismatch reports failures about data it already
 knows is wrong.
 
+A chain does not report at its own end. Each recorded failure goes to
+the seat as it happens, and the host framework reports at the end of
+the test. That keeps a chain and a sequence of loose calls reporting
+the same way, and it means a chain cut short by a crash has still
+reported everything it reached.
+
 ### The seam
 
 A library never calls the host test framework directly. It reports
@@ -293,14 +299,32 @@ values in an encoding each library turns into native values:
 
 ```json
 {
-  "id": "equal/null-list-vs-empty-list",
   "assertion": "equal",
-  "got":  {"type": "list", "of": "int", "value": []},
-  "want": {"type": "null"},
-  "expect": "fail",
-  "message_contains": ["want", "got"]
+  "cases": [
+    {
+      "id": "equal/null-against-empty-list",
+      "args": [
+        { "type": "list", "of": "int", "value": [] },
+        { "type": "null" }
+      ],
+      "expect": "fail",
+      "message_contains": ["want", "got"]
+    }
+  ]
 }
 ```
+
+One file per assertion, holding its cases. A case states its arguments
+in order, so the same file serves an assertion of any arity.
+
+The encoding defines seven types: null, bool, int, float, string, list
+and map. A list or map names the type of what it holds, and a float may
+name NaN, Inf or -Inf, which JSON has no syntax for. Those seven state
+every case for the 17 assertions whose arguments are data. The
+remaining 24 take a callable, a cancellation handle, a predicate, a
+golden file or a benchmark, and adding types would not reach them,
+because the obstacle is that a function is not data rather than that
+the encoding is short of a type.
 
 **Declared divergence** catches the gap between what a library cannot do
 and what it has not done yet. This is why no assertion is marked
@@ -429,20 +453,12 @@ declare a divergence it could have implemented, and the gate cannot tell
 the difference between "impossible" and "not attempted". People read the
 reason field. CI does not check it.
 
-## Open questions
-
-- Should a recording-namespace chain report its accumulated failures when
-  the chain ends, or leave them to the host framework to report at test
-  end? The two differ in what a reader sees when a later assertion
-  crashes.
-- The encoding covers null, bool, int, float, string, bytes, list, map,
-  struct, error and function references. Is that enough to state the
-  equality edge cases above, or does field reachability need cases the
-  encoding cannot express?
-- How many consumers running two of the six libraries would justify this?
-  If nobody runs two, one good library was the whole requirement.
-
 ## Unresolved and future work
+
+How many consumers run two of the six libraries is not known, and it is
+what decides whether the shared definition earned its cost. If nobody
+runs two, one good library was the whole requirement. Two libraries
+exist and the question stays open until people use them.
 
 Extending the set beyond these 41 assertions is not proposed here.
 

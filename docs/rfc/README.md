@@ -6,4 +6,4 @@ they record why not.
 
 | # | Title | Status |
 |---|---|---|
-| [0001](0001-the-standardized-assertion-set.md) | The standardized assertion set | Draft |
+| [0001](0001-the-standardized-assertion-set.md) | The standardized assertion set | Accepted |
