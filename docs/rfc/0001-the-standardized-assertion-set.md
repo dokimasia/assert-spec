@@ -78,6 +78,42 @@ languages. Splitting the ID from the name lets a Python developer write
 `raises` and a Go developer write `Panics` while both are held to one
 definition.
 
+### What belongs in the set
+
+Two questions decide whether something belongs here. Both must answer
+yes, and the second is the one people get wrong.
+
+**Does it state something that must be true, and fail when it is not?**
+An assertion checks. A fake clock, a seeded random source, an injected
+fault and a test double do not: they supply an input, so a test can
+reach the state worth checking. They are the other half of writing a
+test and they are not this. A tool that reads source and writes tests
+is a third thing again.
+
+**Does it mean the same thing in every target language?** `equal` does.
+A golden file does. A latency ceiling does. Anything defined in terms of
+one language's machinery does not, and cannot be one definition
+implemented six times however useful it is.
+
+Applied to the boundary cases:
+
+| Included | Why |
+|---|---|
+| Golden files | A file of expected output means the same thing everywhere |
+| Benchmark ceilings | A ceiling on latency is a check, and latency is universal |
+| `rejects` | It checks that a check can fail |
+
+| Excluded | Why |
+|---|---|
+| Controllable time, randomness and faults | They supply inputs rather than check outcomes |
+| Test doubles | Idioms differ too far to be one definition |
+| Anything reading a language's type system | Cannot be implemented six times |
+
+An assertion that passes both questions but whose arguments are not
+data is still in the set. It is checked for presence and tested by each
+language; see *Conformance*. Being hard to write a case for is not the
+same as being out of scope.
+
 ### The set
 
 Every assertion is required. A language that cannot implement one
