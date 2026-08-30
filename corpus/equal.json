@@ -1,0 +1,43 @@
+{
+  "assertion": "equal",
+  "cases": [
+    { "id": "equal/identical-ints",
+      "got":  {"type": "int", "value": 1},
+      "want": {"type": "int", "value": 1},
+      "expect": "pass" },
+
+    { "id": "equal/differing-ints",
+      "got":  {"type": "int", "value": 1},
+      "want": {"type": "int", "value": 2},
+      "expect": "fail",
+      "message_contains": ["want", "got"] },
+
+    { "id": "equal/null-list-vs-empty-list",
+      "got":  {"type": "list", "of": "int", "value": []},
+      "want": {"type": "null"},
+      "expect": "fail",
+      "message_contains": ["want", "got"] },
+
+    { "id": "equal/identical-empty-lists",
+      "got":  {"type": "list", "of": "int", "value": []},
+      "want": {"type": "list", "of": "int", "value": []},
+      "expect": "pass" },
+
+    { "id": "equal/identical-string-maps",
+      "got":  {"type": "map", "key": "string", "of": "int", "value": {"a": 1}},
+      "want": {"type": "map", "key": "string", "of": "int", "value": {"a": 1}},
+      "expect": "pass" },
+
+    { "id": "equal/nan-is-not-nan",
+      "got":  {"type": "float", "value": "NaN"},
+      "want": {"type": "float", "value": "NaN"},
+      "expect": "fail",
+      "message_contains": ["want", "got"] },
+
+    { "id": "equal/int-vs-string-no-coercion",
+      "got":  {"type": "int", "value": 1},
+      "want": {"type": "string", "value": "1"},
+      "expect": "fail",
+      "skip": {"go": "a type mismatch is a compile error under generics"} }
+  ]
+}

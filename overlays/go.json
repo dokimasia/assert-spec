@@ -1,0 +1,5 @@
+{
+  "extends": "spec://assertions@1.0.0-draft",
+  "language": "go",
+  "diverge": []
+}

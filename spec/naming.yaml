@@ -1,0 +1,10 @@
+# Assertion id to the name a user types. No user types an id.
+version: "1.0.0-draft"
+
+languages: [go, java, php, python, rust, typescript]
+
+names:
+  equal:
+    go: Equal
+  not-equal:
+    go: NotEqual

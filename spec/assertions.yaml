@@ -1,0 +1,18 @@
+# Canonical assertion definitions. Language-neutral.
+# arity counts required arguments to the function form, excluding the
+# failure seat and including the trailing message.
+version: "1.0.0-draft"
+
+assertions:
+  equal:
+    arity: 3
+    summary: >
+      Structural equality. A null collection does not equal an empty
+      one, no type coercion, NaN is unequal to itself, floats compare
+      exactly, cycles stop, functions compare by identity.
+    message_fields: [want, got]
+
+  not-equal:
+    arity: 3
+    summary: Negation of equal.
+    message_fields: [got]
