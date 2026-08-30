@@ -264,10 +264,18 @@ class Validator(unittest.TestCase):
         )
         self.assert_caught("which the naming table does not list")
 
-    def test_every_implementing_language_carries_an_overlay(self) -> None:
-        """Full compliance is stated, not assumed from a missing file."""
-        declared = {p.stem for p in (self.tree / "overlays").glob("*.json")}
-        self.assertEqual(declared, {"go", "python"})
+    def test_every_named_language_carries_an_overlay(self) -> None:
+        """Full compliance is stated, not assumed from a missing file.
+
+        A language earns an overlay once the naming table names its
+        assertions, because that is the point someone can implement it
+        and therefore the point they can fall short.
+        """
+        naming = json.loads((self.tree / "spec" / "naming.json").read_text())
+        named = {language for entry in naming["names"].values() for language in entry}
+        overlays = {p.stem for p in (self.tree / "overlays").glob("*.json")}
+
+        self.assertEqual(named - overlays, set(), "named with no overlay")
 
     def test_unreadable_json_is_reported_not_raised(self) -> None:
         """A broken file is a finding, not a traceback."""

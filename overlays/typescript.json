@@ -1,0 +1,18 @@
+{
+  "extends": "spec://assertions@1.0.0",
+  "language": "typescript",
+  "diverge": [
+    {
+      "id": "bench-max-allocs",
+      "stance": "blocked",
+      "why": "V8 exposes no per-iteration allocation count. Node offers heap totals through process.memoryUsage and v8.getHeapStatistics, and neither counts allocations, so there is no number to hold to a ceiling.",
+      "remedy": "A counter in V8's API, or a profiler sampling allocations, which is too slow to run per iteration."
+    },
+    {
+      "id": "bench-max-bytes",
+      "stance": "blocked",
+      "why": "Bytes allocated per iteration can only be read as a heap-usage delta, which moves with whether the collector ran. Measuring one unchanged body six times gave 43, -3, 43, -10, -10 and -8 bytes per iteration, so a ceiling set from one run fails the next for no reason.",
+      "remedy": "A per-iteration allocation total that does not depend on collector timing."
+    }
+  ]
+}
