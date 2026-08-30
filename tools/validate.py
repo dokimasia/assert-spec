@@ -113,9 +113,7 @@ def check_assertions(spec: Any, problems: Problems) -> set[str]:
             bool(str(body.get("summary", "")).strip()), where, "states no summary"
         )
         fields = body.get("message_fields", [])
-        problems.unless(
-            isinstance(fields, list), where, "message_fields is not a list"
-        )
+        problems.unless(isinstance(fields, list), where, "message_fields is not a list")
         package = body.get("package", "")
         problems.unless(
             package == "" or bool(ID.match(package)),
@@ -227,9 +225,11 @@ def check_case(case: Any, assertion: str, where: str, problems: Problems) -> str
     )
 
     args = case.get("args")
-    if problems.unless(isinstance(args, list), f"{where} [{cid}]", "states no args"):
+    if isinstance(args, list):
         for index, arg in enumerate(args):
             check_literal(arg, f"{where} [{cid}] arg {index}", problems)
+    else:
+        problems.at(f"{where} [{cid}]", "states no args")
 
     contains = case.get("message_contains", [])
     if problems.unless(
@@ -349,9 +349,7 @@ def check_overlays(
             problems.unless(
                 aid in assertions, where, f"diverges on {aid!r}, which is not defined"
             )
-            problems.unless(
-                aid not in seen, where, f"diverges on {aid!r} twice"
-            )
+            problems.unless(aid not in seen, where, f"diverges on {aid!r} twice")
             seen.add(str(aid))
 
             for field in ("stance", "why"):
@@ -376,7 +374,7 @@ def main() -> int:
     assertions = check_assertions(spec, problems)
     check_naming(naming, spec, assertions, problems)
     cases = check_corpus(assertions, problems)
-    check_overlays(assertions, set(naming.get('languages', [])), version, problems)
+    check_overlays(assertions, set(naming.get("languages", [])), version, problems)
 
     status = problems.report()
     if status == 0:

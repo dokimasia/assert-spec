@@ -20,7 +20,7 @@ import tempfile
 import unittest
 from collections.abc import Callable
 from pathlib import Path
-from typing import Any
+from typing import Any, final, override
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -35,9 +35,14 @@ def _edit(path: Path, change: Callable[[Any], Any]) -> None:
     path.write_text(json.dumps(change(document) or document, indent=2))
 
 
+@final
 class Validator(unittest.TestCase):
     """Each case breaks one rule and reads what the validator says."""
 
+    #: A scratch copy of the repository, broken one way per case.
+    tree: Path
+
+    @override
     def setUp(self) -> None:
         """Copy the repository somewhere it can be broken safely."""
         self.tree = Path(tempfile.mkdtemp(prefix="assert-spec-"))
@@ -261,9 +266,7 @@ class Validator(unittest.TestCase):
 
     def test_every_implementing_language_carries_an_overlay(self) -> None:
         """Full compliance is stated, not assumed from a missing file."""
-        declared = {
-            p.stem for p in (self.tree / "overlays").glob("*.json")
-        }
+        declared = {p.stem for p in (self.tree / "overlays").glob("*.json")}
         self.assertEqual(declared, {"go", "python"})
 
     def test_unreadable_json_is_reported_not_raised(self) -> None:
@@ -273,10 +276,12 @@ class Validator(unittest.TestCase):
 
     def test_every_problem_is_reported_in_one_run(self) -> None:
         """Fixing one problem at a time per run would be unusable."""
-        _edit(
-            self.tree / "spec" / "naming.json",
-            lambda d: [d["names"].pop("equal"), d["names"].pop("true")] and None,
-        )
+
+        def drop_two(document: Any) -> None:
+            document["names"].pop("equal")
+            document["names"].pop("true")
+
+        _edit(self.tree / "spec" / "naming.json", drop_two)
         result = self.run_validator()
         self.assertEqual(result.returncode, 1)
         self.assertIn("equal has no entry", result.stderr)

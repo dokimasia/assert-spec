@@ -10,10 +10,20 @@ artifacts/
 
 # Dependencies
 vendor/
+.venv/
+uv.lock
+__pycache__/
+.mypy_cache/
+.ruff_cache/
 
 # Editors and IDEs
 .idea/
 .vscode/
+
+# Zed: settings.json is the shared config that points basedpyright at
+# the venv and picks the formatter. Nothing else in .zed is.
+.zed/*
+!.zed/settings.json
 *.swp
 *.swo
 *~

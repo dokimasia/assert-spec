@@ -1,0 +1,61 @@
+# This repository ships no library. The project exists so uv can pin a
+# Python and the tools that render and check the definition, and so
+# anyone can run the same gate CI runs with one command.
+[project]
+name = "assert-spec-tools"
+version = "0.0.0"
+description = "Rendering and validation for the assert-spec definition"
+# Nothing consumes these tools as a library; they run on the Python
+# .python-version pins and nowhere else, so the floor is that.
+requires-python = ">=3.12"
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pyyaml>=6",
+    "types-PyYAML>=6",
+    "ruff>=0.6",
+    "mypy>=1.11",
+    "basedpyright>=1.19",
+]
+
+[tool.ruff]
+line-length = 88
+src = ["tools"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "SIM", "RUF", "D", "ANN", "PL"]
+# ANN401 bans Any. This code reads arbitrary decoded JSON and its
+# job is to decide whether that JSON is well formed, so Any is the
+# honest annotation for what comes back from json.loads.
+ignore = ["D203", "D213", "ANN401"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.mypy]
+files = ["tools"]
+python_version = "3.12"
+strict = true
+
+# Zed runs basedpyright by default. Without this it reads the system
+# Python, finds no yaml, and fills the editor with import errors that
+# the command line never shows.
+[tool.basedpyright]
+venvPath = "."
+venv = ".venv"
+typeCheckingMode = "recommended"
+reportAny = false
+reportExplicitAny = false
+reportUnknownArgumentType = false
+reportUnknownVariableType = false
+reportUnknownMemberType = false
+reportImplicitStringConcatenation = false
+# unittest sets fixtures in setUp, not __init__, which this rule
+# does not model. Every attribute it flags is annotated on the
+# class and assigned in setUp.
+reportUninitializedInstanceVariable = false
+reportUnusedCallResult = false
+
+[tool.uv]
+package = false

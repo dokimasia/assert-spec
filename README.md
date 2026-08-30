@@ -36,14 +36,17 @@ spec/naming.json       the same, rendered                 read by libraries
 spec/encoding.md       how a corpus case states a value
 spec/overlays.md       how a language declares it cannot comply
 corpus/*.json          70 cases in 17 files
-overlays/*.json        where a language declares a divergence
+overlays/*.json        one per language, declaring divergences
+tools/render.py        YAML to JSON
+tools/validate.py      the rules, checked
 VERSION                1.0.0
 ```
 
 People edit the YAML. `make render` produces the JSON, which is
 committed and is what implementations read: every target language parses
 JSON from its standard library, and several would otherwise take a
-dependency just to read the definition.
+dependency just to read the definition. CI re-renders and fails if the
+result differs from what is committed.
 
 ## Assertions have ids, names come from a table
 
@@ -120,12 +123,21 @@ decision someone can argue with.
 
 ## Checking this repository
 
+Everything runs through [uv](https://docs.astral.sh/uv/), which fetches
+its own Python. Clone and run the gate; there is nothing else to
+install.
+
 ```sh
-make check      # render, staleness, validate, the validator's tests, markdownlint
+make install    # create the environment
+make check      # the full pre-merge gate
 make render     # rebuild the JSON from the YAML
 make validate   # hold the definition and corpus to their rules
 make test       # check the validator catches what it claims to
+make fmt        # format the tools
 ```
+
+`make lint-md` needs `markdownlint`, and falls back to `npx` when it is
+not on the path. Every other target needs only uv.
 
 `make validate` reads the rendered JSON, not the YAML, because that is
 what implementations read. It checks that the version files agree, that

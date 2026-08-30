@@ -15,34 +15,36 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
+      # Rendering compares against what is committed, so the diff has
+      # to be available. A shallow clone of one commit has no base to
+      # compare a pull request against either.
       - uses: actions/checkout@v6
-
-      - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          fetch-depth: 0
 
-      - name: Install yq
-        run: |
-          sudo wget -qO /usr/local/bin/yq \
-            https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
-          sudo chmod +x /usr/local/bin/yq
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      # uv reads .python-version and fetches that Python itself, so
+      # nothing here depends on what the runner ships.
+      - run: uv sync --extra dev
 
       - name: Install markdownlint
         run: npm install -g markdownlint-cli
 
-      # render, then fail if that changed anything; then the validator
-      # and its own tests, then the Markdown.
+      # render, fail on stale JSON, validate, run the validator's own
+      # tests, lint the tools and the Markdown.
       - run: make check
 
-      # A change to the definition that no implementation has adopted
-      # is the failure this repo exists to prevent. The implementations
-      # vendor these files, so a diff here is their problem too.
+      # The implementations vendor these files. A change here is their
+      # problem too, so say which ones on the pull request.
       - name: Report what an implementation would have to re-vendor
         if: github.event_name == 'pull_request'
         run: |
           git fetch --depth=1 origin "${{ github.base_ref }}"
           changed=$(git diff --name-only "origin/${{ github.base_ref }}" -- \
-            spec/ corpus/ VERSION)
+            spec/ corpus/ overlays/ VERSION)
           if [ -n "$changed" ]; then
             echo "::notice::implementations must re-vendor: $(echo "$changed" | tr '\n' ' ')"
           fi
