@@ -18,11 +18,11 @@ jobs:
       # Rendering compares against what is committed, so the diff has
       # to be available. A shallow clone of one commit has no base to
       # compare a pull request against either.
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - uses: astral-sh/setup-uv@v5
+      - uses: astral-sh/setup-uv@v10
         with:
           enable-cache: true
 
