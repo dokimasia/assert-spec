@@ -1,0 +1,48 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install yq
+        run: |
+          sudo wget -qO /usr/local/bin/yq \
+            https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+          sudo chmod +x /usr/local/bin/yq
+
+      - name: Install markdownlint
+        run: npm install -g markdownlint-cli
+
+      # render, then fail if that changed anything; then the validator
+      # and its own tests, then the Markdown.
+      - run: make check
+
+      # A change to the definition that no implementation has adopted
+      # is the failure this repo exists to prevent. The implementations
+      # vendor these files, so a diff here is their problem too.
+      - name: Report what an implementation would have to re-vendor
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch --depth=1 origin "${{ github.base_ref }}"
+          changed=$(git diff --name-only "origin/${{ github.base_ref }}" -- \
+            spec/ corpus/ VERSION)
+          if [ -n "$changed" ]; then
+            echo "::notice::implementations must re-vendor: $(echo "$changed" | tr '\n' ' ')"
+          fi

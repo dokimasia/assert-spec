@@ -10,7 +10,9 @@ a dependency to read the definition at all.
 
 Re-render after editing:
 
-    make render
+```sh
+make render
+```
 
 ## Quoting
 
