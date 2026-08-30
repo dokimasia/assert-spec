@@ -1,43 +1,201 @@
 {
   "assertion": "equal",
   "cases": [
-    { "id": "equal/identical-ints",
-      "got":  {"type": "int", "value": 1},
-      "want": {"type": "int", "value": 1},
-      "expect": "pass" },
-
-    { "id": "equal/differing-ints",
-      "got":  {"type": "int", "value": 1},
-      "want": {"type": "int", "value": 2},
+    {
+      "id": "equal/identical-ints",
+      "args": [
+        {
+          "type": "int",
+          "value": 1
+        },
+        {
+          "type": "int",
+          "value": 1
+        }
+      ],
+      "expect": "pass"
+    },
+    {
+      "id": "equal/differing-ints",
+      "args": [
+        {
+          "type": "int",
+          "value": 1
+        },
+        {
+          "type": "int",
+          "value": 2
+        }
+      ],
       "expect": "fail",
-      "message_contains": ["want", "got"] },
-
-    { "id": "equal/null-list-vs-empty-list",
-      "got":  {"type": "list", "of": "int", "value": []},
-      "want": {"type": "null"},
+      "message_contains": [
+        "want",
+        "got"
+      ]
+    },
+    {
+      "id": "equal/identical-strings",
+      "args": [
+        {
+          "type": "string",
+          "value": "a"
+        },
+        {
+          "type": "string",
+          "value": "a"
+        }
+      ],
+      "expect": "pass"
+    },
+    {
+      "id": "equal/null-against-empty-list",
+      "args": [
+        {
+          "type": "list",
+          "of": "int",
+          "value": []
+        },
+        {
+          "type": "null"
+        }
+      ],
       "expect": "fail",
-      "message_contains": ["want", "got"] },
-
-    { "id": "equal/identical-empty-lists",
-      "got":  {"type": "list", "of": "int", "value": []},
-      "want": {"type": "list", "of": "int", "value": []},
-      "expect": "pass" },
-
-    { "id": "equal/identical-string-maps",
-      "got":  {"type": "map", "key": "string", "of": "int", "value": {"a": 1}},
-      "want": {"type": "map", "key": "string", "of": "int", "value": {"a": 1}},
-      "expect": "pass" },
-
-    { "id": "equal/nan-is-not-nan",
-      "got":  {"type": "float", "value": "NaN"},
-      "want": {"type": "float", "value": "NaN"},
+      "message_contains": [
+        "want",
+        "got"
+      ]
+    },
+    {
+      "id": "equal/null-against-empty-map",
+      "args": [
+        {
+          "type": "map",
+          "key": "string",
+          "of": "int",
+          "value": {}
+        },
+        {
+          "type": "null"
+        }
+      ],
       "expect": "fail",
-      "message_contains": ["want", "got"] },
-
-    { "id": "equal/int-vs-string-no-coercion",
-      "got":  {"type": "int", "value": 1},
-      "want": {"type": "string", "value": "1"},
+      "message_contains": [
+        "want",
+        "got"
+      ]
+    },
+    {
+      "id": "equal/two-empty-lists",
+      "args": [
+        {
+          "type": "list",
+          "of": "int",
+          "value": []
+        },
+        {
+          "type": "list",
+          "of": "int",
+          "value": []
+        }
+      ],
+      "expect": "pass"
+    },
+    {
+      "id": "equal/equal-maps",
+      "args": [
+        {
+          "type": "map",
+          "key": "string",
+          "of": "int",
+          "value": {
+            "a": 1
+          }
+        },
+        {
+          "type": "map",
+          "key": "string",
+          "of": "int",
+          "value": {
+            "a": 1
+          }
+        }
+      ],
+      "expect": "pass"
+    },
+    {
+      "id": "equal/int-against-string",
+      "args": [
+        {
+          "type": "int",
+          "value": 1
+        },
+        {
+          "type": "string",
+          "value": "1"
+        }
+      ],
       "expect": "fail",
-      "skip": {"go": "a type mismatch is a compile error under generics"} }
+      "message_contains": [
+        "want",
+        "got"
+      ],
+      "skip": {
+        "go": "the type parameter refuses a mismatch at compile time; the runner drives the dynamic form"
+      }
+    },
+    {
+      "id": "equal/zero-against-false",
+      "args": [
+        {
+          "type": "int",
+          "value": 0
+        },
+        {
+          "type": "bool",
+          "value": false
+        }
+      ],
+      "expect": "fail",
+      "message_contains": [
+        "want",
+        "got"
+      ]
+    },
+    {
+      "id": "equal/nan-against-itself",
+      "args": [
+        {
+          "type": "float",
+          "value": "NaN"
+        },
+        {
+          "type": "float",
+          "value": "NaN"
+        }
+      ],
+      "expect": "fail",
+      "message_contains": [
+        "want",
+        "got"
+      ]
+    },
+    {
+      "id": "equal/floats-compare-exactly",
+      "args": [
+        {
+          "type": "float",
+          "value": 0.30000000000000004
+        },
+        {
+          "type": "float",
+          "value": 0.3
+        }
+      ],
+      "expect": "fail",
+      "message_contains": [
+        "want",
+        "got"
+      ]
+    }
   ]
 }
