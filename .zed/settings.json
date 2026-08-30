@@ -1,0 +1,31 @@
+{
+  "languages": {
+    "Python": {
+      "language_servers": ["basedpyright", "ruff"],
+      "format_on_save": "on",
+      "formatter": [
+        { "code_actions": { "source.organizeImports.ruff": true } },
+        { "language_server": { "name": "ruff" } }
+      ],
+      "preferred_line_length": 88
+    },
+    "JSON": {
+      "format_on_save": "off"
+    },
+    "YAML": {
+      "tab_size": 2
+    }
+  },
+  "lsp": {
+    "basedpyright": {
+      "settings": {
+        "python": {
+          "pythonPath": ".venv/bin/python"
+        }
+      }
+    }
+  },
+  "file_types": {
+    "JSON": ["corpus/*.json", "overlays/*.json", "spec/*.json"]
+  }
+}
