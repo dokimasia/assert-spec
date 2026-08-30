@@ -1,0 +1,60 @@
+name: Propose an assertion
+description: Add something to the set of 41.
+labels: ["assertion", "standard"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Every assertion added here has to be implemented in every
+        language, so the bar is deliberately high. Two questions decide
+        it, and the second is the one that usually says no.
+
+  - type: input
+    id: name
+    attributes:
+      label: A canonical id
+      description: Lowercase, hyphenated. No user ever types it.
+      placeholder: matches-schema
+    validations:
+      required: true
+
+  - type: textarea
+    id: states
+    attributes:
+      label: Does it state something that must be true, and fail when it is not?
+      description: >
+        A helper that formats a value or builds a fixture is not an
+        assertion. Say what a failure would report.
+    validations:
+      required: true
+
+  - type: textarea
+    id: universal
+    attributes:
+      label: Does it mean the same thing in every target language?
+      description: >
+        Go, Java, PHP, Python, Rust and TypeScript. An assertion that
+        needs a language feature only some of them have is a helper for
+        those languages, and helpers live in the libraries. Answer for
+        each language you can, and say which you are unsure about.
+    validations:
+      required: true
+
+  - type: textarea
+    id: existing
+    attributes:
+      label: Why the existing 41 do not cover it
+      description: >
+        `pairwise` covers sorted, unique and strictly increasing between
+        them, so a proposal for any of those needs to say what it adds.
+    validations:
+      required: true
+
+  - type: textarea
+    id: corpus
+    attributes:
+      label: Can its arguments be stated as data?
+      description: >
+        If they can, the corpus covers it and cases should come with the
+        proposal. If they cannot, say so: it goes in the set with the
+        other twenty-four that only the completeness gate reaches.

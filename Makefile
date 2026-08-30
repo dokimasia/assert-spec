@@ -1,7 +1,7 @@
 # Everything runs through uv, which fetches its own Python. A clone and
 # `make check` is the whole setup; nothing here needs a system Python,
 # a yq binary or a global pip install.
-.PHONY: help install render stale validate test fmt lint lint-md check
+.PHONY: help install render stale validate forms test fmt lint lint-md check
 
 help: ## Show this help
 	@grep -hE '^[a-z-]+:.*?##' $(MAKEFILE_LIST) | sort | \
@@ -20,6 +20,9 @@ stale: ## Fail when the rendered JSON does not match the YAML
 
 validate: ## Hold the definition, the corpus and the overlays to their rules
 	@uv run python tools/validate.py
+
+forms: ## Check the issue forms are ones GitHub will render
+	@uv run python tools/issue_forms.py
 
 test: ## Check the validator catches the faults it claims to
 	@uv run python -m unittest discover -q -s tools -p '*_test.py'
@@ -44,5 +47,5 @@ lint-md: ## Lint the Markdown
 	fi
 	@echo "lint-md: markdown is clean"
 
-check: render stale validate test lint lint-md ## The full pre-merge gate
+check: render stale validate forms test lint lint-md ## The full pre-merge gate
 	@echo "spec: every stage passed"

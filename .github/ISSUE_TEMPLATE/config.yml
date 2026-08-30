@@ -1,0 +1,14 @@
+blank_issues_enabled: true
+contact_links:
+  - name: An assertion misbehaves in Go
+    url: https://github.com/dokimasia/assert-go/issues/new/choose
+    about: >
+      A library that gets an assertion wrong is that library's bug.
+      File here only when the standard itself is unclear about what
+      the assertion should do.
+  - name: An assertion misbehaves in Python
+    url: https://github.com/dokimasia/assert-python/issues/new/choose
+    about: As above.
+  - name: An assertion misbehaves in TypeScript
+    url: https://github.com/dokimasia/assert-typescript/issues/new/choose
+    about: As above.

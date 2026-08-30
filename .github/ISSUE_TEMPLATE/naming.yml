@@ -1,0 +1,47 @@
+name: A name is wrong for a language
+description: The naming table calls something by a name that language would not.
+labels: ["naming", "standard"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ids are canonical and names are per language, so this changes
+        one column and nothing else. A name that reads as a translation
+        is exactly what the split exists to avoid.
+
+  - type: input
+    id: assertion
+    attributes:
+      label: Which assertion
+      description: The canonical id.
+      placeholder: throws
+    validations:
+      required: true
+
+  - type: dropdown
+    id: language
+    attributes:
+      label: Which language
+      options: ["go", "java", "php", "python", "rust", "typescript"]
+    validations:
+      required: true
+
+  - type: input
+    id: proposed
+    attributes:
+      label: The name it should have
+      placeholder: doesNotThrow
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: What that language already calls this
+      description: >
+        The strongest argument is prior art: the standard library, the
+        dominant test framework, or a convention everyone follows.
+      placeholder: >
+        node:assert calls the pair throws and doesNotThrow.
+    validations:
+      required: true

@@ -1,0 +1,42 @@
+name: Add a language
+description: Propose a new target language for the standard.
+labels: ["language", "standard"]
+body:
+  - type: input
+    id: language
+    attributes:
+      label: Which language
+    validations:
+      required: true
+
+  - type: textarea
+    id: names
+    attributes:
+      label: What would the 41 be called?
+      description: >
+        A column in the naming table is the first thing a new language
+        needs, and working it out surfaces the assertions that do not
+        translate. A partial list is fine; say which ones you got stuck
+        on.
+    validations:
+      required: true
+
+  - type: textarea
+    id: diverge
+    attributes:
+      label: Which assertions could it not supply, and why?
+      description: >
+        Every language so far has needed an overlay or shown it needed
+        none. TypeScript cannot count allocations per iteration, for
+        instance. Guessing now is cheaper than finding out late.
+    validations:
+      required: true
+
+  - type: textarea
+    id: seam
+    attributes:
+      label: What is the failure seam, and the cancellation handle?
+      description: >
+        Go reports through testing.TB and cancels with context.Context.
+        Python uses a Protocol and asyncio. TypeScript uses an interface
+        and AbortSignal. What are the equivalents here?

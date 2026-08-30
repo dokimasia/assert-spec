@@ -1,0 +1,59 @@
+name: A corpus case is wrong or missing
+description: What an assertion must report is stated wrongly, or not at all.
+labels: ["corpus", "standard"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The corpus is what every implementation runs, so a change here
+        changes all of them. That is the point, and it is also why the
+        argument belongs here rather than in one library.
+
+  - type: input
+    id: assertion
+    attributes:
+      label: Which assertion
+      description: The canonical id.
+      placeholder: equal
+    validations:
+      required: true
+
+  - type: input
+    id: case
+    attributes:
+      label: Which case
+      description: Its id, or "none" when the case is missing.
+      placeholder: equal/null-against-empty-list
+    validations:
+      required: true
+
+  - type: textarea
+    id: says
+    attributes:
+      label: What it says now, and what it should say
+      description: >
+        The case as JSON, if you have it. `spec/encoding.md` describes
+        the typed literals.
+      render: json
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why
+      description: >
+        An argument from what a test author would reasonably expect,
+        not from what one language does. Every implementation has to
+        follow this.
+    validations:
+      required: true
+
+  - type: textarea
+    id: breaks
+    attributes:
+      label: Which implementations does this change?
+      description: >
+        A change to an existing case is a major version, because it
+        changes whether a test that passes today still means what its
+        author meant. Say which libraries would have to change.
