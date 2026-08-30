@@ -22,7 +22,9 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: astral-sh/setup-uv@v10
+      # Pinned exactly: setup-uv stopped publishing moving major
+      # tags at v8, so a bare @v10 does not resolve.
+      - uses: astral-sh/setup-uv@v10.0.1
         with:
           enable-cache: true
 
