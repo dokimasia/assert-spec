@@ -167,11 +167,22 @@ whether an existing test still states what its author meant.
 | Language | Repository | Assertions |
 |---|---|---|
 | Go | [assert-go](https://github.com/dokimasia/assert-go) | 41 of 41 |
+| Java | [assert-java](https://github.com/dokimasia/assert-java) | 40 of 41 |
+| Kotlin | [assert-java](https://github.com/dokimasia/assert-java) | 40 of 41 |
 | Python | [assert-python](https://github.com/dokimasia/assert-python) | 41 of 41 |
+| TypeScript | [assert-typescript](https://github.com/dokimasia/assert-typescript) | 39 of 41 |
 
-Java, PHP, Rust and TypeScript are declared as target languages. The
-naming table carries no names for them yet, so adding one starts by
-filling that column.
+Java and Kotlin ship from one repository and are named identically, so
+a test reads the same in both. Neither states a ceiling on allocation
+count, because the JVM reports bytes allocated per thread and no count
+of allocations. TypeScript states neither allocation ceiling, because
+V8 answers only as a heap-usage delta that moves with whether the
+collector ran. Each gap is in that language's overlay with the
+measurement behind it.
+
+PHP and Rust are declared as target languages and the naming table
+carries no names for them yet, so adding one starts by filling that
+column.
 
 The argument behind the design is in
 [docs/rfc/0001-the-standardized-assertion-set.md](docs/rfc/0001-the-standardized-assertion-set.md).
