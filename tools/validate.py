@@ -314,6 +314,11 @@ def check_overlays(
     is that a gap nobody could close and a gap nobody got to look
     identical unless someone writes down which it is, so an entry with
     no reason defeats it and fails here.
+
+    A limit is the third state: the assertion is implemented, and there
+    is a case it cannot see. It carries id, what and why, and an
+    assertion cannot be both, because a divergence must be absent and a
+    limit must be present.
     """
     for path in sorted((ROOT / "overlays").glob("*.json")):
         where = str(path.relative_to(ROOT))
@@ -339,6 +344,24 @@ def check_overlays(
             f"declares {language!r}, which the naming table does not list",
         )
 
+        limits = overlay.get("limits", [])
+        if problems.unless(isinstance(limits, list), where, "limits is not a list"):
+            for entry in limits:
+                if not problems.unless(
+                    isinstance(entry, dict), where, f"limit {entry!r} is not an object"
+                ):
+                    continue
+                aid = entry.get("id")
+                problems.unless(
+                    aid in assertions, where, f"limits {aid!r}, which is not defined"
+                )
+                for field in ("what", "why"):
+                    problems.unless(
+                        bool(str(entry.get(field, "")).strip()),
+                        where,
+                        f"limits {aid!r} with no {field}",
+                    )
+
         diverge = overlay.get("diverge", [])
         if not problems.unless(
             isinstance(diverge, list), where, "diverge is not a list"
@@ -358,6 +381,12 @@ def check_overlays(
             )
             problems.unless(aid not in seen, where, f"diverges on {aid!r} twice")
             seen.add(str(aid))
+            problems.unless(
+                aid not in {e.get("id") for e in limits if isinstance(e, dict)},
+                where,
+                f"{aid!r} is both diverged from and limited; it is one or "
+                "the other, since a divergence is absent and a limit is not",
+            )
 
             for field in ("stance", "why"):
                 problems.unless(

@@ -224,6 +224,37 @@ class Validator(unittest.TestCase):
         )
         self.assert_caught("diverges on 'invented'")
 
+    def test_a_limit_with_no_reason_is_caught(self) -> None:
+        """A limit is a claim about what a check misses, so it needs one."""
+        _edit(
+            self.tree / "overlays" / "java.json",
+            lambda d: d.update(
+                limits=[{"id": "no-task-leaks", "what": "misses things", "why": ""}]
+            ),
+        )
+        self.assert_caught("with no why")
+
+    def test_a_limit_on_an_unknown_assertion_is_caught(self) -> None:
+        """A language cannot limit something nobody defined."""
+        _edit(
+            self.tree / "overlays" / "java.json",
+            lambda d: d.update(
+                limits=[{"id": "invented", "what": "misses things", "why": "stated"}]
+            ),
+        )
+        self.assert_caught("which is not defined")
+
+    def test_diverging_and_limiting_the_same_assertion_is_caught(self) -> None:
+        """A divergence must be absent and a limit must be present."""
+        _edit(
+            self.tree / "overlays" / "java.json",
+            lambda d: d.update(
+                diverge=[{"id": "equal", "stance": "blocked", "why": "stated"}],
+                limits=[{"id": "equal", "what": "misses things", "why": "stated"}],
+            ),
+        )
+        self.assert_caught("is both diverged from and limited")
+
     def test_a_divergence_with_no_reason_is_caught(self) -> None:
         """A divergence is the one thing that most needs explaining."""
         _edit(

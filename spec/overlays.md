@@ -35,6 +35,27 @@ something nobody checked.
 A divergence carries `id`, `stance` and `why`. `remedy` is optional and
 says what would close the gap.
 
+## Limits
+
+A divergence says an assertion is absent. A limit says it is there and
+there is a case it cannot see, which is a different thing and worth
+telling apart.
+
+```json
+"limits": [
+  {
+    "id": "no-task-leaks",
+    "what": "Sees platform threads. A leaked virtual thread is not reported.",
+    "why": "Virtual threads appear in no standard enumeration on any JVM version."
+  }
+]
+```
+
+`what` is written for someone deciding whether to rely on the check:
+say what it does see, then what it does not. An assertion cannot be
+both diverged from and limited, because a divergence has to be absent
+and a limit has to be present.
+
 `why` is the whole point. A gap nobody could close and a gap nobody got
 to look the same from outside, and only the reason tells them apart.
 Write it for someone deciding whether to depend on the library.

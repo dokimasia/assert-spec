@@ -8,5 +8,12 @@
       "why": "The JVM exposes bytes allocated per thread through com.sun.management.ThreadMXBean, but no count of allocations. JFR samples allocation events rather than counting them, so a per-iteration total is an estimate that changes with the sampling rate.",
       "remedy": "A counter alongside getThreadAllocatedBytes. bench-max-bytes is implemented, and holds a ceiling on the same behaviour by weight rather than by count."
     }
+  ],
+  "limits": [
+    {
+      "id": "no-task-leaks",
+      "what": "Sees coroutines launched in the scope, and the platform threads the Java artifact sees. A leaked virtual thread is not reported.",
+      "why": "A coroutine is tracked through its Job, which is why the Kotlin artifact supplies this rather than inheriting it. Virtual threads appear in no standard enumeration on any JVM version."
+    }
   ]
 }

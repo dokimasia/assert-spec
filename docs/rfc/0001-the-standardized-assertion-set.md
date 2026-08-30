@@ -353,6 +353,14 @@ records the divergence. An assertion missing without a matching entry
 fails the build. An entry naming an assertion the library does implement
 also fails the build, so a library cannot claim a gap it does not have.
 
+An overlay also records a limit, which is the third state: the
+assertion is there and there is a case it cannot see. Java's
+`no-task-leaks` catches a leaked platform thread and cannot catch a
+leaked virtual one, because virtual threads appear in no standard
+enumeration. Absent and partial are different answers to someone
+deciding whether to rely on a check, and an assertion is one or the
+other, never both.
+
 ```mermaid
 flowchart TD
     A[Gate reads assertions.yaml] --> B{Member present<br/>under mapped name?}

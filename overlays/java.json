@@ -8,5 +8,12 @@
       "why": "The JVM exposes bytes allocated per thread through com.sun.management.ThreadMXBean, but no count of allocations. JFR samples allocation events rather than counting them, so a per-iteration total is an estimate that changes with the sampling rate.",
       "remedy": "A counter alongside getThreadAllocatedBytes. bench-max-bytes is implemented, and holds a ceiling on the same behaviour by weight rather than by count."
     }
+  ],
+  "limits": [
+    {
+      "id": "no-task-leaks",
+      "what": "Sees platform threads and executor threads. A leaked virtual thread is not reported.",
+      "why": "Virtual threads appear in no standard enumeration. Thread.getAllStackTraces does not contain them, and ThreadMXBean counts their carrier threads instead, which is noise rather than signal."
+    }
   ]
 }
