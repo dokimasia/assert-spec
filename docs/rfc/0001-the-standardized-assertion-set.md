@@ -334,8 +334,7 @@ Emit signatures and doc comments per language, and hand-write only the
 comparison logic.
 
 **Why not:** it needs a code generator per language, six formatter
-integrations, and a build step in every repository, for about 38
-assertions. The completeness gate gets the same guarantee about names and
+integrations, and a build step in every repository, for 41 assertions. The completeness gate gets the same guarantee about names and
 arity from roughly 50 lines of reflection per language, with no generated
 code to review.
 
@@ -372,18 +371,22 @@ major bump leaves the libraries at different versions until the last
 catches up.
 
 **The corpus tests what it states, and nothing else.** An assertion can
-be wrong in a way no case covers. The 38 assertions need cases for their
+be wrong in a way no case covers. All 41 assertions need cases for their
 edge conditions, and a case nobody wrote is a gap nobody sees.
 
-**Three assertion groups are gate-checked but not corpus-checked.**
-`no-task-leaks`, the four benchmark ceilings and the three golden-file
-assertions cannot be expressed as corpus cases, so eight of the 38 rest
-on per-language tests written to per-language judgement.
+**More than half the set is gate-checked but not corpus-checked.** A
+case states its arguments as data, so it reaches only the assertions
+whose arguments are data: 17 of the 41. The other 24 take a callable, a
+cancellation handle, a predicate, a golden file or a benchmark, and rest
+on per-language tests written to per-language judgement. An
+implementation is held to the standard on meaning where meaning can be
+stated, and on membership everywhere else.
 
-**Two namespaces double the public surface.** Each namespace declares 38
-functions and 38 chain methods, and there are two of them, plus one chain
-type. That comes to about 150 public members per library before anything
-language-specific.
+**Two namespaces double the public surface.** Each namespace declares a
+function per assertion, and a chain method for every assertion whose
+first argument is the value being held. In Go that came to 34 functions
+and 15 methods per namespace, so about 100 public members before
+anything language-specific.
 
 **Declared divergence is only as honest as the reviewer.** A library can
 declare a divergence it could have implemented, and the gate cannot tell
@@ -405,7 +408,7 @@ reason field. CI does not check it.
 
 ## Unresolved and future work
 
-Extending the set beyond these 38 assertions is not proposed here.
+Extending the set beyond these 41 assertions is not proposed here.
 
 A cross-language view showing which library implements which assertion,
 built from the recorded divergences, is not proposed here. The
