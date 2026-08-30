@@ -9,83 +9,124 @@ languages: [go, java, php, python, rust, typescript]
 names:
   "equal":
     go: "Equal"
+    python: "equal"
   "not-equal":
     go: "NotEqual"
+    python: "not_equal"
   "true":
     go: "True"
+    python: "is_true"
   "false":
     go: "False"
+    python: "is_false"
   "nil":
     go: "Nil"
+    python: "is_none"
   "not-nil":
     go: "NotNil"
+    python: "is_not_none"
   "length":
     go: "Length"
+    python: "length"
   "empty":
     go: "Empty"
+    python: "is_empty"
   "not-empty":
     go: "NotEmpty"
+    python: "is_not_empty"
   "contains":
     go: "Contains"
+    python: "contains"
   "not-contains":
     go: "NotContains"
+    python: "not_contains"
   "contains-in-order":
     go: "ContainsInOrder"
+    python: "contains_in_order"
   "has-prefix":
     go: "HasPrefix"
+    python: "has_prefix"
   "has-suffix":
     go: "HasSuffix"
+    python: "has_suffix"
   "matches":
     go: "Matches"
+    python: "matches"
   "close-to":
     go: "CloseTo"
+    python: "close_to"
   "in-range":
     go: "InRange"
+    python: "in_range"
   "pairwise":
     go: "Pairwise"
+    python: "pairwise"
   "err-absent":
     go: "NoError"
+    python: "no_error"
   "err-present":
     go: "HasError"
+    python: "has_error"
   "err-is":
     go: "ErrorIs"
+    python: "error_is"
   "err-is-not":
     go: "ErrorIsNot"
+    python: "error_is_not"
   "err-as":
     go: "ErrorAs"
+    python: "error_as"
   "throws":
     go: "Panics"
+    python: "raises"
   "not-throws":
     go: "NotPanics"
+    python: "does_not_raise"
   "honours-cancellation":
     go: "HonoursCancellation"
+    python: "honours_cancellation"
   "honours-deadline":
     go: "HonoursDeadline"
+    python: "honours_deadline"
   "completes-within":
     go: "CompletesWithin"
+    python: "completes_within"
   "pure":
     go: "Pure"
+    python: "is_pure"
   "nil-context-safe":
     go: "NilContextSafe"
+    python: "none_handle_safe"
   "eventually":
     go: "Eventually"
+    python: "eventually"
   "eventually-true":
     go: "EventuallyTrue"
+    python: "eventually_true"
   "no-task-leaks":
     go: "NoGoroutineLeaks"
+    python: "no_task_leaks"
   "golden-match":
     go: "golden.Match"
+    python: "golden.match"
   "golden-match-at":
     go: "golden.MatchAt"
+    python: "golden.match_at"
   "golden-match-json-field":
     go: "golden.MatchJSONField"
+    python: "golden.match_json_field"
   "bench-max-latency":
     go: "bench.Contract.MaxLatency"
+    python: "bench.Contract.max_latency"
   "bench-max-mean":
     go: "bench.Contract.MaxMean"
+    python: "bench.Contract.max_mean"
   "bench-max-allocs":
     go: "bench.Contract.MaxAllocs"
+    python: "bench.Contract.max_allocs"
   "bench-max-bytes":
     go: "bench.Contract.MaxBytes"
+    python: "bench.Contract.max_bytes"
   "rejects":
     go: "Rejects"
+    python: "rejects"
