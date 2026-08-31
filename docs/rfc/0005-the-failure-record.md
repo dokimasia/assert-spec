@@ -91,11 +91,11 @@ rather than words:
 | `nil` | `[nil]` | `[got]` |
 | `length` | `[length]` | `[want, got]` |
 | `in-range` | `[range]` | `[got, low, high]` |
-| `close-to` | `[want, got]` | `[got, want, tolerance]` |
+| `close-to` | `[within]` | `[got, want, tolerance]` |
 | `throws` | `[panic]` | `[]` |
 
-Some are already names and carry over. The rest were words, and each
-becomes the values the failure actually holds.
+Two of them read as names already and carry over. The rest were words,
+and each becomes the values the failure holds.
 
 An assertion may declare no fields. `true` and `false` report the
 contract alone, which is what the definition already says about them.

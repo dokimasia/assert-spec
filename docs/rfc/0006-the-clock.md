@@ -38,8 +38,7 @@ slept for the whole ceiling and then joined it, so a call with a ten
 second ceiling took ten seconds whether the body returned at once or not.
 The behaviour suite went from 10.06 seconds to 0.06 once the watcher
 waited on a condition instead. Nothing about that mistake is specific to
-Rust; sleeping is simply what the platform offers when a library has no
-clock of its own.
+Rust. A library with no clock of its own has sleeping and little else.
 
 The other reason is that some relations cannot be stated at all without
 one. Whether an entry stops being readable once its lifetime has elapsed
@@ -179,9 +178,10 @@ A controlled clock is only as useful as the subject's cooperation. A test
 whose subject calls the platform clock directly gets no benefit and may
 get confusion, and nothing here detects that.
 
-Five implementations gain a type they did not have. Go and Rust already
-have one in a neighbouring project and can port it; the other three write
-it.
+Five implementations gain a type they did not have. One design exists to
+copy, in a Go project next door, and the other four write their own from
+it. Rust has a controlled clock available in tokio, but the core crate is
+synchronous and does not depend on tokio, so it gets no help there.
 
 ## Unresolved and future work
 
