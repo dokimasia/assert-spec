@@ -187,35 +187,65 @@ how a test reads what happened. `scrub_timestamps` and `should_update`
 are how a golden file is used at all. None is named, so each
 implementation invented its own.
 
-They have already diverged. Every implementation but one calls the seam
-`Seat` with members `helper`, `fail` and `record`. Go calls it `TB` with
-`Helper`, `Fatalf` and `Errorf`.
+They have already diverged, and the differences are of two kinds.
 
-Go is right to. Naming it `TB` with those members is what lets a
-`*testing.T` satisfy it without a wrapper, and inventing `Seat` there
-would make every caller adapt the thing their test framework already
-hands them. That is a language earning its own answer, which is what the
-overlay records everywhere else.
+Every implementation but one calls the seam `Seat` with members `helper`,
+`fail` and `record`. Go calls it `TB` with `Helper`, `Fatalf` and
+`Errorf`, and Go is right to: those are the members of `testing.TB`, so a
+`*testing.T` satisfies the seam with no adapter and a caller writes
+`assert.Equal(t, ...)`. Renaming it would make every Go caller wrap the
+thing their framework already handed them.
 
-Nothing records it here, because the table has no row to disagree with.
-An implementation that renamed `Recorder` tomorrow would break no gate
-and fail no test.
+Go also ships one seat where the others ship three. It has `Recorder` and
+no `Standard` or `Collector`, because `*testing.T` is already both:
+`Fatalf` stops the test and `Errorf` records and carries on. A `Standard`
+in Go would be a type nobody would choose over `t`.
 
-So the table gains what a user types beyond the assertions:
+Those are differences a language earned. Set beside them, Go's `Recorder`
+answers `Msg` and `Errors` where the others answer `message` and
+`messages`. Nothing in Go requires that. It is a different word for the
+same thing, chosen once and never reconciled, and it is the kind of
+difference that makes a test unportable for no gain.
+
+The standard has no way to tell those two apart, because it names
+neither.
+
+### Converging, and what that means
+
+The table gains what a user types beyond the assertions:
 
 | Section | What it names |
 |---|---|
-| `types` | The seam, the three seats, and each supporting type |
+| `types` | The seam, the seats, and each supporting type |
 | `members` | What those types answer: `fail`, `record`, `flush`, `message` |
 | `helpers` | Free functions beside the assertions, such as the scrubbers |
 
-Each row works as the assertion rows do. A language naming something
-differently states its name, and a language that has no equivalent
-declares it absent in the overlay with a reason. Go's `TB` becomes a
-recorded answer instead of an unrecorded difference.
+Three rules, and they are strict.
+
+**The capability set is not optional.** Every implementation offers a
+seat that stops, a seat that records and carries on, and a seat a test
+can read. An implementation missing one fails the gate. It may not
+declare that absent in an overlay, because a language with no way to
+record a failure cannot carry the recording surface either, and the
+surface is not optional.
+
+**Who provides it is a language's answer.** A row may name a type the
+language's own test framework supplies. Go names `testing.T` for the
+first two seats and its own `Recorder` for the third, and that is
+conformant rather than divergent. The gate checks the capability is
+reachable under the name given, not that this library ships it.
+
+**A spelling difference needs a reason.** A language names a member
+differently where its conventions require it, and `Fatalf` against `fail`
+is such a case. `Msg` against `message` is not, and under this it
+converges.
+
+That last rule is the one with teeth, and the one that costs something.
+It means going back through five implementations and reconciling names
+that were picked independently and have been fine.
 
 This is also what makes a future addition checkable on the day it lands.
-A clock is a type with three members, and putting it in the table is what
+A clock is a type with three members. Putting it in the table is what
 turns "we agreed to add a clock" into something a gate can fail on.
 
 ### The gate checks shape, not only a name
@@ -300,8 +330,13 @@ a passing and a failing case, and several need more than one of each.
 
 Naming the whole surface roughly doubles the table too, and every row is
 a commitment. A member named in the table cannot be renamed without a
-version, which is a constraint the implementations have not been under
-and will notice.
+version, which is a constraint the implementations have not been under.
+
+Converging the gratuitous differences is a breaking change to four of the
+five libraries, and the reconciling is judgement rather than mechanism.
+Whether `Fatalf` is earned and `Msg` is not is an argument each pair of
+names has to have, and the standard states the rule rather than settling
+every case in advance.
 
 ## Unresolved and future work
 
