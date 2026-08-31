@@ -313,6 +313,56 @@ class Validator(unittest.TestCase):
 
         self.assertEqual(named - overlays, set(), "named with no overlay")
 
+    def test_an_assertion_accepting_an_unknown_relaxation_is_caught(self) -> None:
+        """A relaxation an assertion names has to be one the spec states."""
+        _edit(
+            self.tree / "spec" / "assertions.json",
+            lambda d: d["assertions"]["equal"].update(relaxations=["equate-invented"]),
+        )
+        self.assert_caught("unknown relaxation")
+
+    def test_a_relaxation_with_no_summary_is_caught(self) -> None:
+        """A relaxation nobody described is one nobody can implement."""
+        _edit(
+            self.tree / "spec" / "assertions.json",
+            lambda d: d["relaxations"]["equate-nans"].update(summary="  "),
+        )
+        self.assert_caught("has no summary")
+
+    def test_a_relaxation_the_naming_table_misses_is_caught(self) -> None:
+        """A relaxation with no name is one a caller cannot type."""
+        _edit(
+            self.tree / "spec" / "naming.json",
+            lambda d: d["relaxations"].pop("equate-nans"),
+        )
+        self.assert_caught("names no relaxation")
+
+    def test_a_name_for_an_undeclared_relaxation_is_caught(self) -> None:
+        """The two tables are edited apart, so each is held to the other."""
+        _edit(
+            self.tree / "spec" / "naming.json",
+            lambda d: d["relaxations"].update({"equate-invented": {"go": "Invented"}}),
+        )
+        self.assert_caught("which the definition does not state")
+
+    def test_an_overlay_dropping_an_unknown_relaxation_is_caught(self) -> None:
+        """A language cannot decline something nobody defined."""
+        _edit(
+            self.tree / "overlays" / "rust.json",
+            lambda d: d.update(
+                relaxations=[{"id": "equate-invented", "why": "stated"}]
+            ),
+        )
+        self.assert_caught("which is not defined")
+
+    def test_an_overlay_dropping_a_relaxation_with_no_reason_is_caught(self) -> None:
+        """Declining a relaxation is a claim, so it carries its reason."""
+        _edit(
+            self.tree / "overlays" / "rust.json",
+            lambda d: d.update(relaxations=[{"id": "equate-nans", "why": ""}]),
+        )
+        self.assert_caught("with no why")
+
     def test_unreadable_json_is_reported_not_raised(self) -> None:
         """A broken file is a finding, not a traceback."""
         (self.tree / "corpus" / "equal.json").write_text("{not json")

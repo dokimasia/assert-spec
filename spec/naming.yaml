@@ -295,3 +295,19 @@ names:
     typescript: "rejects"
     java: "rejects"
     kotlin: "rejects"
+
+# What each language calls the relaxations. A language declaring one
+# absent in its overlay carries no name for it.
+relaxations:
+  "equate-empty":
+    go: "EquateEmpty"
+    java: "Option.EQUATE_EMPTY"
+    kotlin: "Option.EQUATE_EMPTY"
+    python: "equate_empty"
+    typescript: "equateEmpty"
+  "equate-nans":
+    go: "EquateNaNs"
+    java: "Option.EQUATE_NANS"
+    kotlin: "Option.EQUATE_NANS"
+    python: "equate_nans"
+    typescript: "equateNans"

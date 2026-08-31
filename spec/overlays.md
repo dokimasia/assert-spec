@@ -70,3 +70,31 @@ library cannot claim a gap it does not have.
 standard fails validation rather than passing quietly.
 
 The stance vocabulary is not closed. `blocked` is the one in use.
+
+## Relaxations
+
+A relaxation widens what counts as equal for one call. The definition
+states two, and five assertions accept them.
+
+A language may have nothing to relax. Rust's types keep an absent
+container and an empty one apart, and its `==` already says NaN is
+unequal to itself, so both relaxations would widen nothing. An overlay
+records that the same way it records anything else absent:
+
+```json
+{
+  "relaxations": [
+    {
+      "id": "equate-empty",
+      "why": "An absent container and an empty one are different types."
+    }
+  ]
+}
+```
+
+Only `id` and `why` are needed. There is no `what`, because nothing is
+partly there: the relaxation is either offered or it is not.
+
+An assertion that should accept a relaxation and does not is a different
+thing, and it is a limit rather than an absence. The assertion is there
+and a case it should cover is missing.

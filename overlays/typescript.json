@@ -14,5 +14,12 @@
       "why": "Bytes allocated per iteration can only be read as a heap-usage delta, which moves with whether the collector ran. Measuring one unchanged body six times gave 43, -3, 43, -10, -10 and -8 bytes per iteration, so a ceiling set from one run fails the next for no reason.",
       "remedy": "A per-iteration allocation total that does not depend on collector timing."
     }
+  ],
+  "limits": [
+    {
+      "id": "pure",
+      "what": "Accepts no relaxations, where the other implementations let a caller equate NaNs or an absent container with an empty one for this call.",
+      "why": "An oversight rather than a decision: equal, notEqual, contains and notContains all take them here and isPure does not. It is recorded rather than fixed quietly so the gap is visible until it closes."
+    }
   ]
 }

@@ -307,8 +307,56 @@ def check_corpus(assertions: set[str], problems: Problems) -> int:
     return total
 
 
+def check_relaxations(spec: Any, naming: Any, problems: Problems) -> set[str]:
+    """The relaxations are named, and every assertion referencing one means it.
+
+    A relaxation widens what counts as equal for one call. Naming them
+    here is what stops each language inventing its own set: four of the
+    implementations arrived at the same two, and a fifth at neither,
+    which is only comparable once the standard states what they are.
+
+    Returns the ids, so the naming table can be held to them.
+    """
+    declared = spec.get("relaxations", {})
+    problems.unless(
+        bool(declared), "spec/assertions.json", "states no relaxations"
+    )
+
+    for rid, entry in sorted(declared.items()):
+        where = f"spec/assertions.json:{rid}"
+        problems.unless(bool(ID.match(rid)), where, "is not a hyphenated lowercase id")
+        problems.unless(
+            bool(str(entry.get("summary", "")).strip()), where, "has no summary"
+        )
+
+    for aid, entry in sorted(spec.get("assertions", {}).items()):
+        for rid in entry.get("relaxations", []):
+            problems.unless(
+                rid in declared,
+                f"spec/assertions.json:{aid}",
+                f"accepts unknown relaxation {rid!r}",
+            )
+
+    named = naming.get("relaxations", {})
+    for rid in sorted(declared):
+        problems.unless(
+            rid in named, "spec/naming.json", f"names no relaxation {rid!r}"
+        )
+    for rid in sorted(named):
+        problems.unless(
+            rid in declared,
+            "spec/naming.json",
+            f"names relaxation {rid!r}, which the definition does not state",
+        )
+    return set(declared)
+
+
 def check_overlays(
-    assertions: set[str], languages: set[str], version: str, problems: Problems
+    assertions: set[str],
+    relaxations: set[str],
+    languages: set[str],
+    version: str,
+    problems: Problems,
 ) -> None:
     """An overlay extends this version and diverges only on real ids.
 
@@ -345,6 +393,29 @@ def check_overlays(
             where,
             f"declares {language!r}, which the naming table does not list",
         )
+
+        relaxed = overlay.get("relaxations", [])
+        if problems.unless(
+            isinstance(relaxed, list), where, "relaxations is not a list"
+        ):
+            for entry in relaxed:
+                if not problems.unless(
+                    isinstance(entry, dict),
+                    where,
+                    f"relaxation {entry!r} is not an object",
+                ):
+                    continue
+                rid = entry.get("id")
+                problems.unless(
+                    rid in relaxations,
+                    where,
+                    f"declares relaxation {rid!r} absent, which is not defined",
+                )
+                problems.unless(
+                    bool(str(entry.get("why", "")).strip()),
+                    where,
+                    f"declares relaxation {rid!r} absent with no why",
+                )
 
         limits = overlay.get("limits", [])
         if problems.unless(isinstance(limits, list), where, "limits is not a list"):
@@ -410,9 +481,12 @@ def main() -> int:
 
     check_version(spec, naming, version, problems)
     assertions = check_assertions(spec, problems)
+    relaxations = check_relaxations(spec, naming, problems)
     check_naming(naming, spec, assertions, problems)
     cases = check_corpus(assertions, problems)
-    check_overlays(assertions, set(naming.get("languages", [])), version, problems)
+    check_overlays(
+        assertions, relaxations, set(naming.get("languages", [])), version, problems
+    )
 
     status = problems.report()
     if status == 0:
