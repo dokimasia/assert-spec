@@ -14,6 +14,7 @@
             "java": "Contract.maxAllocs",
             "kotlin": "Contract.maxAllocs",
             "python": "bench.Contract.max_allocs",
+            "rust": "bench::Contract::max_allocs",
             "typescript": "bench.Contract.maxAllocs"
         },
         "bench-max-bytes": {
@@ -21,6 +22,7 @@
             "java": "Contract.maxBytes",
             "kotlin": "Contract.maxBytes",
             "python": "bench.Contract.max_bytes",
+            "rust": "bench::Contract::max_bytes",
             "typescript": "bench.Contract.maxBytes"
         },
         "bench-max-latency": {
@@ -28,6 +30,7 @@
             "java": "Contract.maxLatency",
             "kotlin": "Contract.maxLatency",
             "python": "bench.Contract.max_latency",
+            "rust": "bench::Contract::max_latency",
             "typescript": "bench.Contract.maxLatency"
         },
         "bench-max-mean": {
@@ -35,6 +38,7 @@
             "java": "Contract.maxMean",
             "kotlin": "Contract.maxMean",
             "python": "bench.Contract.max_mean",
+            "rust": "bench::Contract::max_mean",
             "typescript": "bench.Contract.maxMean"
         },
         "close-to": {
@@ -42,6 +46,7 @@
             "java": "closeTo",
             "kotlin": "closeTo",
             "python": "close_to",
+            "rust": "close_to",
             "typescript": "closeTo"
         },
         "completes-within": {
@@ -49,6 +54,7 @@
             "java": "completesWithin",
             "kotlin": "completesWithin",
             "python": "completes_within",
+            "rust": "completes_within",
             "typescript": "completesWithin"
         },
         "contains": {
@@ -56,6 +62,7 @@
             "java": "contains",
             "kotlin": "contains",
             "python": "contains",
+            "rust": "contains",
             "typescript": "contains"
         },
         "contains-in-order": {
@@ -63,6 +70,7 @@
             "java": "containsInOrder",
             "kotlin": "containsInOrder",
             "python": "contains_in_order",
+            "rust": "contains_in_order",
             "typescript": "containsInOrder"
         },
         "empty": {
@@ -70,6 +78,7 @@
             "java": "isEmpty",
             "kotlin": "isEmpty",
             "python": "is_empty",
+            "rust": "is_empty",
             "typescript": "isEmpty"
         },
         "equal": {
@@ -77,6 +86,7 @@
             "java": "equal",
             "kotlin": "equal",
             "python": "equal",
+            "rust": "equal",
             "typescript": "equal"
         },
         "err-absent": {
@@ -84,6 +94,7 @@
             "java": "noError",
             "kotlin": "noError",
             "python": "no_error",
+            "rust": "no_error",
             "typescript": "noError"
         },
         "err-as": {
@@ -91,6 +102,7 @@
             "java": "errorAs",
             "kotlin": "errorAs",
             "python": "error_as",
+            "rust": "error_as",
             "typescript": "errorAs"
         },
         "err-is": {
@@ -98,6 +110,7 @@
             "java": "errorIs",
             "kotlin": "errorIs",
             "python": "error_is",
+            "rust": "error_is",
             "typescript": "errorIs"
         },
         "err-is-not": {
@@ -105,6 +118,7 @@
             "java": "errorIsNot",
             "kotlin": "errorIsNot",
             "python": "error_is_not",
+            "rust": "error_is_not",
             "typescript": "errorIsNot"
         },
         "err-present": {
@@ -112,6 +126,7 @@
             "java": "hasError",
             "kotlin": "hasError",
             "python": "has_error",
+            "rust": "has_error",
             "typescript": "hasError"
         },
         "eventually": {
@@ -119,6 +134,7 @@
             "java": "eventually",
             "kotlin": "eventually",
             "python": "eventually",
+            "rust": "eventually",
             "typescript": "eventually"
         },
         "eventually-true": {
@@ -126,6 +142,7 @@
             "java": "eventuallyTrue",
             "kotlin": "eventuallyTrue",
             "python": "eventually_true",
+            "rust": "eventually_true",
             "typescript": "eventuallyTrue"
         },
         "false": {
@@ -133,6 +150,7 @@
             "java": "isFalse",
             "kotlin": "isFalse",
             "python": "is_false",
+            "rust": "is_false",
             "typescript": "isFalse"
         },
         "golden-match": {
@@ -140,6 +158,7 @@
             "java": "Golden.match",
             "kotlin": "Golden.match",
             "python": "golden.match",
+            "rust": "golden::matches",
             "typescript": "golden.match"
         },
         "golden-match-at": {
@@ -147,6 +166,7 @@
             "java": "Golden.matchAt",
             "kotlin": "Golden.matchAt",
             "python": "golden.match_at",
+            "rust": "golden::matches_at",
             "typescript": "golden.matchAt"
         },
         "golden-match-json-field": {
@@ -154,6 +174,7 @@
             "java": "Golden.matchJsonField",
             "kotlin": "Golden.matchJsonField",
             "python": "golden.match_json_field",
+            "rust": "golden::matches_json_field",
             "typescript": "golden.matchJsonField"
         },
         "has-prefix": {
@@ -161,6 +182,7 @@
             "java": "hasPrefix",
             "kotlin": "hasPrefix",
             "python": "has_prefix",
+            "rust": "has_prefix",
             "typescript": "hasPrefix"
         },
         "has-suffix": {
@@ -168,6 +190,7 @@
             "java": "hasSuffix",
             "kotlin": "hasSuffix",
             "python": "has_suffix",
+            "rust": "has_suffix",
             "typescript": "hasSuffix"
         },
         "honours-cancellation": {
@@ -175,6 +198,7 @@
             "java": "honoursCancellation",
             "kotlin": "honoursCancellation",
             "python": "honours_cancellation",
+            "rust": "honours_cancellation",
             "typescript": "honoursCancellation"
         },
         "honours-deadline": {
@@ -182,6 +206,7 @@
             "java": "honoursDeadline",
             "kotlin": "honoursDeadline",
             "python": "honours_deadline",
+            "rust": "honours_deadline",
             "typescript": "honoursDeadline"
         },
         "in-range": {
@@ -189,6 +214,7 @@
             "java": "inRange",
             "kotlin": "inRange",
             "python": "in_range",
+            "rust": "in_range",
             "typescript": "inRange"
         },
         "length": {
@@ -196,6 +222,7 @@
             "java": "length",
             "kotlin": "length",
             "python": "length",
+            "rust": "length",
             "typescript": "length"
         },
         "matches": {
@@ -203,6 +230,7 @@
             "java": "matches",
             "kotlin": "matches",
             "python": "matches",
+            "rust": "matches",
             "typescript": "matches"
         },
         "nil": {
@@ -210,6 +238,7 @@
             "java": "isNull",
             "kotlin": "isNull",
             "python": "is_none",
+            "rust": "is_none",
             "typescript": "isNil"
         },
         "nil-context-safe": {
@@ -217,6 +246,7 @@
             "java": "nullHandleSafe",
             "kotlin": "nullHandleSafe",
             "python": "none_handle_safe",
+            "rust": "none_handle_safe",
             "typescript": "nullHandleSafe"
         },
         "no-task-leaks": {
@@ -224,6 +254,7 @@
             "java": "noTaskLeaks",
             "kotlin": "noTaskLeaks",
             "python": "no_task_leaks",
+            "rust": "no_task_leaks",
             "typescript": "noTaskLeaks"
         },
         "not-contains": {
@@ -231,6 +262,7 @@
             "java": "notContains",
             "kotlin": "notContains",
             "python": "not_contains",
+            "rust": "not_contains",
             "typescript": "notContains"
         },
         "not-empty": {
@@ -238,6 +270,7 @@
             "java": "isNotEmpty",
             "kotlin": "isNotEmpty",
             "python": "is_not_empty",
+            "rust": "is_not_empty",
             "typescript": "isNotEmpty"
         },
         "not-equal": {
@@ -245,6 +278,7 @@
             "java": "notEqual",
             "kotlin": "notEqual",
             "python": "not_equal",
+            "rust": "not_equal",
             "typescript": "notEqual"
         },
         "not-nil": {
@@ -252,6 +286,7 @@
             "java": "isNotNull",
             "kotlin": "isNotNull",
             "python": "is_not_none",
+            "rust": "is_some",
             "typescript": "isNotNil"
         },
         "not-throws": {
@@ -259,6 +294,7 @@
             "java": "doesNotThrow",
             "kotlin": "doesNotThrow",
             "python": "does_not_raise",
+            "rust": "does_not_panic",
             "typescript": "doesNotThrow"
         },
         "pairwise": {
@@ -266,6 +302,7 @@
             "java": "pairwise",
             "kotlin": "pairwise",
             "python": "pairwise",
+            "rust": "pairwise",
             "typescript": "pairwise"
         },
         "pure": {
@@ -273,6 +310,7 @@
             "java": "isPure",
             "kotlin": "isPure",
             "python": "is_pure",
+            "rust": "is_pure",
             "typescript": "isPure"
         },
         "rejects": {
@@ -280,6 +318,7 @@
             "java": "rejects",
             "kotlin": "rejects",
             "python": "rejects",
+            "rust": "rejects",
             "typescript": "rejects"
         },
         "throws": {
@@ -287,6 +326,7 @@
             "java": "throwsException",
             "kotlin": "throwsException",
             "python": "raises",
+            "rust": "panics",
             "typescript": "throws"
         },
         "true": {
@@ -294,6 +334,7 @@
             "java": "isTrue",
             "kotlin": "isTrue",
             "python": "is_true",
+            "rust": "is_true",
             "typescript": "isTrue"
         }
     },

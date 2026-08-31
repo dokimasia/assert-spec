@@ -129,6 +129,8 @@ def check_naming(
     """The naming table covers every assertion, in every language.
 
     A name is qualified exactly when the assertion names a package.
+    The separator is the language's own: a dot in Go, Java and Python,
+    two colons in Rust.
     That is the check worth having: the two tables are edited apart,
     and a name that says ``golden.match`` for an assertion in the root
     namespace sends every implementation looking in the wrong place.
@@ -162,7 +164,7 @@ def check_naming(
                 isinstance(name, str) and name.strip() != "", where, "is empty"
             )
             package = defined.get(aid, {}).get("package", "")
-            qualified = "." in str(name)
+            qualified = "." in str(name) or "::" in str(name)
             problems.unless(
                 qualified == bool(package),
                 where,
