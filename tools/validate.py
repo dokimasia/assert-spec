@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 import re
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -307,7 +308,21 @@ def check_corpus(assertions: set[str], problems: Problems) -> int:
     return total
 
 
-def check_relaxations(spec: Any, naming: Any, problems: Problems) -> set[str]:
+@dataclass(frozen=True)
+class Relaxations:
+    """What the definition and the table say about the relaxations.
+
+    One value rather than three arguments, because the three travel
+    together: the ids the definition declares, which of them each
+    language names, and which languages implement anything at all.
+    """
+
+    declared: frozenset[str]
+    named: dict[str, set[str]]
+    implementing: frozenset[str]
+
+
+def check_relaxations(spec: Any, naming: Any, problems: Problems) -> Relaxations:
     """The relaxations are named, and every assertion referencing one means it.
 
     A relaxation widens what counts as equal for one call. Naming them
@@ -315,12 +330,10 @@ def check_relaxations(spec: Any, naming: Any, problems: Problems) -> set[str]:
     implementations arrived at the same two, and a fifth at neither,
     which is only comparable once the standard states what they are.
 
-    Returns the ids, so the naming table can be held to them.
+    Returns what the overlay check holds each language to.
     """
     declared = spec.get("relaxations", {})
-    problems.unless(
-        bool(declared), "spec/assertions.json", "states no relaxations"
-    )
+    problems.unless(bool(declared), "spec/assertions.json", "states no relaxations")
 
     for rid, entry in sorted(declared.items()):
         where = f"spec/assertions.json:{rid}"
@@ -348,36 +361,83 @@ def check_relaxations(spec: Any, naming: Any, problems: Problems) -> set[str]:
             "spec/naming.json",
             f"names relaxation {rid!r}, which the definition does not state",
         )
-    return set(declared)
 
-
-def relaxation_names_by_language(naming: Any) -> dict[str, set[str]]:
-    """Which relaxations each language names, read off the table."""
-    out: dict[str, set[str]] = {}
-    for rid, per_language in naming.get("relaxations", {}).items():
+    by_language: dict[str, set[str]] = {}
+    for rid, per_language in named.items():
         for language in per_language:
-            out.setdefault(language, set()).add(rid)
-    return out
+            by_language.setdefault(language, set()).add(rid)
 
-
-def implementing_languages(naming: Any) -> set[str]:
-    """The languages that name at least one assertion.
-
-    A declared target with no names yet owes nothing: requiring it to
-    decline every relaxation would make declaring a target language a
-    chore before any work exists.
-    """
-    found: set[str] = set()
+    # A declared target with no names yet owes nothing: requiring it to
+    # decline every relaxation would make declaring a target language a
+    # chore before any work exists.
+    implementing: set[str] = set()
     for per_language in naming.get("names", {}).values():
-        found.update(per_language)
-    return found
+        implementing.update(per_language)
+
+    return Relaxations(
+        declared=frozenset(declared),
+        named=by_language,
+        implementing=frozenset(implementing),
+    )
+
+
+def check_overlay_relaxations(
+    overlay: Any,
+    where: str,
+    language: Any,
+    relaxations: Relaxations,
+    problems: Problems,
+) -> None:
+    """One language's answer to the relaxations, held to name-or-decline.
+
+    Declining needs a reason, declining the undefined is refused, and an
+    implementing language answers every relaxation exactly one way:
+    named and declined is a contradiction, neither is a silent gap.
+    """
+    relaxed = overlay.get("relaxations", [])
+    if problems.unless(isinstance(relaxed, list), where, "relaxations is not a list"):
+        for entry in relaxed:
+            if not problems.unless(
+                isinstance(entry, dict),
+                where,
+                f"relaxation {entry!r} is not an object",
+            ):
+                continue
+            rid = entry.get("id")
+            problems.unless(
+                rid in relaxations.declared,
+                where,
+                f"declares relaxation {rid!r} absent, which is not defined",
+            )
+            problems.unless(
+                bool(str(entry.get("why", "")).strip()),
+                where,
+                f"declares relaxation {rid!r} absent with no why",
+            )
+
+    declined = {e.get("id") for e in relaxed if isinstance(e, dict)}
+    if language not in relaxations.implementing:
+        return
+
+    named_here = relaxations.named.get(str(language), set())
+    for rid in sorted(relaxations.declared):
+        problems.unless(
+            rid in named_here or rid in declined,
+            where,
+            f"neither names nor declines relaxation {rid!r}; "
+            "an implementing language answers every relaxation "
+            "one way or the other",
+        )
+        problems.unless(
+            not (rid in named_here and rid in declined),
+            where,
+            f"both names and declines relaxation {rid!r}, which is a contradiction",
+        )
 
 
 def check_overlays(
     assertions: set[str],
-    relaxations: set[str],
-    named_relaxations: dict[str, set[str]],
-    implementing: set[str],
+    relaxations: Relaxations,
     languages: set[str],
     version: str,
     problems: Problems,
@@ -418,48 +478,7 @@ def check_overlays(
             f"declares {language!r}, which the naming table does not list",
         )
 
-        relaxed = overlay.get("relaxations", [])
-        if problems.unless(
-            isinstance(relaxed, list), where, "relaxations is not a list"
-        ):
-            for entry in relaxed:
-                if not problems.unless(
-                    isinstance(entry, dict),
-                    where,
-                    f"relaxation {entry!r} is not an object",
-                ):
-                    continue
-                rid = entry.get("id")
-                problems.unless(
-                    rid in relaxations,
-                    where,
-                    f"declares relaxation {rid!r} absent, which is not defined",
-                )
-                problems.unless(
-                    bool(str(entry.get("why", "")).strip()),
-                    where,
-                    f"declares relaxation {rid!r} absent with no why",
-                )
-
-        declined = {
-            e.get("id") for e in relaxed if isinstance(e, dict)
-        }
-        if language in implementing:
-            named_here = named_relaxations.get(str(language), set())
-            for rid in sorted(relaxations):
-                problems.unless(
-                    rid in named_here or rid in declined,
-                    where,
-                    f"neither names nor declines relaxation {rid!r}; "
-                    "an implementing language answers every relaxation "
-                    "one way or the other",
-                )
-                problems.unless(
-                    not (rid in named_here and rid in declined),
-                    where,
-                    f"both names and declines relaxation {rid!r}, "
-                    "which is a contradiction",
-                )
+        check_overlay_relaxations(overlay, where, language, relaxations, problems)
 
         limits = overlay.get("limits", [])
         if problems.unless(isinstance(limits, list), where, "limits is not a list"):
@@ -529,13 +548,7 @@ def main() -> int:
     check_naming(naming, spec, assertions, problems)
     cases = check_corpus(assertions, problems)
     check_overlays(
-        assertions,
-        relaxations,
-        relaxation_names_by_language(naming),
-        implementing_languages(naming),
-        set(naming.get("languages", [])),
-        version,
-        problems,
+        assertions, relaxations, set(naming.get("languages", [])), version, problems
     )
 
     status = problems.report()
