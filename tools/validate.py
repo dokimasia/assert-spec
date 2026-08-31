@@ -351,9 +351,33 @@ def check_relaxations(spec: Any, naming: Any, problems: Problems) -> set[str]:
     return set(declared)
 
 
+def relaxation_names_by_language(naming: Any) -> dict[str, set[str]]:
+    """Which relaxations each language names, read off the table."""
+    out: dict[str, set[str]] = {}
+    for rid, per_language in naming.get("relaxations", {}).items():
+        for language in per_language:
+            out.setdefault(language, set()).add(rid)
+    return out
+
+
+def implementing_languages(naming: Any) -> set[str]:
+    """The languages that name at least one assertion.
+
+    A declared target with no names yet owes nothing: requiring it to
+    decline every relaxation would make declaring a target language a
+    chore before any work exists.
+    """
+    found: set[str] = set()
+    for per_language in naming.get("names", {}).values():
+        found.update(per_language)
+    return found
+
+
 def check_overlays(
     assertions: set[str],
     relaxations: set[str],
+    named_relaxations: dict[str, set[str]],
+    implementing: set[str],
     languages: set[str],
     version: str,
     problems: Problems,
@@ -415,6 +439,26 @@ def check_overlays(
                     bool(str(entry.get("why", "")).strip()),
                     where,
                     f"declares relaxation {rid!r} absent with no why",
+                )
+
+        declined = {
+            e.get("id") for e in relaxed if isinstance(e, dict)
+        }
+        if language in implementing:
+            named_here = named_relaxations.get(str(language), set())
+            for rid in sorted(relaxations):
+                problems.unless(
+                    rid in named_here or rid in declined,
+                    where,
+                    f"neither names nor declines relaxation {rid!r}; "
+                    "an implementing language answers every relaxation "
+                    "one way or the other",
+                )
+                problems.unless(
+                    not (rid in named_here and rid in declined),
+                    where,
+                    f"both names and declines relaxation {rid!r}, "
+                    "which is a contradiction",
                 )
 
         limits = overlay.get("limits", [])
@@ -485,7 +529,13 @@ def main() -> int:
     check_naming(naming, spec, assertions, problems)
     cases = check_corpus(assertions, problems)
     check_overlays(
-        assertions, relaxations, set(naming.get("languages", [])), version, problems
+        assertions,
+        relaxations,
+        relaxation_names_by_language(naming),
+        implementing_languages(naming),
+        set(naming.get("languages", [])),
+        version,
+        problems,
     )
 
     status = problems.report()

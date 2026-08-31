@@ -363,6 +363,24 @@ class Validator(unittest.TestCase):
         )
         self.assert_caught("with no why")
 
+    def test_a_relaxation_neither_named_nor_declined_is_caught(self) -> None:
+        """An implementing language answers every relaxation, one way."""
+        _edit(
+            self.tree / "overlays" / "rust.json",
+            lambda d: d.update(
+                relaxations=[e for e in d["relaxations"] if e["id"] != "equate-nans"]
+            ),
+        )
+        self.assert_caught("neither names nor declines")
+
+    def test_a_relaxation_named_and_declined_is_caught(self) -> None:
+        """Offering it and declining it cannot both be true."""
+        _edit(
+            self.tree / "overlays" / "go.json",
+            lambda d: d.update(relaxations=[{"id": "equate-nans", "why": "stated"}]),
+        )
+        self.assert_caught("both names and declines")
+
     def test_unreadable_json_is_reported_not_raised(self) -> None:
         """A broken file is a finding, not a traceback."""
         (self.tree / "corpus" / "equal.json").write_text("{not json")
