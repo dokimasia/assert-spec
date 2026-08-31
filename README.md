@@ -146,6 +146,13 @@ copy that differs from this repository fails only when that change is
 the one that touched it: falling behind is allowed and is tracked by an
 issue, and committing a copy nobody else has is not.
 
+Each implementation opens that issue on itself, on a weekday schedule,
+by running the same check against this repository's main branch. It
+reads rather than being told, so nothing here holds a key to five other
+repositories and there is no token to rotate. A library already current
+opens nothing, because the check compares digests rather than counting
+pushes.
+
 `spec-sync` fetches a pinned ref rather than reading a sibling
 directory, so it answers the same way on a laptop and on a runner. Set
 `SPEC_LOCAL` to try a change before pushing it; it says loudly that the
