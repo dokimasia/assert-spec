@@ -139,11 +139,11 @@ everywhere or written five times.
 An explicit argument is more honest about what an assertion reads, and it
 does not widen the seat.
 
-Rejected because it changes four signatures the naming table already
-states, and because it puts a clock in the hands of every caller who does
-not want one. The seat is the thing a test already threads through, and
-it already carries the other choice a test makes about how assertions
-behave.
+Rejected because it puts a clock in the hands of every caller who does
+not want one. The seat is what a test already threads through, and it
+already carries the other choice a test makes about how assertions
+behave. Changing four signatures is not itself the objection: nothing
+outside these repositories calls them.
 
 ### C. Make the clock required rather than defaulted
 
@@ -165,10 +165,10 @@ timeouts trades one failure mode for the other.
 
 ## Drawbacks
 
-The seat gains a member, and a seat is the one interface every consumer
-implements who wants to plug this into something. An existing custom seat
-stops compiling in the languages where the seat is an interface rather
-than a duck type.
+The seat gains a member, and a seat is the one interface anyone
+implements who wants to plug this into something. Nothing outside these
+repositories implements one yet, so the cost is ours rather than a
+caller's: five implementations and their own test seats.
 
 Four assertions change their internals, and they are the four with the
 most timing-dependent tests. Getting the change wrong makes a retry loop
@@ -182,6 +182,16 @@ Five implementations gain a type they did not have. One design exists to
 copy, in a Go project next door, and the other four write their own from
 it. Rust has a controlled clock available in tokio, but the core crate is
 synchronous and does not depend on tokio, so it gets no help there.
+
+### Landing it beside the failure record
+
+The failure record changes what `fail` and `record` take. This adds
+`clock`. Both change the same interface, and doing them apart means
+writing the migration twice in five languages and asking anyone watching
+to absorb two breaks where one would do.
+
+They are separate proposals because the arguments are separate. They are
+one change to make.
 
 ## Unresolved and future work
 

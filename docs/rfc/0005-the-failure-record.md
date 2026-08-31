@@ -138,14 +138,15 @@ it.
 
 ### Migration
 
-Both forms are read during the change. A case carrying `detail` is
-checked against the record; a case carrying `message_contains` is checked
-against the rendered string as it is today. A case may carry both while
-an implementation catches up.
+Nothing outside these repositories implements a seat or reads a failure,
+so there is no compatibility to keep. The corpus states `detail`, the
+implementations report a record, and `message_contains` goes at the same
+time.
 
-`message_contains` is removed once every case states `detail`, which is
-what makes the accident described above impossible rather than merely
-unlikely.
+Reading both forms during a transition was the alternative, and it costs
+a checker that understands two ways of stating the same expectation for
+as long as the transition lasts. With no caller to protect, that buys
+nothing.
 
 ## Alternatives considered
 
@@ -183,7 +184,8 @@ the reason a library is slow.
 
 Every assertion in five implementations changes how it reports. That is
 the largest single change the standard has asked for, and it touches the
-one path every assertion goes through.
+one path every assertion goes through. The clock proposal changes the
+same interface, so the two want doing together rather than in sequence.
 
 Seventy corpus cases need `detail` written for them, and writing it means
 deciding what each assertion's failure holds. For several the answer
