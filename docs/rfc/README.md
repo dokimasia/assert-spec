@@ -12,4 +12,4 @@ they record why not.
 | [0004](0004-the-history-checker.md) | The history checker | Draft |
 | [0005](0005-the-failure-record.md) | The failure record | Accepted |
 | [0006](0006-the-clock.md) | The clock | Accepted |
-| [0007](0007-conformance-beyond-the-corpus.md) | Conformance beyond the corpus | Draft |
+| [0007](0007-conformance-beyond-the-corpus.md) | Conformance beyond the corpus | Accepted |

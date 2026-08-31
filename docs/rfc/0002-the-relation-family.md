@@ -201,11 +201,12 @@ and every one has to be implemented five times, named in the naming
 table, and given corpus cases. On the evidence of the existing set, that
 is roughly one file per family per language.
 
-The corpus cannot reach any of them. Every member takes a callable, and a
-callable does not cross a language boundary as data, so all twenty rest
-on the completeness gate and on each implementation's own tests. The
-existing set already has twenty-four in that position; this takes it to
-forty-four of sixty-one.
+The corpus reaches a member only by naming the behaviour it wants, the
+way it reaches the assertions that take a callable today. Where no named
+behaviour fits, a member rests on the completeness gate and on each
+implementation's own tests. Sixteen of the existing forty-one are in that
+position, and every member added here that wants a subject the vocabulary
+does not name joins them.
 
 Three of the safety members need a payload to be hostile with, and what
 counts as hostile is language and context specific. The caller supplies

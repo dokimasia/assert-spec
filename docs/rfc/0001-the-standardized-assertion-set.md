@@ -321,11 +321,14 @@ in order, so the same file serves an assertion of any arity.
 The encoding defines seven types: null, bool, int, float, string, list
 and map. A list or map names the type of what it holds, and a float may
 name NaN, Inf or -Inf, which JSON has no syntax for. Those seven state
-every case for the 17 assertions whose arguments are data. The
-remaining 24 take a callable, a cancellation handle, a predicate, a
-golden file or a benchmark, and adding types would not reach them,
-because the obstacle is that a function is not data rather than that
-the encoding is short of a type.
+every case for the 17 assertions whose arguments are data. Adding types
+would not reach the rest, because the obstacle is that a function is not
+data rather than that the encoding is short of a type.
+
+What reaches eight more is naming the behaviour instead of stating it. A
+case says which of a small fixed set of subjects it wants, and each
+implementation builds that natively, which takes the corpus to 25. The
+remaining 16 want a real machine, a real filesystem or a real runtime.
 
 **Declared divergence** catches the gap between what a library cannot do
 and what it has not done yet. This is why no assertion is marked
@@ -445,7 +448,9 @@ edge conditions, and a case nobody wrote is a gap nobody sees.
 
 **More than half the set is gate-checked but not corpus-checked.** A
 case states its arguments as data, so it reaches only the assertions
-whose arguments are data: 17 of the 41. The other 24 take a callable, a
+whose arguments are data: 17 of the 41. Eight more are reached by
+naming a behaviour rather than stating a value, which takes the corpus
+to 25. The remaining 16 take a callable the vocabulary does not name, a
 cancellation handle, a predicate, a golden file or a benchmark, and rest
 on per-language tests written to per-language judgement. An
 implementation is held to the standard on meaning where meaning can be

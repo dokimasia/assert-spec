@@ -374,6 +374,18 @@ def check_corpus(
         ):
             continue
 
+        # An assertion driven only by inputs that satisfy it is checked
+        # by a suite that would pass if the assertion reported nothing
+        # at all. Both outcomes, or the corpus is stating half of it.
+        outcomes = {case.get("expect") for case in cases if isinstance(case, dict)}
+        for wanted in OUTCOMES:
+            problems.unless(
+                wanted in outcomes,
+                where,
+                f"states no case expecting {wanted!r}; an assertion is driven "
+                "both ways or the corpus proves nothing about it",
+            )
+
         for case in cases:
             cid = check_case(
                 case,

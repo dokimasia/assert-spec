@@ -2,7 +2,7 @@
 rfc: 0007
 title: Conformance beyond the corpus
 author: Roy Klopper <roy.klopper@stealthscale.io>
-status: Draft
+status: Accepted
 created: 2026-08-31
 updated: 2026-08-31
 discussion: none
@@ -15,9 +15,10 @@ produces-adr: none
 
 ## Summary
 
-The corpus checks what seventeen assertions mean. For the other
-twenty-four the standard checks that a name exists and nothing else, and
-that is where every cross-language bug this project has found lived.
+The corpus checked what seventeen assertions mean by stating their
+arguments as data. For the other twenty-four the standard checked that a
+name exists and nothing else, and that is where every cross-language bug
+this project has found lived.
 
 This states five additions: a corpus that can describe a subject rather
 than only values, a rule that every assertion is driven both ways, a
@@ -32,11 +33,11 @@ runs them against every implementation, which is what makes an assertion
 mean the same thing everywhere. The completeness gate checks that every
 name in the naming table exists.
 
-Between them they cover less than they appear to. The corpus reaches
+Between them they covered less than they appeared to. The corpus reached
 seventeen of the forty-one, because a case is data and the other
-twenty-four take a callable, a handle or a duration. For those, the gate
-confirms a member exists under the right name. Nothing confirms it does
-anything.
+twenty-four take a callable, a handle or a duration. For those the gate
+confirmed a member exists under the right name. Nothing confirmed it
+does anything.
 
 That gap is not theoretical. `honours-cancellation` shipped broken in
 Python, in TypeScript and in Kotlin, each time in a way that reported
@@ -70,7 +71,7 @@ behaviour from a small fixed set:
 
 ```json
 {
-  "id": "honours-cancellation/reads-the-handle",
+  "id": "honours-cancellation/a-subject-that-reads-the-handle-passes",
   "subject": { "kind": "reads-handle" },
   "expect": "pass"
 }
@@ -78,10 +79,9 @@ behaviour from a small fixed set:
 
 ```json
 {
-  "id": "honours-cancellation/ignores-the-handle",
-  "subject": { "kind": "returns-ok" },
-  "expect": "fail",
-  "detail": { "reason": {"type": "string", "value": "cancelled"} }
+  "id": "honours-cancellation/a-subject-that-ignores-it-fails",
+  "subject": { "kind": "ignores-handle" },
+  "expect": "fail"
 }
 ```
 
@@ -90,42 +90,42 @@ The vocabulary is stated by the definition and is deliberately small:
 | `kind` | What the subject does |
 |---|---|
 | `returns-ok` | Does the work and answers success |
-| `reads-handle` | Polls the handle and answers whatever reason it gives |
-| `fails-with` | Answers the stated failure, whatever it was asked |
+| `reads-handle` | Reads the handle and answers the reason it gives |
+| `ignores-handle` | Answers success without reading the handle at all |
 | `raises` | Raises rather than answering |
-| `settles-after` | Answers a failure `n` times, then success |
-| `never-settles` | Answers a failure every time |
-| `accumulates` | Changes observed state once per call |
-| `sets` | Changes observed state on the first call only |
-| `observes` | Answers what a named projection reads |
+| `fails-otherwise` | Answers a failure of its own, unrelated to the handle |
+| `dereferences-handle` | Reads a handle without checking it is there |
+| `never-settles` | Reports a failure on every attempt |
+| `settles-after` | Reports a failure twice and succeeds on the third |
+| `accumulates` | Changes the observed state once per call |
+| `leaves-state-alone` | Reads the observed state and changes nothing |
 
 Each implementation carries a registry from `kind` to a native closure,
 the way it already carries one from assertion id to a native call. A kind
 it cannot build is a declared skip, the same as any other case.
 
-Ten of the twenty-four take a subject and nothing else the encoding
-lacks: `honours-cancellation`, `honours-deadline`, `nil-context-safe`,
-`throws`, `not-throws`, `eventually`, `eventually-true`, `pure`,
-`pairwise` and `rejects`.
+Eight take a subject and nothing else the encoding lacks:
+`honours-cancellation`, `honours-deadline`, `nil-context-safe`,
+`throws`, `not-throws`, `pure`, `eventually` and `eventually-true`.
+Naming a behaviour reaches those, which takes the corpus to twenty-five
+of the forty-one and leaves sixteen. What it misses should be named
+rather than hoped over.
 
-That is ten of the twenty-four, and the fourteen it misses should be
-named rather than hoped over.
+Three of the sixteen are reachable the same way and are not stated here.
+`pairwise` wants a named predicate beside its sequence, `rejects` wants
+a body that fails, and `completes-within` wants a subject beside a
+duration, where the duration is the difficulty: a case stating one is a
+case whose answer depends on the machine.
 
 Five are the error assertions, which take a failure value rather than a
 callable. Those are unreachable for a different reason: the encoding has
 seven types and none of them is an error. An error literal would reach
 all five, and it is a separate extension to this one.
 
-`completes-within` takes a subject and a duration, and the duration is
-what stops it: a case stating one is a case whose answer depends on the
-machine. Four benchmark ceilings have the same problem in a worse form.
-The three golden assertions need a filesystem, and `no-task-leaks` needs
-a runtime that can start something.
-
-So this takes the unreachable set from twenty-four to fourteen, and an
-error literal would take it to nine. The remaining nine want real time,
-real files or a real runtime, and they stay with each implementation's
-own tests.
+That leaves eight. Four benchmark ceilings have the duration problem in
+a worse form, the three golden assertions need a filesystem, and
+`no-task-leaks` needs a runtime that can start something. Those stay
+with each implementation's own tests.
 
 ### Both ways, every time
 
@@ -133,10 +133,10 @@ An assertion driven only by subjects that satisfy it is checked by a
 suite that would pass if the assertion reported nothing at all. That is
 what happened three times.
 
-So: an assertion with any corpus case must have at least one stating
-`pass` and one stating `fail`. The validator can check that, and it
-fails the standard rather than an implementation, because a corpus that
-only drives the happy path is the standard's own gap.
+So: an assertion with any corpus case has at least one stating `pass`
+and one stating `fail`. The validator checks that, and it fails the
+standard rather than an implementation, because a corpus that only
+drives the happy path is the standard's own gap.
 
 ### The reporting seam has to matter
 
@@ -176,15 +176,15 @@ problem had it in the one place it mattered.
 
 ### The table names the whole surface
 
-The naming table covers forty-one assertions and two relaxations. A Rust
-consumer types seventy-four public items, so thirty-five of them are
-names the standard has never seen.
+The naming table covered forty-one assertions and two relaxations. A Rust
+consumer types seventy-four public items, so thirty-five of them were
+names the standard had never seen.
 
 They are not incidental. `Seat`, `Standard`, `Recorder` and `Collector`
 are the seam every assertion reports through and the three seats the
 whole design rests on. `flush`, `failed`, `message` and `messages` are
 how a test reads what happened. `scrub_timestamps` and `should_update`
-are how a golden file is used at all. None is named, so each
+are how a golden file is used at all. None was named, so each
 implementation invented its own.
 
 They have already diverged, and the differences are of two kinds.

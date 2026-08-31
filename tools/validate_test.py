@@ -430,6 +430,14 @@ class Validator(unittest.TestCase):
         result = self.run_validator()
         self.assertEqual(result.returncode, 0, result.stderr)
 
+    def test_an_assertion_driven_only_one_way_is_caught(self) -> None:
+        """A corpus that only drives the happy path proves nothing."""
+        _edit(
+            self.tree / "corpus" / "equal.json",
+            lambda d: d.update(cases=[c for c in d["cases"] if c["expect"] == "pass"]),
+        )
+        self.assert_caught("states no case expecting 'fail'")
+
     def test_a_surface_id_neither_named_nor_declined_is_caught(self) -> None:
         """The surface table is under the same rule as the relaxations."""
         _edit(
