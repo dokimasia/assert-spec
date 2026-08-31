@@ -311,3 +311,175 @@ relaxations:
     kotlin: "Option.EQUATE_NANS"
     python: "equate_nans"
     typescript: "equateNans"
+
+# The rest of what a caller touches: the seam, the seats, and the types
+# and helpers beside the assertions. Same rules as the assertion names,
+# with the reasons behind the earned spellings noted where they differ.
+#
+# Go's seat is TB with Helper, Fatalf and Errorf because those are the
+# members of testing.TB, and matching them is what lets a *testing.T be
+# a seat with no adapter. Go names testing.T for the collector seat for
+# the same reason: Fatalf stops the test and Errorf records and carries
+# on, which is that seat's contract, supplied by the platform. Its
+# benchmark contract is Start, Loop and End rather than loop and check,
+# because a Go benchmark runs under testing.B, which owns the iteration
+# count: the body runs inside `for c.Loop()` and cannot be a closure
+# handed over with a count.
+#
+# Rust names the contract's runner run because loop is a Rust keyword,
+# the same reason Java's throws became throwsException.
+surface:
+  types:
+    "seat":
+      go: "TB"
+      python: "Seat"
+      rust: "Seat"
+      typescript: "Seat"
+      java: "Seat"
+      kotlin: "Seat"
+    "standard-seat":
+      python: "Standard"
+      rust: "Standard"
+      typescript: "Standard"
+      java: "Standard"
+      kotlin: "Standard"
+    "recorder-seat":
+      go: "Recorder"
+      python: "Recorder"
+      rust: "Recorder"
+      typescript: "Recorder"
+      java: "Recorder"
+      kotlin: "Recorder"
+    "collector-seat":
+      go: "testing.T"
+      python: "Collector"
+      rust: "Collector"
+      typescript: "Collector"
+      java: "Collector"
+      kotlin: "Collector"
+    "scrubber":
+      go: "golden.Scrubber"
+      python: "golden.Scrubber"
+      rust: "golden.Scrubber"
+      typescript: "golden.Scrubber"
+      java: "Golden.Scrubber"
+      kotlin: "Golden.Scrubber"
+    "contract":
+      go: "bench.Contract"
+      python: "bench.Contract"
+      rust: "bench.Contract"
+      typescript: "bench.Contract"
+      java: "Contract"
+      kotlin: "Contract"
+  members:
+    "seat.helper":
+      go: "Helper"
+      python: "helper"
+      rust: "helper"
+      typescript: "helper"
+      java: "helper"
+      kotlin: "helper"
+    "seat.fail":
+      go: "Fatalf"
+      python: "fail"
+      rust: "fail"
+      typescript: "fail"
+      java: "fail"
+      kotlin: "fail"
+    "seat.record":
+      go: "Errorf"
+      python: "record"
+      rust: "record"
+      typescript: "record"
+      java: "record"
+      kotlin: "record"
+    "recorder-seat.failed":
+      go: "Failed"
+      python: "failed"
+      rust: "failed"
+      typescript: "failed"
+      java: "failed"
+      kotlin: "failed"
+    "recorder-seat.message":
+      go: "Message"
+      python: "message"
+      rust: "message"
+      typescript: "message"
+      java: "message"
+      kotlin: "message"
+    "recorder-seat.messages":
+      go: "Messages"
+      python: "messages"
+      rust: "messages"
+      typescript: "messages"
+      java: "messages"
+      kotlin: "messages"
+    "recorder-seat.helper-calls":
+      go: "HelperCalls"
+      python: "helper_calls"
+      rust: "helper_calls"
+      typescript: "helperCalls"
+      java: "helperCalls"
+      kotlin: "helperCalls"
+    "collector-seat.collected":
+      python: "collected"
+      rust: "collected"
+      typescript: "collected"
+      java: "collected"
+      kotlin: "collected"
+    "collector-seat.flush":
+      python: "flush"
+      rust: "flush"
+      typescript: "flush"
+      java: "flush"
+      kotlin: "flush"
+    "contract.loop":
+      go: "Loop"
+      python: "loop"
+      rust: "run"
+      typescript: "loop"
+      java: "loop"
+      kotlin: "loop"
+    "contract.check":
+      go: "End"
+      python: "check"
+      rust: "check"
+      typescript: "check"
+      java: "check"
+      kotlin: "check"
+  helpers:
+    "golden.scrub-timestamps":
+      go: "golden.ScrubTimestamps"
+      python: "golden.scrub_timestamps"
+      rust: "golden.scrub_timestamps"
+      typescript: "golden.scrubTimestamps"
+      java: "Golden.scrubTimestamps"
+      kotlin: "Golden.scrubTimestamps"
+    "golden.scrub-hashes":
+      go: "golden.ScrubHashes"
+      python: "golden.scrub_hashes"
+      rust: "golden.scrub_hashes"
+      typescript: "golden.scrubHashes"
+      java: "Golden.scrubHashes"
+      kotlin: "Golden.scrubHashes"
+    "golden.scrub-run-ids":
+      go: "golden.ScrubRunIDs"
+      python: "golden.scrub_run_ids"
+      rust: "golden.scrub_run_ids"
+      typescript: "golden.scrubRunIds"
+      java: "Golden.scrubRunIds"
+      kotlin: "Golden.scrubRunIds"
+    "golden.scrub-json-fields":
+      go: "golden.ScrubJSONFields"
+      python: "golden.scrub_json_fields"
+      rust: "golden.scrub_json_fields"
+      typescript: "golden.scrubJsonFields"
+      java: "Golden.scrubJsonFields"
+      kotlin: "Golden.scrubJsonFields"
+    "golden.should-update":
+      go: "golden.ShouldUpdate"
+      python: "golden.should_update"
+      rust: "golden.should_update"
+      typescript: "golden.shouldUpdate"
+      java: "Golden.shouldUpdate"
+      kotlin: "Golden.shouldUpdate"

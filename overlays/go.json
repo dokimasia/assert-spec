@@ -1,5 +1,19 @@
 {
   "extends": "spec://assertions@1.0.0",
   "language": "go",
-  "diverge": []
+  "diverge": [],
+  "surface": [
+    {
+      "id": "standard-seat",
+      "why": "A Go assertion is called with the testing.T the test already holds, and outside a test there is no TB at all. A seat that panics on both paths would invent a convention the testing package already owns."
+    },
+    {
+      "id": "collector-seat.collected",
+      "why": "The collector seat is testing.T, which reports through the framework at the end of the test. There is nothing to read back: Errorf has already told the runner."
+    },
+    {
+      "id": "collector-seat.flush",
+      "why": "testing.T flushes itself when the test ends. A flush a caller could invoke would either do nothing or fight the framework."
+    }
+  ]
 }

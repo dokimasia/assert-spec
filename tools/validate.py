@@ -381,6 +381,136 @@ def check_relaxations(spec: Any, naming: Any, problems: Problems) -> Relaxations
     )
 
 
+SURFACE_SECTIONS = ("types", "members", "helpers")
+
+#: Surface ids: kebab words, one dot for a member's owner or a helper's
+#: package. `recorder-seat.message` and `golden.should-update` fit;
+#: bare `flush` and `a.b.c` do not.
+SURFACE_ID = re.compile(r"^[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)?$")
+
+
+def check_surface(naming: Any, languages: set[str], problems: Problems) -> None:
+    """The surface table names what a caller touches beyond the assertions.
+
+    Every entry is well formed, every member names an owner the types
+    section declares, and every name belongs to a declared language. The
+    per-language completeness rule lives with the overlays, the same way
+    the relaxations' does.
+    """
+    surface = naming.get("surface", {})
+    problems.unless(bool(surface), "spec/naming.json", "states no surface table")
+
+    types = set(surface.get("types", {}))
+    for section in SURFACE_SECTIONS:
+        for sid, per_language in sorted(surface.get(section, {}).items()):
+            where = f"spec/naming.json: surface.{section}.{sid}"
+            problems.unless(
+                bool(SURFACE_ID.match(sid)), where, "is not a well-formed id"
+            )
+            if section == "members":
+                owner = sid.split(".", 1)[0]
+                problems.unless(
+                    owner in types,
+                    where,
+                    f"names a member of {owner!r}, which the types "
+                    "section does not declare",
+                )
+            for language, name in sorted(per_language.items()):
+                problems.unless(
+                    language in languages,
+                    where,
+                    f"{language} is not in the declared languages",
+                )
+                problems.unless(
+                    isinstance(name, str) and name.strip() != "",
+                    where,
+                    f"{language} is empty",
+                )
+
+
+@dataclass(frozen=True)
+class Tables:
+    """Everything the overlay checks hold a language to.
+
+    One value rather than four arguments: the relaxations, the surface
+    ids and who names them, and the declared languages all describe the
+    same naming document and travel together.
+    """
+
+    relaxations: Relaxations
+    surface_ids: frozenset[str]
+    surface_named: dict[str, set[str]]
+    languages: frozenset[str]
+
+
+def surface_names_by_language(naming: Any) -> dict[str, set[str]]:
+    """Which surface ids each language names, across all three sections."""
+    out: dict[str, set[str]] = {}
+    for section in SURFACE_SECTIONS:
+        for sid, per_language in naming.get("surface", {}).get(section, {}).items():
+            for language in per_language:
+                out.setdefault(language, set()).add(sid)
+    return out
+
+
+def surface_ids(naming: Any) -> frozenset[str]:
+    """Every id the surface table states."""
+    found: set[str] = set()
+    for section in SURFACE_SECTIONS:
+        found.update(naming.get("surface", {}).get(section, {}))
+    return frozenset(found)
+
+
+def check_overlay_surface(
+    overlay: Any, where: str, language: Any, tables: Tables, problems: Problems
+) -> None:
+    """One language's answer to the surface, held to name-or-decline.
+
+    The same rule as the relaxations: an implementing language answers
+    every surface id one way, declining needs a reason, and declining
+    something the table also names for it is a contradiction.
+    """
+    declined_entries = overlay.get("surface", [])
+    if not problems.unless(
+        isinstance(declined_entries, list), where, "surface is not a list"
+    ):
+        return
+
+    for entry in declined_entries:
+        if not problems.unless(
+            isinstance(entry, dict), where, f"surface entry {entry!r} is not an object"
+        ):
+            continue
+        sid = entry.get("id")
+        problems.unless(
+            sid in tables.surface_ids,
+            where,
+            f"declines surface id {sid!r}, which the table does not state",
+        )
+        problems.unless(
+            bool(str(entry.get("why", "")).strip()),
+            where,
+            f"declines surface id {sid!r} with no why",
+        )
+
+    declined = {e.get("id") for e in declined_entries if isinstance(e, dict)}
+    if language not in tables.relaxations.implementing:
+        return
+
+    named_here = tables.surface_named.get(str(language), set())
+    for sid in sorted(tables.surface_ids):
+        problems.unless(
+            sid in named_here or sid in declined,
+            where,
+            f"neither names nor declines surface id {sid!r}",
+        )
+        problems.unless(
+            not (sid in named_here and sid in declined),
+            where,
+            f"both names and declines surface id {sid!r}, which is a contradiction",
+        )
+
+
 def check_overlay_relaxations(
     overlay: Any,
     where: str,
@@ -436,11 +566,7 @@ def check_overlay_relaxations(
 
 
 def check_overlays(
-    assertions: set[str],
-    relaxations: Relaxations,
-    languages: set[str],
-    version: str,
-    problems: Problems,
+    assertions: set[str], tables: Tables, version: str, problems: Problems
 ) -> None:
     """An overlay extends this version and diverges only on real ids.
 
@@ -473,12 +599,15 @@ def check_overlays(
             f"is named {path.stem!r} but declares {language!r}",
         )
         problems.unless(
-            language in languages,
+            language in tables.languages,
             where,
             f"declares {language!r}, which the naming table does not list",
         )
 
-        check_overlay_relaxations(overlay, where, language, relaxations, problems)
+        check_overlay_relaxations(
+            overlay, where, language, tables.relaxations, problems
+        )
+        check_overlay_surface(overlay, where, language, tables, problems)
 
         limits = overlay.get("limits", [])
         if problems.unless(isinstance(limits, list), where, "limits is not a list"):
@@ -547,8 +676,17 @@ def main() -> int:
     relaxations = check_relaxations(spec, naming, problems)
     check_naming(naming, spec, assertions, problems)
     cases = check_corpus(assertions, problems)
+    check_surface(naming, set(naming.get("languages", [])), problems)
     check_overlays(
-        assertions, relaxations, set(naming.get("languages", [])), version, problems
+        assertions,
+        Tables(
+            relaxations=relaxations,
+            surface_ids=surface_ids(naming),
+            surface_named=surface_names_by_language(naming),
+            languages=frozenset(naming.get("languages", [])),
+        ),
+        version,
+        problems,
     )
 
     status = problems.report()

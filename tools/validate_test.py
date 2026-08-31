@@ -381,6 +381,32 @@ class Validator(unittest.TestCase):
         )
         self.assert_caught("both names and declines")
 
+    def test_a_surface_id_neither_named_nor_declined_is_caught(self) -> None:
+        """The surface table is under the same rule as the relaxations."""
+        _edit(
+            self.tree / "overlays" / "go.json",
+            lambda d: d.update(
+                surface=[e for e in d["surface"] if e["id"] != "standard-seat"]
+            ),
+        )
+        self.assert_caught("neither names nor declines surface id")
+
+    def test_a_surface_id_named_and_declined_is_caught(self) -> None:
+        """Naming it and declining it cannot both be true."""
+        _edit(
+            self.tree / "overlays" / "rust.json",
+            lambda d: d.update(surface=[{"id": "seat", "why": "stated"}]),
+        )
+        self.assert_caught("both names and declines surface id")
+
+    def test_a_member_of_an_undeclared_type_is_caught(self) -> None:
+        """A member row's owner has to be a type the table declares."""
+        _edit(
+            self.tree / "spec" / "naming.json",
+            lambda d: d["surface"]["members"].update({"orphan.thing": {"go": "X"}}),
+        )
+        self.assert_caught("the types section does not declare")
+
     def test_unreadable_json_is_reported_not_raised(self) -> None:
         """A broken file is a finding, not a traceback."""
         (self.tree / "corpus" / "equal.json").write_text("{not json")

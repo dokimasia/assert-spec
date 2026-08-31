@@ -184,7 +184,7 @@ assertion with a unique id and a decodable literal, and that an overlay
 extends this version and diverges only from assertions that exist. It
 reports everything it finds in one run.
 
-`make test` runs 36 cases that each break one rule in a scratch copy and
+`make test` runs 39 cases that each break one rule in a scratch copy and
 require the validator to catch it. A validator only ever run on a clean
 tree would pass just as readily with every rule deleted.
 
