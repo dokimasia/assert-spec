@@ -15,14 +15,16 @@ produces-adr: none
 
 ## Summary
 
-Three relations the standard cannot state have nothing to do with each
-other, and the same absence blocks all three: an assertion sees nothing
-but a return value. This adds three seams, a clock, a history and a
-concurrency driver, and says what each one answers.
+An assertion in this standard sees one thing: what a call returned. That
+is not enough for anything about order or concurrency. This adds two
+seams, a history and a concurrency driver, and says what each one
+answers.
 
-Thirty-two relations from the shape catalogue are waiting on one of the
-three. Thirteen want a history, ten want concurrent callers, four want a
-clock.
+Twenty-eight relations from the shape catalogue are waiting on one of
+them. Thirteen want a history, ten want concurrent callers, and five want
+nothing but a convention for naming several callables. Time is the third
+seam and is proposed on its own, because it changes four assertions that
+already exist rather than only enabling new ones.
 
 ## Motivation
 
@@ -30,47 +32,17 @@ An assertion in this standard sees exactly one thing: what a call
 returned. That is enough for a comparison and enough for the relations
 that run a subject twice on one thread.
 
-It is not enough for anything about time, order or concurrency. Whether
-an entry expires after its lifetime is a question about a clock. Whether
-a client's reads ever go backwards is a question about a sequence of
+It is not enough for anything about order or concurrency. Whether a
+client's reads ever go backwards is a question about a sequence of
 observations. Whether a counter is safe under load is a question about
-callers running at once. None of the three can be asked through a return
-value.
+callers running at once. Neither can be asked through a return value.
 
-The implementations already reach for real time and real threads where
-they must, and it costs them. Every retrying assertion in all five
-languages sleeps against the wall clock, which makes a suite using them
-slow and makes it flaky on a loaded machine. A controlled clock removes
-both, and it is the only way a relation about expiry becomes checkable at
-all rather than approximated by waiting.
+The implementations already reach for real threads where they must, and
+they have nowhere to record what happened. An assertion that wants to
+know whether two operations overlapped has to be handed that fact,
+because nothing in the standard remembers it.
 
 ## Detailed design
-
-### The clock
-
-```
-Clock
-  now() -> Instant
-  sleep(duration)
-  advance(duration)          on a controlled clock only
-```
-
-Assertions read time through the clock rather than from the platform.
-Where a test supplies none, the clock is the real one and behaviour is
-what it is today.
-
-A controlled clock moves only when a test advances it, which is what
-makes an expiry relation statable: put a value with a lifetime, advance
-past the lifetime, require the read to miss. Against a real clock the
-same test either sleeps for the lifetime or does not check anything.
-
-The retrying assertions change with it. `eventually` against a controlled
-clock advances rather than sleeps, so a test that waits five seconds runs
-in microseconds and cannot be made flaky by a slow machine.
-
-This is a change to existing members, not only an addition. `eventually`,
-`eventually-true`, `completes-within` and `honours-deadline` all read the
-platform clock today and would read the seam instead.
 
 ### The history
 
@@ -139,35 +111,22 @@ because the law is "delete, then read misses".
 
 ### What the seams do not do
 
-None of the three decides anything. The clock reports time, the history
-records calls, the driver runs callers. Every judgement stays in an
-assertion, which is what keeps the seams small enough to implement five
-times.
+Neither decides anything. The history records calls and the driver runs
+callers. Every judgement stays in an assertion, which is what keeps the
+seams small enough to implement five times.
 
 ## Alternatives considered
 
-### A. Let each implementation reach for its own platform facilities
+### A. One seam carrying both
 
-Go has a testing clock in the standard library's orbit, Kotlin has a test
-dispatcher that controls virtual time, Rust has one in tokio. Each
-language's users know their own.
+A single object recording calls and running callers would be one thing to
+pass rather than two. The seat is already passed to every assertion and
+could carry them.
 
-Rejected because a relation stated against a platform facility is a
-different relation in each language, and the corpus could never check
-it. The point of the standard is that a test means the same thing
-everywhere, and a clock that means "tokio's clock" in one language and
-"real time" in another breaks that at the first expiry test.
-
-### B. One seam carrying all three
-
-A single object supplying time, recording calls and running callers would
-be one thing to pass rather than three. The seat is already passed to
-every assertion and could carry them.
-
-Rejected because the three are wanted independently. A test asserting
-expiry wants a clock and no history. Merging them means every
-implementation implements all three before any relation using any of them
-can be stated, which is three times the work before the first payoff.
+Rejected because the two are wanted independently. A test asserting that
+a client's reads never go backwards needs a history and no concurrency at
+all. Merging them means every implementation builds both before any
+relation using either can be stated.
 
 ### C. Record history by wrapping the subject automatically
 
@@ -181,15 +140,9 @@ wraps onto.
 
 ## Drawbacks
 
-Three seams is three interfaces in five languages before any relation
-using them can be stated, and the clock is a change to four existing
-assertions rather than an addition beside them.
-
-The clock is contagious. An assertion reading it is only controllable if
-the subject reads it too, and the standard cannot make a subject do that.
-A test whose subject calls the platform clock directly gets a controlled
-clock in the assertion and a real one in the code under test, which is
-worse than either alone. The standard can say so and cannot prevent it.
+Two seams is two interfaces in five languages before any relation using
+them can be stated, and neither pays for itself until the relations that
+need it are specified.
 
 The concurrency driver finds only what an unassisted schedule finds. A
 subject that breaks under one interleaving in a thousand passes. Tools
@@ -221,3 +174,4 @@ driving it.
 - Linearizability, for why an entry carries an interval rather than a
   point: Herlihy and Wing,
   <https://doi.org/10.1145/78969.78972>
+- The clock, proposed on its own: `docs/rfc/0006-the-clock.md`
