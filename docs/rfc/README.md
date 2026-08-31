@@ -13,3 +13,4 @@ they record why not.
 | [0005](0005-the-failure-record.md) | The failure record | Accepted |
 | [0006](0006-the-clock.md) | The clock | Accepted |
 | [0007](0007-conformance-beyond-the-corpus.md) | Conformance beyond the corpus | Accepted |
+| [0008](0008-what-a-benchmark-measures.md) | What a benchmark measures | Draft |
