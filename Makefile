@@ -12,8 +12,13 @@ install: ## Create the environment
 
 render: ## Render the JSON an implementation reads from the YAML people edit
 	@uv run python tools/render.py
+	@uv run python tools/manifest.py
+
+manifest: ## Rebuild the digest of everything an implementation vendors
+	@uv run python tools/manifest.py
 
 stale: ## Fail when the rendered JSON does not match the YAML
+	@uv run python tools/manifest.py --check
 	@git diff --quiet -- spec/*.json || { \
 		echo "spec: the rendered JSON is stale; run make render and commit"; exit 1; }
 	@echo "spec: the rendered JSON matches the YAML"

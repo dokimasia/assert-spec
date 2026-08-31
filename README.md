@@ -33,6 +33,8 @@ spec/assertions.yaml   what each assertion means          edited by people
 spec/naming.yaml       what each language calls it        edited by people
 spec/assertions.json   the same, rendered                 read by libraries
 spec/naming.json       the same, rendered                 read by libraries
+spec/conformance.md    what converges and what does not
+spec/manifest.json     a digest of everything an implementation vendors
 spec/encoding.md       how a corpus case states a value
 spec/overlays.md       how a language declares it cannot comply
 corpus/*.json          70 cases in 17 files
@@ -121,6 +123,40 @@ meaning can be stated, and on membership everywhere else.
 reason. A divergence nobody wrote down is a bug; one written down is a
 decision someone can argue with.
 
+Which of these a given difference belongs to, and which differences need
+no recording at all, is stated in `spec/conformance.md`.
+
+## Keeping the implementations in step
+
+An implementation vendors a copy of the definition, so its build fails on
+its own without reaching the network. What a copy cannot tell you is
+whether it is current, and the version does not answer that: adding the
+relaxations changed the definition without changing the version, and by
+the rule below it should not have.
+
+`spec/manifest.json` carries a digest of every file an implementation
+vendors, so there is something to compare against that tracks the bytes
+rather than the meaning. Each implementation runs `spec-check` in its own
+CI. A copy that does not match the manifest beside it fails, always. A
+copy that differs from this repository fails only when that change is
+the one that touched it: falling behind is allowed and is tracked by an
+issue, and committing a copy nobody else has is not.
+
+`spec-sync` fetches a pinned ref rather than reading a sibling
+directory, so it answers the same way on a laptop and on a runner. Set
+`SPEC_LOCAL` to try a change before pushing it; it says loudly that the
+copy it leaves behind is reproducible nowhere else.
+
+The two scripts are themselves vendored from `tools/` here and carried
+in the manifest, and `spec-sync` refreshes them along with the
+definition. Five copies of a script drift exactly the way five copies
+of the definition did, and running one from the network instead would
+make an offline check depend on being online.
+
+A change here opens an issue on each of the five, so a definition change
+becomes five pieces of visible work rather than five silent
+divergences.
+
 ## Checking this repository
 
 Everything runs through [uv](https://docs.astral.sh/uv/), which fetches
@@ -148,7 +184,7 @@ assertion with a unique id and a decodable literal, and that an overlay
 extends this version and diverges only from assertions that exist. It
 reports everything it finds in one run.
 
-`make test` runs 25 cases that each break one rule in a scratch copy and
+`make test` runs 36 cases that each break one rule in a scratch copy and
 require the validator to catch it. A validator only ever run on a clean
 tree would pass just as readily with every rule deleted.
 
@@ -170,6 +206,7 @@ whether an existing test still states what its author meant.
 | Java | [assert-java](https://github.com/dokimasia/assert-java) | 40 of 41 |
 | Kotlin | [assert-java](https://github.com/dokimasia/assert-java) | 40 of 41 |
 | Python | [assert-python](https://github.com/dokimasia/assert-python) | 41 of 41 |
+| Rust | [assert-rust](https://github.com/dokimasia/assert-rust) | 41 of 41 |
 | TypeScript | [assert-typescript](https://github.com/dokimasia/assert-typescript) | 39 of 41 |
 
 Java and Kotlin ship from one repository and are named identically, so
@@ -180,9 +217,17 @@ V8 answers only as a heap-usage delta that moves with whether the
 collector ran. Each gap is in that language's overlay with the
 measurement behind it.
 
-PHP and Rust are declared as target languages and the naming table
-carries no names for them yet, so adding one starts by filling that
-column.
+Rust states all forty-one and declares nothing absent, which no other
+implementation manages. Three are partial: the two allocation ceilings
+need a counting allocator installed as the test binary's global
+allocator, and no-task-leaks sees tasks on a runtime but not a thread,
+because nothing in Rust's standard library enumerates threads. It also
+declines both relaxations, since its types keep an absent container and
+an empty one apart and its own equality already says NaN is unequal to
+itself.
+
+PHP is declared as a target language and the naming table carries no
+names for it yet, so adding it starts by filling that column.
 
 The argument behind the design is in
 [docs/rfc/0001-the-standardized-assertion-set.md](docs/rfc/0001-the-standardized-assertion-set.md).
