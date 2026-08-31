@@ -184,11 +184,11 @@ class Validator(unittest.TestCase):
         def contradict(document: Any) -> None:
             for case in document["cases"]:
                 if case["expect"] == "pass":
-                    case["message_contains"] = ["something"]
+                    case["detail"] = {"want": {"type": "int", "value": 1}}
                     return
 
         _edit(self.tree / "corpus" / "equal.json", contradict)
-        self.assert_caught("expects a pass but states message_contains")
+        self.assert_caught("expects a pass but states detail")
 
     def test_a_skip_with_no_reason_is_caught(self) -> None:
         """A skip is a claim, and a claim with no reason cannot be read."""
@@ -242,7 +242,7 @@ class Validator(unittest.TestCase):
                 limits=[{"id": "invented", "what": "misses things", "why": "stated"}]
             ),
         )
-        self.assert_caught("which is not defined")
+        self.assert_caught("which the standard does not state")
 
     def test_diverging_and_limiting_the_same_assertion_is_caught(self) -> None:
         """A divergence must be absent and a limit must be present."""
@@ -380,6 +380,55 @@ class Validator(unittest.TestCase):
             lambda d: d.update(relaxations=[{"id": "equate-nans", "why": "stated"}]),
         )
         self.assert_caught("both names and declines")
+
+    def test_a_case_stating_an_undeclared_detail_field_is_caught(self) -> None:
+        """A case may only state detail its assertion declares."""
+
+        def add_field(document: Any) -> None:
+            for case in document["cases"]:
+                if case["expect"] == "fail":
+                    case["detail"]["bogus"] = {"type": "int", "value": 1}
+
+        _edit(self.tree / "corpus" / "equal.json", add_field)
+        self.assert_caught("which equal does not declare")
+
+    def test_an_untyped_detail_value_is_caught(self) -> None:
+        """Detail carries typed literals, so an int and a float stay apart."""
+
+        def untype(document: Any) -> None:
+            for case in document["cases"]:
+                if case["expect"] == "fail":
+                    case["detail"]["want"] = 2
+
+        _edit(self.tree / "corpus" / "equal.json", untype)
+        self.assert_caught("detail.want")
+
+    def test_a_detail_field_that_is_not_a_name_is_caught(self) -> None:
+        """The fields are names now, not words a message ought to hold."""
+        _edit(
+            self.tree / "spec" / "assertions.json",
+            lambda d: d["assertions"]["equal"].update(detail_fields=["Want Got"]),
+        )
+        self.assert_caught("which is not a field name")
+
+    def test_a_repeated_detail_field_is_caught(self) -> None:
+        """One key cannot carry two values."""
+        _edit(
+            self.tree / "spec" / "assertions.json",
+            lambda d: d["assertions"]["equal"].update(detail_fields=["want", "want"]),
+        )
+        self.assert_caught("names the same detail field twice")
+
+    def test_a_limit_may_name_a_surface_row(self) -> None:
+        """A seat that carries no lock is a limit on the seat."""
+        _edit(
+            self.tree / "overlays" / "java.json",
+            lambda d: d.setdefault("limits", []).append(
+                {"id": "recorder-seat", "what": "carries no lock", "why": "one thread"}
+            ),
+        )
+        result = self.run_validator()
+        self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_a_surface_id_neither_named_nor_declined_is_caught(self) -> None:
         """The surface table is under the same rule as the relaxations."""

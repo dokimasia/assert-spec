@@ -2,7 +2,7 @@
 rfc: 0005
 title: The failure record
 author: Roy Klopper <roy.klopper@stealthscale.io>
-status: Draft
+status: Accepted
 created: 2026-08-31
 updated: 2026-08-31
 discussion: none
@@ -136,6 +136,25 @@ and a Python developer read different conventions and neither is served
 by splitting the difference. What is standardised is the record behind
 it.
 
+### How a record reaches a seat
+
+Four languages state the record on the seat itself and give it a
+default, so a seat that says nothing renders the record and reports the
+sentence. Go interfaces carry no defaults and `*testing.T` can never
+grow a member, so Go states the same thing as a second interface a seat
+may also satisfy:
+
+```go
+type Reporter interface {
+	Report(f Failure, aborting bool)
+}
+```
+
+A seat that satisfies it receives the record. A seat that does not, and
+`*testing.T` is the one that matters, receives the rendered sentence
+through `Fatalf` or `Errorf` as it does today. Callers keep passing `t`
+directly.
+
 ### Migration
 
 Nothing outside these repositories implements a seat or reads a failure,
@@ -201,10 +220,6 @@ different sentences for the same failure. That was already true and this
 does not fix it.
 
 ## Unresolved and future work
-
-Whether `detail` values should be typed literals or plain JSON. Typed
-literals keep an int and a float apart, at the cost of a corpus that is
-more verbose to read.
 
 Whether a failure should carry the relaxations in force. A case where
 `equate-nans` changed the answer is currently indistinguishable from one

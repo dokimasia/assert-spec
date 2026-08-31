@@ -59,7 +59,7 @@ that ID to a name its users recognise.
 throws:
   arity: 2                      # callable, msg
   summary: The callable raises. Yields what was raised.
-  message_fields: [got]
+  detail_fields: [got]
 ```
 
 ```yaml
@@ -308,7 +308,8 @@ values in an encoding each library turns into native values:
         { "type": "null" }
       ],
       "expect": "fail",
-      "message_contains": ["want", "got"]
+      "detail": {"want": {"type": "null"},
+                 "got": {"type": "list", "of": "int", "value": []}}
     }
   ]
 }

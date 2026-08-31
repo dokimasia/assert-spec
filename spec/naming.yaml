@@ -328,6 +328,22 @@ relaxations:
 #
 # Rust names the contract's runner run because loop is a Rust keyword,
 # the same reason Java's throws became throwsException.
+#
+# A seat answers a clock, and a failing assertion hands it a record. Four
+# languages state both on the seat itself and give them a default, so a
+# seat that says nothing gets the platform clock and a rendered string.
+# Go interfaces carry no defaults and testing.T can never grow a member,
+# so Go states both as separate interfaces a seat may also satisfy. The
+# meaning is the same and the spelling is what the language allows,
+# which is why Go names the members here and declines neither.
+#
+# Reporter and Clocked are the two interfaces that spelling needs. Only
+# Go and Java have them, because only they lack interface defaults; the
+# other three state the members on the seat itself and decline both.
+#
+# Java names the platform clock SystemClock because System is
+# java.lang.System, which every class in the package would otherwise
+# have to qualify. The same reason throws became throwsException.
 surface:
   types:
     "seat":
@@ -357,6 +373,49 @@ surface:
       typescript: "Collector"
       java: "Collector"
       kotlin: "Collector"
+    "clock":
+      go: "Clock"
+      python: "Clock"
+      rust: "Clock"
+      typescript: "Clock"
+      java: "Clock"
+      kotlin: "Clock"
+    "controlled-clock":
+      go: "Controlled"
+      python: "Controlled"
+      rust: "Controlled"
+      typescript: "Controlled"
+      java: "Controlled"
+      kotlin: "Controlled"
+    "failure":
+      go: "Failure"
+      python: "Failure"
+      rust: "Failure"
+      typescript: "Failure"
+      java: "Failure"
+      kotlin: "Failure"
+    "where":
+      go: "Where"
+      python: "Where"
+      rust: "Where"
+      typescript: "Where"
+      java: "Where"
+      kotlin: "Where"
+    "system-clock":
+      go: "System"
+      python: "System"
+      rust: "System"
+      typescript: "System"
+      java: "SystemClock"
+      kotlin: "SystemClock"
+    "reporter":
+      go: "Reporter"
+      java: "Reporter"
+      kotlin: "Reporter"
+    "clocked":
+      go: "Clocked"
+      java: "Clocked"
+      kotlin: "Clocked"
     "scrubber":
       go: "golden.Scrubber"
       python: "golden.Scrubber"
@@ -393,6 +452,62 @@ surface:
       typescript: "record"
       java: "record"
       kotlin: "record"
+    "failure.assertion":
+      go: "Assertion"
+      python: "assertion"
+      rust: "assertion"
+      typescript: "assertion"
+      java: "assertion"
+      kotlin: "assertion"
+    "failure.contract":
+      go: "Contract"
+      python: "contract"
+      rust: "contract"
+      typescript: "contract"
+      java: "contract"
+      kotlin: "contract"
+    "failure.detail":
+      go: "Detail"
+      python: "detail"
+      rust: "detail"
+      typescript: "detail"
+      java: "detail"
+      kotlin: "detail"
+    "seat.report":
+      go: "Report"
+      python: "report"
+      rust: "report"
+      typescript: "report"
+      java: "report"
+      kotlin: "report"
+    "seat.clock":
+      go: "Clock"
+      python: "clock"
+      rust: "clock"
+      typescript: "clock"
+      java: "clock"
+      kotlin: "clock"
+    "clock.now":
+      go: "Now"
+      python: "now"
+      rust: "now"
+      typescript: "now"
+      java: "now"
+      kotlin: "now"
+    "clock.sleep":
+      go: "Sleep"
+      python: "sleep"
+      rust: "sleep"
+      typescript: "sleep"
+      java: "sleep"
+      kotlin: "sleep"
+    "controlled-clock.advance":
+      go: "Advance"
+      python: "advance"
+      rust: "advance"
+      typescript: "advance"
+      java: "advance"
+      kotlin: "advance"
     "recorder-seat.failed":
       go: "Failed"
       python: "failed"
@@ -414,6 +529,13 @@ surface:
       typescript: "messages"
       java: "messages"
       kotlin: "messages"
+    "recorder-seat.failures":
+      go: "Failures"
+      python: "failures"
+      rust: "failures"
+      typescript: "failures"
+      java: "failures"
+      kotlin: "failures"
     "recorder-seat.helper-calls":
       go: "HelperCalls"
       python: "helper_calls"

@@ -96,7 +96,7 @@ def check_version(spec: Any, naming: Any, version: str, problems: Problems) -> N
     )
 
 
-def check_assertions(spec: Any, problems: Problems) -> set[str]:
+def check_assertions(spec: Any, problems: Problems) -> dict[str, set[str]]:
     """Every assertion states an id, an arity and a summary."""
     assertions = spec.get("assertions", {})
     problems.unless(bool(assertions), "spec/assertions.json", "states no assertions")
@@ -113,15 +113,51 @@ def check_assertions(spec: Any, problems: Problems) -> set[str]:
         problems.unless(
             bool(str(body.get("summary", "")).strip()), where, "states no summary"
         )
-        fields = body.get("message_fields", [])
-        problems.unless(isinstance(fields, list), where, "message_fields is not a list")
+        fields = body.get("detail_fields", [])
+        if problems.unless(
+            isinstance(fields, list), where, "detail_fields is not a list"
+        ):
+            for field in fields:
+                problems.unless(
+                    isinstance(field, str) and bool(FIELD.match(str(field))),
+                    where,
+                    f"names detail field {field!r}, which is not a field name",
+                )
+            problems.unless(
+                len(set(fields)) == len(fields),
+                where,
+                "names the same detail field twice",
+            )
         package = body.get("package", "")
         problems.unless(
             package == "" or bool(ID.match(package)),
             where,
             f"names package {package!r}, which is not an id",
         )
-    return set(assertions)
+    return {
+        aid: set(body.get("detail_fields", []) or [])
+        for aid, body in assertions.items()
+        if isinstance(body, dict)
+    }
+
+
+def check_subjects(spec: Any, problems: Problems) -> set[str]:
+    """The subject vocabulary a corpus case may name.
+
+    A case that cannot state a callable names a behaviour instead, and
+    each implementation builds it natively. The vocabulary is small on
+    purpose: every kind is one an implementation has to be able to make.
+    """
+    subjects = spec.get("subjects", {})
+    problems.unless(
+        bool(subjects), "spec/assertions.json", "states no subject vocabulary"
+    )
+    for kind, body in sorted(subjects.items()):
+        where = f"spec/assertions.json: subject {kind}"
+        problems.unless(bool(ID.match(kind)), where, "is not a hyphenated lowercase id")
+        stated = isinstance(body, dict) and bool(str(body.get("summary", "")).strip())
+        problems.unless(stated, where, "states no summary")
+    return set(subjects)
 
 
 def check_naming(
@@ -209,7 +245,22 @@ def check_literal(value: Any, where: str, problems: Problems) -> None:
         )
 
 
-def check_case(case: Any, assertion: str, where: str, problems: Problems) -> str | None:
+@dataclass(frozen=True)
+class Vocabulary:
+    """What a corpus case may name.
+
+    One value rather than two arguments: the detail fields an assertion
+    declares and the subject kinds the definition states are both what a
+    case is held to, and a case names one or the other.
+    """
+
+    detail: set[str]
+    subjects: set[str]
+
+
+def check_case(
+    case: Any, assertion: str, vocabulary: Vocabulary, where: str, problems: Problems
+) -> str | None:
     """One corpus case, held to its own shape. Answers its id."""
     if not isinstance(case, dict):
         problems.at(where, "is not an object")
@@ -235,21 +286,46 @@ def check_case(case: Any, assertion: str, where: str, problems: Problems) -> str
     )
 
     args = case.get("args")
+    subject = case.get("subject")
+    if args is None and subject is None:
+        problems.at(f"{where} [{cid}]", "states neither args nor a subject")
+    problems.unless(
+        args is None or subject is None,
+        f"{where} [{cid}]",
+        "states both args and a subject; a case hands over one or the other",
+    )
     if isinstance(args, list):
         for index, arg in enumerate(args):
             check_literal(arg, f"{where} [{cid}] arg {index}", problems)
-    else:
-        problems.at(f"{where} [{cid}]", "states no args")
+    elif args is not None:
+        problems.at(f"{where} [{cid}]", "states args that are not a list")
 
-    contains = case.get("message_contains", [])
+    if subject is not None and problems.unless(
+        isinstance(subject, dict), f"{where} [{cid}]", "subject is not an object"
+    ):
+        kind = subject.get("kind")
+        problems.unless(
+            kind in vocabulary.subjects,
+            f"{where} [{cid}]",
+            f"names subject kind {kind!r}, which the definition does not state",
+        )
+
+    detail = case.get("detail", {})
     if problems.unless(
-        isinstance(contains, list), f"{where} [{cid}]", "message_contains is not a list"
+        isinstance(detail, dict), f"{where} [{cid}]", "detail is not an object"
     ):
         problems.unless(
-            outcome == "fail" or not contains,
+            outcome == "fail" or not detail,
             f"{where} [{cid}]",
-            "expects a pass but states message_contains, which only a failure has",
+            "expects a pass but states detail, which only a failure has",
         )
+        for name, value in sorted(detail.items()):
+            problems.unless(
+                name in vocabulary.detail,
+                f"{where} [{cid}]",
+                f"states detail {name!r}, which {assertion} does not declare",
+            )
+            check_literal(value, f"{where} [{cid}] detail.{name}", problems)
 
     skip = case.get("skip", {})
     if problems.unless(
@@ -264,7 +340,9 @@ def check_case(case: Any, assertion: str, where: str, problems: Problems) -> str
     return str(cid)
 
 
-def check_corpus(assertions: set[str], problems: Problems) -> int:
+def check_corpus(
+    assertions: dict[str, set[str]], subjects: set[str], problems: Problems
+) -> int:
     """Every corpus file names a defined assertion; every id is unique."""
     seen: dict[str, str] = {}
     total = 0
@@ -297,7 +375,15 @@ def check_corpus(assertions: set[str], problems: Problems) -> int:
             continue
 
         for case in cases:
-            cid = check_case(case, str(assertion), where, problems)
+            cid = check_case(
+                case,
+                str(assertion),
+                Vocabulary(
+                    detail=assertions.get(str(assertion), set()), subjects=subjects
+                ),
+                where,
+                problems,
+            )
             total += 1
             if cid is None:
                 continue
@@ -382,6 +468,10 @@ def check_relaxations(spec: Any, naming: Any, problems: Problems) -> Relaxations
 
 
 SURFACE_SECTIONS = ("types", "members", "helpers")
+
+#: A detail field name, as an assertion declares it and a corpus case
+#: states it: lowercase words, hyphenated.
+FIELD = re.compile(r"^[a-z][a-z0-9-]*$")
 
 #: Surface ids: kebab words, one dot for a member's owner or a helper's
 #: package. `recorder-seat.message` and `golden.should-update` fit;
@@ -617,8 +707,14 @@ def check_overlays(
                 ):
                     continue
                 aid = entry.get("id")
+                # A limit names something the standard states, which is
+                # an assertion or a row of the surface table. A seat
+                # that carries no lock is a limit on the seat, not on
+                # any one assertion.
                 problems.unless(
-                    aid in assertions, where, f"limits {aid!r}, which is not defined"
+                    aid in assertions or aid in tables.surface_ids,
+                    where,
+                    f"limits {aid!r}, which the standard does not state",
                 )
                 for field in ("what", "why"):
                     problems.unless(
@@ -674,11 +770,11 @@ def main() -> int:
     check_version(spec, naming, version, problems)
     assertions = check_assertions(spec, problems)
     relaxations = check_relaxations(spec, naming, problems)
-    check_naming(naming, spec, assertions, problems)
-    cases = check_corpus(assertions, problems)
+    check_naming(naming, spec, set(assertions), problems)
+    cases = check_corpus(assertions, check_subjects(spec, problems), problems)
     check_surface(naming, set(naming.get("languages", [])), problems)
     check_overlays(
-        assertions,
+        set(assertions),
         Tables(
             relaxations=relaxations,
             surface_ids=surface_ids(naming),

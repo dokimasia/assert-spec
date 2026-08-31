@@ -61,7 +61,7 @@ that id to a name its users recognise.
   arity: 3
   summary: >
     A callable raises. Yields what was raised.
-  message_fields: [panic]
+  detail_fields: []
 ```
 
 ```yaml
@@ -105,17 +105,21 @@ what the failure must mention:
     { "type": "null" }
   ],
   "expect": "fail",
-  "message_contains": ["want", "got"]
+  "detail": {
+    "want": { "type": "null" },
+    "got": { "type": "list", "of": "int", "value": [] }
+  }
 }
 ```
 
 Typed literals only cross a language boundary as data, so the corpus
-reaches 17 of the 41 assertions. The other 24 take a callable, a
-cancellation handle, a predicate, a golden file or a benchmark, and none
-of those is data.
+reaches 25 of the 41 assertions. Seventeen of those state their
+arguments; the other eight name a behaviour instead, because what they
+take is a callable and no encoding carries one. The remaining 16 take a
+golden file or a benchmark measurement, and neither is data either.
 
 **The completeness gate** checks membership. Every assertion must be
-present under the name the naming table gives it. That covers the 24 the
+present under the name the naming table gives it. That covers the 16 the
 corpus cannot reach: a library is held to the standard on meaning where
 meaning can be stated, and on membership everywhere else.
 

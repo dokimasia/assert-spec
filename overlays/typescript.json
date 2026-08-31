@@ -20,6 +20,26 @@
       "id": "pure",
       "what": "Accepts no relaxations, where the other implementations let a caller equate NaNs or an absent container with an empty one for this call.",
       "why": "An oversight rather than a decision: equal, notEqual, contains and notContains all take them here and isPure does not. It is recorded rather than fixed quietly so the gap is visible until it closes."
+    },
+    {
+      "id": "honours-cancellation",
+      "what": "Reports no call site. The assertion awaits the subject, and by the time it reports, the caller's frame has left the stack.",
+      "why": "V8 gives an async function no synchronous caller frame once it has awaited. The standard states a location as optional for this reason, and every assertion that does not await carries one."
+    },
+    {
+      "id": "recorder-seat",
+      "what": "Carries no lock. The runtime has one thread, so two assertions cannot report at the same instant.",
+      "why": "The standard asks that a seat be usable from more than one thread. A runtime with one thread meets that without doing anything, and says so here rather than leaving a reader to work out which it is."
+    }
+  ],
+  "surface": [
+    {
+      "id": "reporter",
+      "why": "The seat states report and clock itself, with a default, so a seat that supplies neither gets the platform clock and a rendered sentence. Only a language whose interfaces carry no defaults needs a second interface to say the same thing."
+    },
+    {
+      "id": "clocked",
+      "why": "The seat states report and clock itself, with a default, so a seat that supplies neither gets the platform clock and a rendered sentence. Only a language whose interfaces carry no defaults needs a second interface to say the same thing."
     }
   ]
 }

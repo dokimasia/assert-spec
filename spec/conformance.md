@@ -50,6 +50,17 @@ it.** Every implementation offers some way to drive an assertion and
 inspect the outcome rather than being stopped by it. This is what the
 corpus needs to run at all.
 
+**That a seat can be used from more than one thread.** A test holds one
+seat and hands it to every assertion in the body, and several of the
+assertions run the subject somewhere else: one retries a body, one
+watches for work that outlives its scope, one gives a subject a handle
+and waits. A seat that loses a failure because two arrived at once
+reports the wrong answer, and no test would see why.
+
+A language whose runtime has one thread meets this without doing
+anything, and says so in its overlay rather than leaving a reader to
+work out which it is.
+
 ## Named
 
 The same idea, spelled the way the language spells things. Each has a row

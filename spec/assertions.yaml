@@ -8,6 +8,11 @@
 #
 # relaxations lists the modifiers an assertion accepts. A relaxation
 # widens what counts as equal for one call, and never for a whole run.
+#
+# detail_fields names the values a failure carries, and a failing
+# assertion carries exactly these. got is what the assertion observed
+# and want is what it required, so an assertion whose failure holds
+# neither states no fields and reports the caller's message alone.
 version: "1.0.0"
 
 # What a caller may relax, for one call.
@@ -28,6 +33,48 @@ relaxations:
       unequal to itself, which is what IEEE 754 states and what the
       standard states by default.
 
+# What a corpus case may hand an assertion in place of a value.
+#
+# A case states its arguments as typed literals, which cannot describe a
+# callable. Most of what the assertions taking one need is a behaviour
+# from a small fixed set, so a case names the behaviour and each
+# implementation builds it natively. A kind an implementation cannot
+# build is a declared skip, the same as any other case.
+subjects:
+  "returns-ok":
+    summary: >
+      Does the work and answers success, whatever it was handed.
+  "reads-handle":
+    summary: >
+      Reads the cancellation handle and answers the reason it gives,
+      or success when the handle is absent or still running.
+  "ignores-handle":
+    summary: >
+      Answers success without reading the handle at all.
+  "raises":
+    summary: >
+      Raises rather than answering.
+  "fails-otherwise":
+    summary: >
+      Answers a failure of its own, unrelated to any handle it was
+      given.
+  "dereferences-handle":
+    summary: >
+      Reads a handle without checking it is there, so a missing one
+      crashes it.
+  "never-settles":
+    summary: >
+      Reports a failure on every attempt.
+  "settles-after":
+    summary: >
+      Reports a failure twice and succeeds on the third attempt.
+  "accumulates":
+    summary: >
+      Changes the observed state once per call.
+  "leaves-state-alone":
+    summary: >
+      Reads the observed state and changes nothing.
+
 assertions:
   "equal":
     arity: 3
@@ -35,14 +82,14 @@ assertions:
       Structural equality. A null collection does not equal an empty
       one, no type coercion, NaN is unequal to itself, floats compare
       exactly, cycles stop, functions compare by identity.
-    message_fields: [want, got]
+    detail_fields: [want, got]
     relaxations: [equate-empty, equate-nans]
 
   "not-equal":
     arity: 3
     summary: >
       Negation of equal.
-    message_fields: [got]
+    detail_fields: [got]
     relaxations: [equate-empty, equate-nans]
 
   "true":
@@ -50,196 +97,196 @@ assertions:
     summary: >
       The condition holds. The failure carries the caller's message
       alone.
-    message_fields: []
+    detail_fields: []
 
   "false":
     arity: 2
     summary: >
       The condition does not hold.
-    message_fields: []
+    detail_fields: []
 
   "nil":
     arity: 2
     summary: >
       The value is absent. A typed nil counts as nil.
-    message_fields: [nil]
+    detail_fields: [got]
 
   "not-nil":
     arity: 2
     summary: >
       The value is present. A typed nil counts as nil.
-    message_fields: [nil]
+    detail_fields: []
 
   "length":
     arity: 3
     summary: >
       The container holds the stated number of items. Answers for any
       sized container or text.
-    message_fields: [length]
+    detail_fields: [want, got]
 
   "empty":
     arity: 2
     summary: >
       The container holds nothing.
-    message_fields: [empty]
+    detail_fields: [length]
 
   "not-empty":
     arity: 2
     summary: >
       The container holds something.
-    message_fields: [empty]
+    detail_fields: []
 
   "contains":
     arity: 3
     summary: >
       Text holds a substring, a sequence holds an element, or a map
       holds a key.
-    message_fields: [contain]
+    detail_fields: [haystack, needle]
     relaxations: [equate-empty, equate-nans]
 
   "not-contains":
     arity: 3
     summary: >
       Negation of contains.
-    message_fields: [contain]
+    detail_fields: [haystack, needle]
     relaxations: [equate-empty, equate-nans]
 
   "contains-in-order":
     arity: 3
     summary: >
       Text holds every needle, each after the previous one's match ends.
-    message_fields: [found]
+    detail_fields: [haystack, needle, index]
 
   "has-prefix":
     arity: 3
     summary: >
       Text starts with the given prefix.
-    message_fields: [start]
+    detail_fields: [got, prefix]
 
   "has-suffix":
     arity: 3
     summary: >
       Text ends with the given suffix.
-    message_fields: [end]
+    detail_fields: [got, suffix]
 
   "matches":
     arity: 3
     summary: >
       Text matches a regular expression. A pattern that does not compile
       is a failure, not an error.
-    message_fields: [match]
+    detail_fields: [got, pattern]
 
   "close-to":
     arity: 4
     summary: >
       A number is within a tolerance of another, by absolute difference.
       NaN is outside every tolerance.
-    message_fields: [within]
+    detail_fields: [got, want, tolerance]
 
   "in-range":
     arity: 4
     summary: >
       A number falls in a closed interval. NaN is in no range.
-    message_fields: [range]
+    detail_fields: [got, low, high]
 
   "pairwise":
     arity: 4
     summary: >
       Every adjacent pair of a sequence satisfies a predicate. Nought or
       one item passes.
-    message_fields: [order]
+    detail_fields: [index, first, second]
 
   "err-absent":
     arity: 3
     summary: >
       No failure value is present.
-    message_fields: [error]
+    detail_fields: [got]
 
   "err-present":
     arity: 3
     summary: >
       Some failure value is present.
-    message_fields: [error]
+    detail_fields: []
 
   "err-is":
     arity: 4
     summary: >
       A failure matches a sentinel, through the chain of wrapped causes.
-    message_fields: [want]
+    detail_fields: [want, got]
 
   "err-is-not":
     arity: 4
     summary: >
       A failure does not match a sentinel.
-    message_fields: [distinct]
+    detail_fields: [got]
 
   "err-as":
     arity: 3
     summary: >
       A failure of the given type is in the chain. Yields it.
-    message_fields: [type]
+    detail_fields: [want, got]
 
   "throws":
     arity: 3
     summary: >
       A callable raises. Yields what was raised.
-    message_fields: [panic]
+    detail_fields: []
 
   "not-throws":
     arity: 3
     summary: >
       A callable does not raise.
-    message_fields: [panic]
+    detail_fields: [got]
 
   "honours-cancellation":
     arity: 3
     summary: >
       A subject given a cancelled handle reports a cancellation failure.
-    message_fields: [cancel]
+    detail_fields: [got]
 
   "honours-deadline":
     arity: 3
     summary: >
       A subject given an expired deadline reports a deadline failure.
-    message_fields: [deadline]
+    detail_fields: [got]
 
   "completes-within":
     arity: 4
     summary: >
       A subject finishes before the stated duration.
-    message_fields: [within]
+    detail_fields: [want, got]
 
   "pure":
     arity: 4
     summary: >
       Observed state is unchanged across a call.
-    message_fields: [changed]
+    detail_fields: [want, got]
     relaxations: [equate-empty, equate-nans]
 
   "nil-context-safe":
     arity: 3
     summary: >
       A subject given an absent cancellation handle does not crash.
-    message_fields: [panic]
+    detail_fields: [got]
 
   "eventually":
     arity: 5
     summary: >
       An assertion body passes within a timeout, retried at an interval.
       Reports the last failure.
-    message_fields: [still]
+    detail_fields: [attempts, last]
 
   "eventually-true":
     arity: 4
     summary: >
       A predicate becomes true within a timeout, retried with backoff.
-    message_fields: [still]
+    detail_fields: [attempts]
 
   "no-task-leaks":
     arity: 2
     summary: >
       No concurrent task started in the scope outlives it.
-    message_fields: [running]
+    detail_fields: [leaked]
 
   "golden-match":
     arity: 5
@@ -247,53 +294,53 @@ assertions:
     summary: >
       Output matches the golden file resolved against the conventional
       directory.
-    message_fields: [want, got]
+    detail_fields: [want, got]
 
   "golden-match-at":
     arity: 5
     package: golden
     summary: >
       Output matches the golden file at a given path.
-    message_fields: [want, got]
+    detail_fields: [want, got]
 
   "golden-match-json-field":
     arity: 6
     package: golden
     summary: >
       Output matches one named field of a golden JSON object.
-    message_fields: [want, got]
+    detail_fields: [want, got, field]
 
   "bench-max-latency":
     arity: 1
     package: bench
     summary: >
       The p99 latency per iteration stays within a ceiling.
-    message_fields: [ceiling]
+    detail_fields: [want, got]
 
   "bench-max-mean":
     arity: 1
     package: bench
     summary: >
       The mean latency per iteration stays within a ceiling.
-    message_fields: [ceiling]
+    detail_fields: [want, got]
 
   "bench-max-allocs":
     arity: 1
     package: bench
     summary: >
       The allocations per iteration stay within a ceiling.
-    message_fields: [ceiling]
+    detail_fields: [want, got]
 
   "bench-max-bytes":
     arity: 1
     package: bench
     summary: >
       The bytes allocated per iteration stay within a ceiling.
-    message_fields: [ceiling]
+    detail_fields: [want, got]
 
   "rejects":
     arity: 3
     summary: >
       A check fails against an implementation it is meant to reject.
       Yields the failure message.
-    message_fields: [reject]
+    detail_fields: []

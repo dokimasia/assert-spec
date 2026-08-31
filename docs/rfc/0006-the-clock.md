@@ -2,7 +2,7 @@
 rfc: 0006
 title: The clock
 author: Roy Klopper <roy.klopper@stealthscale.io>
-status: Draft
+status: Accepted
 created: 2026-08-31
 updated: 2026-08-31
 discussion: none
@@ -109,6 +109,19 @@ Seat
 A test wanting control constructs a seat with a controlled clock and
 passes it as it already passes a seat.
 
+Four languages give `clock` a default on the seat, so a seat that says
+nothing answers the platform clock. Go interfaces carry no defaults and
+`*testing.T` can never grow a member, so a Go seat states it as a second
+interface a seat may also satisfy, and a seat that does not satisfy it
+gets the platform clock. A caller passing `t` writes what it writes
+today.
+
+An assertion reading a controlled clock advances it between attempts
+rather than sleeping against it. `sleep` on a controlled clock blocks
+until the clock has passed the duration, which is what a test driving a
+background worker needs, and no assertion in the standard calls it while
+holding the only thread that could advance it.
+
 ### What it does not do
 
 The clock reports time and nothing else. It does not schedule, does not
@@ -194,11 +207,6 @@ They are separate proposals because the arguments are separate. They are
 one change to make.
 
 ## Unresolved and future work
-
-Whether `sleep` on a controlled clock should return immediately or wait
-for another thread to advance it. The first is what a single-threaded
-test wants and the second is what a test driving a background worker
-wants, and they are not the same.
 
 Whether the clock should be able to run at a multiple of real time
 rather than only stepping. A subject with its own timers may need to

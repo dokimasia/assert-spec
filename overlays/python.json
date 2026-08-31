@@ -1,5 +1,15 @@
 {
   "extends": "spec://assertions@1.0.0",
   "language": "python",
-  "diverge": []
+  "diverge": [],
+  "surface": [
+    {
+      "id": "reporter",
+      "why": "The seat states report and clock itself, with a default, so a seat that supplies neither gets the platform clock and a rendered sentence. Only a language whose interfaces carry no defaults needs a second interface to say the same thing."
+    },
+    {
+      "id": "clocked",
+      "why": "The seat states report and clock itself, with a default, so a seat that supplies neither gets the platform clock and a rendered sentence. Only a language whose interfaces carry no defaults needs a second interface to say the same thing."
+    }
+  ]
 }
