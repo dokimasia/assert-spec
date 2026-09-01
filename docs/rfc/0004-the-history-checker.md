@@ -4,7 +4,7 @@ title: The history checker
 author: Roy Klopper <roy.klopper@stealthscale.io>
 status: Draft
 created: 2026-08-30
-updated: 2026-08-30
+updated: 2026-09-01
 discussion: none
 supersedes: none
 superseded-by: none
@@ -25,17 +25,22 @@ stays tractable, and what it answers when it cannot decide at all.
 
 ## Motivation
 
-Three relations in the shape catalogue state correctness conditions over
-a whole run rather than over a pair of operations. Linearizability asks
-whether every call appears to take effect instantaneously somewhere
-inside its own interval. Serializability asks whether concurrent
-transactions are equivalent to some serial order. Snapshot isolation asks
-whether each transaction saw one consistent snapshot.
+Two relations in the shape catalogue state correctness conditions over a
+whole run rather than over a pair of operations. Serializability asks
+whether concurrent transactions are equivalent to some serial order.
+Snapshot isolation asks whether each transaction saw one consistent
+snapshot. Both are decided by the dependency graph below.
 
-These are what people want from a store, and they are what a test suite
-usually leaves unchecked. A suite that asserts a value came back does not
-notice that two clients observed an order no serial execution could
-produce.
+Linearizability is a third condition of the same kind, and the catalogue
+does not name it. It asks whether every call appears to take effect
+instantaneously somewhere inside its own interval. Deciding it needs a
+search rather than a graph, so it is the most expensive part of what
+follows and the part no catalogue relation requires.
+
+All three are what people want from a store, and all three are what a
+test suite usually leaves unchecked. A suite that asserts a value came
+back does not notice that two clients observed an order no serial
+execution could produce.
 
 The reason they are usually skipped is that they are hard, and the
 hardness is proven rather than anecdotal. Papadimitriou showed in 1979
@@ -164,10 +169,16 @@ concurrency driver produced.
 
 ## Alternatives considered
 
-### A. Do not build it; leave these three relations undeclared
+### A. Do not build it; leave these relations undeclared
 
 The standard could record them as absent, which is what the overlay
 mechanism is for, and point users at the tools that do this well.
+
+This is the strongest alternative and it has a real argument behind it. A
+checker is a research-grade artifact, the published tools implement it
+well, and building one five times is a different project from an
+assertion library. Everything else in the standard is a comparison or a
+scan.
 
 Rejected because the tools are per-language and do not agree. A Go
 project reaches for one checker, a JVM project for another, and a project
@@ -251,6 +262,8 @@ expresses as data.
 
 - Linearizability, and why a call is placed inside its own interval:
   Herlihy and Wing, <https://doi.org/10.1145/78969.78972>
+- The search itself: Wing and Gong,
+  <https://doi.org/10.1006/jpdc.1993.1015>
 - Deciding serializability is NP-complete: Papadimitriou,
   <https://doi.org/10.1145/322154.322158>
 - Deciding sequential consistency and linearizability is NP-complete:

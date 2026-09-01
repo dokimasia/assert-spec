@@ -4,7 +4,7 @@ title: The relation family
 author: Roy Klopper <roy.klopper@stealthscale.io>
 status: Draft
 created: 2026-08-30
-updated: 2026-08-30
+updated: 2026-09-01
 discussion: none
 supersedes: none
 superseded-by: none
@@ -18,8 +18,9 @@ produces-adr: none
 The standard states forty-one assertions, and all but a handful compare a
 value against another value. This adds a second kind: an assertion that
 states a relation a subject must satisfy, rather than an answer it must
-give. Twenty of them, each taking a callable and the inputs to drive it
-with.
+give. Twenty of them. Ten drive one callable and the inputs to run it
+with. The other ten drive several, such as a forward conversion and the
+inverse that has to undo it.
 
 Each one is a necessary property of the subject rather than a recorded
 output, so a test can state it without knowing what the right answer is.
@@ -45,9 +46,9 @@ that beyond the order things were written in.
 The size of the gap is known rather than guessed. A catalogue of a
 hundred and seven relations exists, derived from real interfaces, and
 this standard can express seven of them. Thirty-six of the rest need
-nothing but new members in the shape the standard already uses, and
-twenty of those thirty-six take a single callable, which is what this
-proposes.
+nothing but new members in the shape the standard already uses. This
+proposes twenty of those thirty-six, the ones a caller can drive with
+closures it already holds.
 
 ## Detailed design
 
@@ -58,10 +59,10 @@ subject to each other, and that a test can check without knowing the
 subject's correct output. That is the membership test, and it is what
 keeps the family from becoming a list of everything anyone wants.
 
-Three consequences follow. A member takes a callable rather than a
-value, because it drives the subject rather than inspecting an answer. A
-member needs no expected output. And a member says nothing about whether
-the subject is correct, only that it is consistent in a stated way.
+Three consequences follow. A member drives the subject through at least
+one callable rather than inspecting an answer it was handed. A member
+needs no expected output. And a member says nothing about whether the
+subject is correct, only that it is consistent in a stated way.
 
 ### The members
 
@@ -147,15 +148,17 @@ whole finding.
 ### What this does not add
 
 No member here takes a clock, records a history, or drives concurrent
-callers. Each of the twenty runs a callable a fixed number of times on
+callers. Each of the twenty runs its callables a fixed number of times on
 one thread and compares what it sees. That is what makes them cheap to
 implement and cheap to conform to.
 
 Sixteen relations are left out for one of two reasons. A merge that
 converges is commutative, associative and idempotent, so it composes from
-members proposed here. The other fifteen need several named callables,
-which needs a convention for naming the parts rather than a new kind of
-assertion.
+members proposed here. The other fifteen are store protocols that pair an
+operation with the sibling confirming it: a write and the read that finds
+it, an acquire and its release, an insert and the update that replaces
+it. Those need a convention for naming the parts rather than a new kind
+of assertion.
 
 ## Alternatives considered
 
@@ -174,9 +177,9 @@ the point of naming it once.
 
 ### B. Add a general relation combinator instead of named members
 
-One assertion taking a relation as an argument would cover all
-twenty-three and any relation nobody has thought of. It is less to
-specify and less to implement.
+One assertion taking a relation as an argument would cover all twenty and
+any relation nobody has thought of. It is less to specify and less to
+implement.
 
 Rejected because a named relation is what makes a suite readable and what
 makes coverage answerable. A test that says `idempotent` says what it

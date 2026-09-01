@@ -4,7 +4,7 @@ title: The observation seams
 author: Roy Klopper <roy.klopper@stealthscale.io>
 status: Draft
 created: 2026-08-30
-updated: 2026-08-30
+updated: 2026-09-01
 discussion: none
 supersedes: none
 superseded-by: none
@@ -20,11 +20,14 @@ is not enough for anything about order or concurrency. This adds two
 seams, a history and a concurrency driver, and says what each one
 answers.
 
-Twenty-eight relations from the shape catalogue are waiting on one of
-them. Thirteen want a history, ten want concurrent callers, and five want
-nothing but a convention for naming several callables. Time is the third
-seam and is proposed on its own, because it changes four assertions that
-already exist rather than only enabling new ones.
+Twenty-eight relations from the shape catalogue cannot be stated today.
+Thirteen want a history and ten want concurrent callers. The remaining
+five need no machinery at all, only a convention for naming the several
+callables they take, so this states that convention beside the two seams.
+
+Time is the other thing an assertion cannot see, and the standard already
+has a clock. That one arrived on its own because it changed four
+assertions that existed rather than only enabling new ones.
 
 ## Motivation
 
@@ -67,8 +70,8 @@ Assertions over a history come in two kinds, and only the first is
 proposed here.
 
 **Direct properties** read the entries and check a rule over them.
-Whether a client's reads ever went backwards is a scan. So is whether
-writes by one client landed in the order that client issued them. These
+Whether a client's reads ever went backwards is a scan. So is whether one
+client's writes took effect in the order that client issued them. These
 are cheap, need no search, and cover the four session guarantees, causal
 ordering, ordering between named operations, and whether an already-open
 read saw a concurrent write.
@@ -128,7 +131,7 @@ a client's reads never go backwards needs a history and no concurrency at
 all. Merging them means every implementation builds both before any
 relation using either can be stated.
 
-### C. Record history by wrapping the subject automatically
+### B. Record history by wrapping the subject automatically
 
 A recording proxy around the subject would spare the caller from
 declaring what to record. That is what a generator would emit anyway.
@@ -141,8 +144,8 @@ wraps onto.
 ## Drawbacks
 
 Two seams is two interfaces in five languages before any relation using
-them can be stated, and neither pays for itself until the relations that
-need it are specified.
+them can be stated. Both cost that whether or not the relations needing
+them are ever specified.
 
 The concurrency driver finds only what an unassisted schedule finds. A
 subject that breaks under one interleaving in a thousand passes. Tools
@@ -174,4 +177,3 @@ driving it.
 - Linearizability, for why an entry carries an interval rather than a
   point: Herlihy and Wing,
   <https://doi.org/10.1145/78969.78972>
-- The clock, proposed on its own: `docs/rfc/0006-the-clock.md`
