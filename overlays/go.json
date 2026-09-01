@@ -14,6 +14,10 @@
     {
       "id": "collector-seat.flush",
       "why": "testing.T flushes itself when the test ends. A flush a caller could invoke would either do nothing or fight the framework."
+    },
+    {
+      "id": "contract.measuring",
+      "why": "The harness owns the loop here, so setup is a second closure it runs outside the measurement. Marking in place would need the body to reach the contract it was handed to."
     }
   ]
 }

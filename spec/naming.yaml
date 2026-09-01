@@ -329,6 +329,15 @@ relaxations:
 # Rust names the contract's runner run because loop is a Rust keyword,
 # the same reason Java's throws became throwsException.
 #
+# Setup a benchmark excludes from its ceilings has two spellings for one
+# meaning, and which one a language takes follows how it writes a
+# benchmark body. Go and Python write it inline, under testing.B and
+# under a generator, so they mark the setup in place with excluding. The
+# other three hand the harness a closure, so they hand it a second one
+# for the setup and name that measuring. Each declines the other's,
+# because adopting it would make its own benchmarks read worse than they
+# do now.
+#
 # A seat answers a clock, and a failing assertion hands it a record. Four
 # languages state both on the seat itself and give them a default, so a
 # seat that says nothing gets the platform clock and a rendered string.
@@ -562,6 +571,14 @@ surface:
       typescript: "loop"
       java: "loop"
       kotlin: "loop"
+    "contract.excluding":
+      go: "Excluding"
+      python: "excluding"
+    "contract.measuring":
+      rust: "measuring"
+      typescript: "measuring"
+      java: "measuring"
+      kotlin: "measuring"
     "contract.check":
       go: "End"
       python: "check"

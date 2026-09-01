@@ -15,5 +15,11 @@
       "what": "Sees platform threads and executor threads. A leaked virtual thread is not reported.",
       "why": "Virtual threads appear in no standard enumeration. Thread.getAllStackTraces does not contain them, and ThreadMXBean counts their carrier threads instead, which is noise rather than signal."
     }
+  ],
+  "surface": [
+    {
+      "id": "contract.excluding",
+      "why": "Go writes a benchmark body inline under testing.B, so a setup closure would take the caller out of both the loop and the chain. It marks the setup in place with Excluding instead."
+    }
   ]
 }

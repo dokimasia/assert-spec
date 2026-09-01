@@ -15,5 +15,11 @@
       "what": "Sees coroutines launched in the scope, and the platform threads the Java artifact sees. A leaked virtual thread is not reported.",
       "why": "A coroutine is tracked through its Job, which is why the Kotlin artifact supplies this rather than inheriting it. Virtual threads appear in no standard enumeration on any JVM version."
     }
+  ],
+  "surface": [
+    {
+      "id": "contract.excluding",
+      "why": "Go writes a benchmark body inline under testing.B, so a setup closure would take the caller out of both the loop and the chain. It marks the setup in place with Excluding instead."
+    }
   ]
 }

@@ -2,7 +2,7 @@
 rfc: 0008
 title: What a benchmark measures
 author: Roy Klopper <roy.klopper@stealthscale.io>
-status: Draft
+status: Accepted
 created: 2026-08-31
 updated: 2026-08-31
 discussion: none
@@ -15,10 +15,11 @@ produces-adr: none
 
 ## Summary
 
-A benchmark ceiling measures whatever the caller put in the loop body,
-including the fixture built there. This gives the contract a way to say
-which part of the body the ceiling is about, so a ceiling on an
-operation is not quietly a ceiling on its setup as well.
+A benchmark ceiling covers whatever the caller put in the loop body,
+including the fixture built there. This fixes what a ceiling means, so
+per-iteration setup sits outside it, and lets a language mark that setup
+the way it already writes a benchmark body rather than adopting one
+shape for all five.
 
 ## Motivation
 
@@ -55,31 +56,62 @@ catch.
 
 ## Detailed design
 
-### The contract says what it is measuring
+### What a ceiling means
 
-`Contract` gains one member. The body it takes runs outside the
-measurement, and what it returns is handed to the measured body:
+A ceiling covers the work the caller states as measured. Per-iteration
+setup, where the caller says so, is not part of it. All four ceilings
+change together: `max-latency` and `max-mean` stop including the setup's
+time, `max-allocs` and `max-bytes` stop including its allocations.
 
+That is the fixed part. How a caller says which work is setup is a
+question about how each language writes a benchmark, and the two answers
+below are both this meaning.
+
+### Where the body is inline
+
+Two of the five write a benchmark body inline. Go's runs under
+`testing.B`, which owns the iteration count; Python's is driven by a
+generator:
+
+```go
+c := bench.Start(b).MaxLatency(50 * time.Microsecond).MaxAllocs(2)
+defer c.End()
+for c.Loop() {
+    store.Get(id)
+}
 ```
-Contract
-  loop(iterations, body)             the measured body
-  check()                            report every crossed ceiling
-  measuring(setup, body)             setup outside, body inside
+
+```python
+c = Contract(seat, "get stays quick").max_allocs(2)
+for _ in c.loop(10_000):
+    store.get(id)
+c.check()
 ```
 
-A case that today reads:
+Setup is excluded in place, which keeps the loop as it reads today:
 
-```rust
-Contract::new(&seat, "settling stays cheap")
-    .max_allocs(4)
-    .run(10_000, || {
-        let store = fresh_store();      // counted, and should not be
-        store.settle();
-    })
-    .check();
+```go
+for c.Loop() {
+    var store *Store
+    c.Excluding(func() { store = freshStore() })
+    store.Settle()
+}
 ```
 
-reads instead:
+```python
+for _ in c.loop(10_000):
+    store = c.excluding(fresh_store)
+    store.settle()
+```
+
+Go's takes a function and answers nothing, because the fixture reaches
+the measured work through a variable the caller already has, which is
+how a Go closure passes anything out. Python's answers what the
+function answered, because Python has no reason not to.
+
+### Where the harness owns the loop
+
+The other three hand the harness a closure:
 
 ```rust
 Contract::new(&seat, "settling stays cheap")
@@ -88,47 +120,45 @@ Contract::new(&seat, "settling stays cheap")
     .check();
 ```
 
-The setup runs for each iteration. What the measurement covers is the
-second closure alone.
+`measuring` takes a setup that answers the fixture and a body that
+consumes it. The harness runs setup for a batch of iterations, measures
+the batch, and divides.
 
-### Why a setup argument rather than a paused span
+### Why two rather than one
 
-The obvious shape is a pause: stop the clock, build the fixture, start
-it again. Go's `testing.B` offers exactly that, and its `StopTimer`
-accumulates allocation counts as well as elapsed time, so the pause
-covers both even though its documentation mentions only the timer.
+One shape for all five was the first answer and it is wrong in both
+directions.
 
-Two things argue against copying it.
+A setup that answers the fixture suits Rust, where a value moves out of
+one closure and into the next. Go cannot express it as a method at all,
+because a Go method may not introduce a type parameter, so it becomes
+either a package-level function that abandons the chain and the inline
+loop, or an `any` and a cast in every benchmark.
 
-A pause can be left unbalanced, and an unbalanced one produces a wrong
-number rather than an error. That is the same shape as the failures this
-standard keeps finding: a measurement that reports confidently having
-measured the wrong thing. A setup argument cannot be unbalanced, because
-there is nothing to close.
+An `excluding` that answers nothing suits Go, where the fixture reaches
+the body through a captured variable. Rust pays for that one instead:
+two closures cannot hold the same variable mutably, so the fixture
+arrives through an `Option` that every benchmark then unwraps.
 
-The second is cost. Pausing per iteration means reading the allocation
-counter twice per iteration, and reading it is not free. JMH offers
-per-invocation setup and states the limit plainly: it is usable for
-benchmarks taking more than a millisecond, because timestamping every
-invocation saturates the system and the setup overhead dominates
-anything smaller. An assertion library whose ceilings are for
-microsecond operations cannot adopt a mechanism with a millisecond
-floor.
+Whichever single shape is chosen, one of the two languages writes worse
+benchmarks than it does today to gain a feature about writing better
+ones.
 
-A setup argument has neither problem. The harness runs setup for a batch
-of iterations, measures the batch, and divides. Criterion takes this
-shape for the same reason, and its `iter_batched` names the same case
-this proposal is about: a routine that consumes its input and so needs a
-fresh one each time.
+The naming table already carries this. `reporter` and `clocked` are
+named by Go and Java and declined by the other three, because only a
+language without interface defaults needs a second interface to say the
+same thing. Two mechanisms for one meaning is the same arrangement:
+`contract.excluding` is named by Go and Python and declined by the other
+three, `contract.measuring` the reverse, and each overlay states why.
 
-### What the ceilings then mean
+Which side a language falls on is not about the language. It is about
+whether the caller writes the loop or the harness does, and that is
+already decided by how each one writes a benchmark today.
 
-All four change together. `max-latency` and `max-mean` stop including
-the setup's time, and `max-allocs` and `max-bytes` stop including its
-allocations. A ceiling states what the operation costs.
-
-The existing `loop` stays. A benchmark whose body needs no fixture is
-the common case and gains nothing from a second closure.
+Nothing is lost in conformance. The four benchmark ceilings are among
+the sixteen assertions the corpus cannot reach, because their answers
+depend on the machine, so both mechanisms rest on each implementation's
+own tests either way.
 
 ### What it does not do
 
@@ -136,9 +166,15 @@ The setup is not measured and no ceiling is offered on it. A caller who
 wants to know what the fixture costs writes a second benchmark whose
 body is the fixture, which is what that question deserves.
 
-Nesting is not offered. A setup that itself needs setup is a fixture
-with a construction problem, and hiding it inside a benchmark harness
-would not fix that.
+The batch size is not exposed. It changes how precisely a number is
+measured rather than what the number means, benchmark answers already
+depend on the machine, and a knob nobody needs is a knob everyone reads.
+Each implementation chooses one.
+
+Nothing here addresses an optimiser deleting the measured work. That
+exposure exists today in every implementation, this changes neither
+direction of it, and the mechanisms that answer it are `black_box` in
+Rust and `Blackhole` in JMH, neither of which the standard states.
 
 ## Alternatives considered
 
@@ -151,32 +187,46 @@ Rejected because the number still moves when the fixture changes, and
 the reader who most needs to know is the one reading a green build six
 months later.
 
-### B. A paused span, as Go's testing.B offers
+### B. One mechanism, chosen for the closure languages
 
-`pause()` and `resume()` on the contract, or a scoped `excluding(body)`
-that cannot be left unbalanced.
+`measuring` everywhere, with Go reaching it through a package-level
+generic function.
 
-Rejected for the cost rather than the shape. Reading the allocation
-counter twice per iteration puts a floor under what can be measured, and
-JMH's experience says that floor is around a millisecond. The scoped
-form solves the balance problem and not the cost one.
+Rejected on what it does to a Go benchmark. Go's body is inline and its
+contract is a chain; a package function takes the caller out of both to
+fix a problem `testing.B` solves without leaving either. Python's body
+is inline for a different reason and pays the same way.
 
-Worth noting that the scoped form remains available later for a case a
-setup argument cannot express, and adopting a setup argument now does
-not rule it out.
+### C. One mechanism, chosen for the inline languages
 
-### C. Hoist the setup and reuse the fixture
+`excluding` everywhere, with the fixture threaded by capture.
+
+Rejected for the mirror reason. Rust cannot hold one variable mutably in
+two closures, so every Rust benchmark gains an `Option` and an unwrap.
+
+### D. A pause and a resume, as testing.B offers
+
+`StopTimer` and `StartTimer` on the contract. Go's own pair does stop
+allocation counting as well as the clock, whatever its documentation
+says.
+
+Rejected because a pause can be left unbalanced and an unbalanced one
+answers a wrong number rather than an error. That is the failure this
+standard exists to catch, and a scoped form costs nothing to write
+instead.
+
+### E. Hoist the setup and reuse one fixture
 
 Build one fixture before the loop and reset it inside.
 
 Rejected because it does not apply to the case that motivated this. An
-operation that consumes its input has no reset that is cheaper than
-construction, and where a reset does exist it is itself work inside the
+operation that consumes its input has no reset cheaper than
+construction, and where a reset exists it is itself work inside the
 measurement.
 
-### D. Subtract a separately measured setup
+### F. Measure the setup separately and subtract
 
-Measure the setup alone, measure both together, subtract.
+Measure setup alone, measure both together, subtract.
 
 Rejected because two measurements of a system under different memory
 pressure do not subtract. The fixture built inside a loop and the same
@@ -185,53 +235,35 @@ operation.
 
 ## Drawbacks
 
-`Contract` gains a member, which is a row in the naming table and a
-naming decision in six languages. The surface goes from two contract
-members to three.
+Two mechanisms exist for one meaning, and a reader moving between an
+inline language and a closure one meets a different member. They read only the one their
+language offers, but the standard now states two rows where it stated
+none, and each overlay carries a decline.
 
-Each implementation grows a batched measurement path beside the one it
-has. The measured paths that exist today are 31 lines in Rust, 25 in
-Java and 11 in TypeScript, and a batched one is that shape plus a batch
-loop, so this roughly doubles them. Five implementations, and the Kotlin
-surface that shares Java's.
+`Contract` grows from two members to three in every language. That is
+two rows in the naming table, six naming decisions counting Kotlin, and
+a decline in every overlay.
 
-A batch holds its inputs in memory at once. A fixture that is large and
-a batch that is generous can cost more memory than the benchmark it
-measures, and the batch size becomes a number someone has to choose.
-Criterion exposes that choice; this proposal does not, and a fixed batch
-is wrong for someone.
+Each implementation grows a second measured path beside the one it has.
+The existing paths are 31 lines in Rust, 25 in Java and 11 in
+TypeScript, and the new one is that shape plus a batch loop, so this
+roughly doubles them.
 
-The corpus cannot check any of this. The benchmark ceilings are among
-the sixteen assertions it does not reach, because their answers depend
-on the machine, so this rests on each implementation's own tests.
+A batch holds its inputs in memory at once. A large fixture and a
+generous batch can cost more memory than the benchmark measures, and
+because the batch size is not exposed, a caller who hits that has no way
+to say so.
 
 Two ways of writing a benchmark exist afterwards where one existed
-before, and a reader has to know which one they are looking at.
+before, and a caller has to know that a body needing no fixture wants
+the simpler one.
 
 ## Unresolved and future work
 
-What the member is called. `measuring` reads at a call site and sits
-oddly beside `loop` and `check`. Criterion calls the same thing
-`iter_batched`, JMH calls it a setup level, and Go has no name for it
-because it has no such member. The naming table settles this in six
-languages at once, and the canonical id is the part worth arguing about
-rather than any one spelling.
-
-Whether the batch size is fixed by the standard or chosen per
-implementation. A fixed size makes two implementations comparable and is wrong for a
-large fixture; a chosen one is right locally and makes the same benchmark mean slightly different things in two
-languages.
-
-Whether the measured body's return value is discarded or handed back to
-the caller. Discarding it invites a compiler to remove the work, which
-is what `black_box` exists for in Rust and what `Blackhole` exists for
-in JMH. Neither is in the standard, and a ceiling on an operation the
-optimiser deleted is a ceiling on nothing.
-
-Whether TypeScript declines this or implements the latency half. It has
-no allocation ceilings to correct, so its share is smaller, and an
-overlay that says so is more honest than an implementation that quietly
-covers half.
+Whether a caller ever needs the batch size. Fixing it is the right
+default and the wrong answer for a fixture large enough to matter;
+nobody has hit that yet, and exposing it before they do adds a knob to
+every benchmark that does not need one.
 
 ## References
 
