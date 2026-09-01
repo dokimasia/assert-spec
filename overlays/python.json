@@ -21,6 +21,14 @@
     {
       "id": "contract.measuring",
       "why": "A benchmark body here is inline, driven by a generator, so a setup closure would take the caller out of the loop they are already writing. It marks the setup in place with excluding instead."
+    },
+    {
+      "id": "assertion",
+      "why": "The static form already reads as a chain would: an assertion takes the value positionally and nothing is repeated but the seat. A chain buys type safety in a language that checks types at compile time, and Python checks none."
+    },
+    {
+      "id": "that",
+      "why": "The static form already reads as a chain would: an assertion takes the value positionally and nothing is repeated but the seat. A chain buys type safety in a language that checks types at compile time, and Python checks none."
     }
   ]
 }

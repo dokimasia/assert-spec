@@ -439,6 +439,10 @@ surface:
       typescript: "bench.Contract"
       java: "Contract"
       kotlin: "Contract"
+    "assertion":
+      go: "Assertion"
+      java: "Assertion"
+      kotlin: "Assertion"
   members:
     "seat.helper":
       go: "Helper"
@@ -587,6 +591,10 @@ surface:
       java: "check"
       kotlin: "check"
   helpers:
+    "that":
+      go: "That"
+      java: "Check.that"
+      kotlin: "Check.that"
     "golden.scrub-timestamps":
       go: "golden.ScrubTimestamps"
       python: "golden.scrub_timestamps"

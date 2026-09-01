@@ -44,6 +44,14 @@
     {
       "id": "contract.excluding",
       "why": "Go writes a benchmark body inline under testing.B, so a setup closure would take the caller out of both the loop and the chain. It marks the setup in place with Excluding instead."
+    },
+    {
+      "id": "assertion",
+      "why": "equal and notEqual hold want to the type of got through NoInfer, so the static form already rejects a mismatched pair at compile time. A chain would be a second way to write what is checked either way."
+    },
+    {
+      "id": "that",
+      "why": "equal and notEqual hold want to the type of got through NoInfer, so the static form already rejects a mismatched pair at compile time. A chain would be a second way to write what is checked either way."
     }
   ]
 }
