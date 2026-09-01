@@ -1,7 +1,14 @@
 {
   "extends": "spec://assertions@1.0.0",
   "language": "python",
-  "diverge": [],
+  "diverge": [
+    {
+      "id": "bench-max-allocs",
+      "stance": "blocked",
+      "why": "CPython counts no allocations. Every primitive answers a level of live memory rather than a running total: tracemalloc.get_traced_memory gives current and peak bytes, sys.getallocatedblocks gives the blocks alive right now, and a tracemalloc snapshot counts the blocks that survived. A body allocating ten blocks and freeing them each iteration reads the same as one that allocates nothing.",
+      "remedy": "A cumulative allocation counter in CPython, of the kind runtime.MemStats.Mallocs gives Go."
+    }
+  ],
   "surface": [
     {
       "id": "reporter",

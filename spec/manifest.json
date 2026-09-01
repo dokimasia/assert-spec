@@ -1,5 +1,5 @@
 {
-    "digest": "sha256:d33647e81aa982e7eeb4f816bbaf5bc582d69ad19ab6f7e0571bcce70d680be2",
+    "digest": "sha256:2e49bfef1bebcba2a2dd7d535f0f1cc5365de73884e0d9356d01dee27264c37b",
     "files": {
         "VERSION": "sha256:59854984853104df5c353e2f681a15fc7924742f9a2e468c29af248dce45ce03",
         "corpus/close-to.json": "sha256:3a44444500cc6af46b2e2d32acbd9ceae9c4e73d604649d666482bd6161af812",
@@ -30,7 +30,7 @@
         "overlays/go.json": "sha256:5bb8b6395ee26a4fb2b7e1722bc1c845701d07626a0ede073c26f8f62540bae4",
         "overlays/java.json": "sha256:69a4c505fe05e2747834352ab5f8111e611b4d7bfc63293cac75f5df48baab14",
         "overlays/kotlin.json": "sha256:b8e6ae45e68f40715ddb284df94632abc51e8b6fd4df54a97876ad43d0cd73ad",
-        "overlays/python.json": "sha256:dc0bdb912a9475603a3e237305c4eeb98377a93ad547cece0d446f25cb943c37",
+        "overlays/python.json": "sha256:27ee6f670a5fc2bd2bffb497442dffbc077fcda736636659bee2e996845e7dc3",
         "overlays/rust.json": "sha256:8e77b67c506a8450baabcb5d7ccc876a98cc4fd970b36c31abb037199d1a93e7",
         "overlays/typescript.json": "sha256:e6337e77c380da9f77a79ca0fefd579c891141210e215c3f5885170ebcc480d9",
         "spec/assertions.json": "sha256:206d1ed41156f29447bf2168cbfba7fe6cef8579d2c501b013e5b3b13a76dd3c",
