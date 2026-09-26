@@ -1,5 +1,5 @@
 name: Propose an assertion
-description: Add something to the set of 41.
+description: Add something to the set of 42.
 labels: ["assertion", "standard"]
 body:
   - type: markdown
@@ -43,7 +43,7 @@ body:
   - type: textarea
     id: existing
     attributes:
-      label: Why the existing 41 do not cover it
+      label: Why the existing 42 do not cover it
       description: >
         `pairwise` covers sorted, unique and strictly increasing between
         them, so a proposal for any of those needs to say what it adds.
@@ -57,4 +57,4 @@ body:
       description: >
         If they can, the corpus covers it and cases should come with the
         proposal. If they cannot, say so: it goes in the set with the
-        other twenty-four that only the completeness gate reaches.
+        other twenty-five that only the completeness gate reaches.

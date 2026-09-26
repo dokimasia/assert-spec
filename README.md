@@ -37,11 +37,11 @@ spec/conformance.md    what converges and what does not
 spec/manifest.json     a digest of everything an implementation vendors
 spec/encoding.md       how a corpus case states a value
 spec/overlays.md       how a language declares it cannot comply
-corpus/*.json          70 cases in 17 files
+corpus/*.json          the cases, one file per assertion they reach
 overlays/*.json        one per language, declaring divergences
 tools/render.py        YAML to JSON
 tools/validate.py      the rules, checked
-VERSION                1.0.0
+VERSION                1.1.0
 ```
 
 People edit the YAML. `make render` produces the JSON, which is
@@ -78,11 +78,11 @@ one definition.
 
 ## The set
 
-41 assertions: 34 in the root namespace, 3 for golden files, 4 for
+42 assertions: 35 in the root namespace, 3 for golden files, 4 for
 benchmark ceilings. They cover equality, truth, nullity, length,
 containment, text, numbers, ordering, errors, raising, cancellation and
-deadlines, retrying, goroutine and task leaks, recorded output, and
-performance ceilings.
+deadlines, retrying, goroutine and task leaks, allocations, recorded
+output, and performance ceilings.
 
 An assertion earns its place by answering two questions. Does it state
 something that must be true, and fail when it is not? Does it mean the
@@ -113,13 +113,14 @@ what the failure must mention:
 ```
 
 Typed literals only cross a language boundary as data, so the corpus
-reaches 25 of the 41 assertions. Seventeen of those state their
+reaches 25 of the 42 assertions. Seventeen of those state their
 arguments; the other eight name a behaviour instead, because what they
-take is a callable and no encoding carries one. The remaining 16 take a
-golden file or a benchmark measurement, and neither is data either.
+take is a callable and no encoding carries one. The remaining 17 take a
+golden file, a benchmark measurement or an allocation count, and none of
+those is data either.
 
 **The completeness gate** checks membership. Every assertion must be
-present under the name the naming table gives it. That covers the 16 the
+present under the name the naming table gives it. That covers the 17 the
 corpus cannot reach: a library is held to the standard on meaning where
 meaning can be stated, and on membership everywhere else.
 
@@ -195,9 +196,9 @@ assertion with a unique id and a decodable literal, and that an overlay
 extends this version and diverges only from assertions that exist. It
 reports everything it finds in one run.
 
-`make test` runs 39 cases that each break one rule in a scratch copy and
-require the validator to catch it. A validator only ever run on a clean
-tree would pass just as readily with every rule deleted.
+`make test` breaks each rule in a scratch copy and requires the
+validator to catch it. A validator only ever run on a clean tree would
+pass just as readily with every rule deleted.
 
 ## Versioning
 
@@ -213,29 +214,36 @@ whether an existing test still states what its author meant.
 
 | Language | Repository | Assertions |
 |---|---|---|
-| Go | [assert-go](https://github.com/dokimasia/assert-go) | 41 of 41 |
-| Java | [assert-java](https://github.com/dokimasia/assert-java) | 40 of 41 |
-| Kotlin | [assert-java](https://github.com/dokimasia/assert-java) | 40 of 41 |
-| Python | [assert-python](https://github.com/dokimasia/assert-python) | 41 of 41 |
-| Rust | [assert-rust](https://github.com/dokimasia/assert-rust) | 41 of 41 |
-| TypeScript | [assert-typescript](https://github.com/dokimasia/assert-typescript) | 39 of 41 |
+| Go | [assert-go](https://github.com/dokimasia/assert-go) | 42 of 42 |
+| Java | [assert-java](https://github.com/dokimasia/assert-java) | 40 of 42 |
+| Kotlin | [assert-java](https://github.com/dokimasia/assert-java) | 40 of 42 |
+| Python | [assert-python](https://github.com/dokimasia/assert-python) | 40 of 42 |
+| Rust | [assert-rust](https://github.com/dokimasia/assert-rust) | 42 of 42 |
+| TypeScript | [assert-typescript](https://github.com/dokimasia/assert-typescript) | 39 of 42 |
+
+Each count is against version 1.1.0. An implementation that has not
+synced to it yet has a drift issue open until it does.
 
 Java and Kotlin ship from one repository and are named identically, so
 a test reads the same in both. Neither states a ceiling on allocation
-count, because the JVM reports bytes allocated per thread and no count
-of allocations. TypeScript states neither allocation ceiling, because
-V8 answers only as a heap-usage delta that moves with whether the
-collector ran. Each gap is in that language's overlay with the
-measurement behind it.
+count, in a test or a benchmark, because the JVM reports bytes allocated
+per thread and no count of allocations. Python states neither, because
+CPython reports the memory alive at one moment and no running count.
+TypeScript states none of the three allocation ceilings, because V8
+answers only as a heap-usage delta that moves with whether the collector
+ran. Each gap is in that language's overlay with the measurement behind
+it.
 
-Rust states all forty-one and declares nothing absent, which no other
-implementation manages. Three are partial: the two allocation ceilings
-need a counting allocator installed as the test binary's global
-allocator, and no-task-leaks sees tasks on a runtime but not a thread,
-because nothing in Rust's standard library enumerates threads. It also
-declines both relaxations, since its types keep an absent container and
-an empty one apart and its own equality already says NaN is unequal to
-itself.
+Go and Rust state all forty-two and declare nothing absent. Go checks no
+allocation ceiling in a build with the race detector, msan or asan, or
+in one whose `-gcflags` turn off optimisation or inlining, because those
+builds allocate differently from the one that ships. In Rust four are
+partial: the three allocation ceilings need a counting allocator
+installed as the test binary's global allocator, and no-task-leaks sees
+tasks on a runtime but not a thread, because nothing in Rust's standard
+library enumerates threads. Rust also declines both relaxations, since
+its types keep an absent container and an empty one apart and its own
+equality already says NaN is unequal to itself.
 
 PHP is declared as a target language and the naming table carries no
 names for it yet, so adding it starts by filling that column.

@@ -8,7 +8,7 @@ An overlay is where a language says which of those two it is.
 
 ```json
 {
-  "extends": "spec://assertions@1.0.0",
+  "extends": "spec://assertions@1.1.0",
   "language": "php",
   "diverge": [
     {

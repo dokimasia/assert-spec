@@ -13,7 +13,7 @@
 # assertion carries exactly these. got is what the assertion observed
 # and want is what it required, so an assertion whose failure holds
 # neither states no fields and reports the caller's message alone.
-version: "1.0.0"
+version: "1.1.0"
 
 # What a caller may relax, for one call.
 #
@@ -287,6 +287,14 @@ assertions:
     summary: >
       No concurrent task started in the scope outlives it.
     detail_fields: [leaked]
+
+  "max-allocs":
+    arity: 3
+    summary: >
+      A callable makes at most a stated number of heap allocations per
+      call. One call warms it first, and the count is the average over
+      the calls after it, rounded down.
+    detail_fields: [want, got]
 
   "golden-match":
     arity: 5

@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@1.0.0",
+  "extends": "spec://assertions@1.1.0",
   "language": "typescript",
   "diverge": [
     {
@@ -7,6 +7,12 @@
       "stance": "blocked",
       "why": "V8 exposes no per-iteration allocation count. Node offers heap totals through process.memoryUsage and v8.getHeapStatistics, and neither counts allocations, so there is no number to hold to a ceiling.",
       "remedy": "A counter in V8's API, or a profiler sampling allocations, which is too slow to run per iteration."
+    },
+    {
+      "id": "max-allocs",
+      "stance": "blocked",
+      "why": "V8 exposes no allocation count, for the reason the bench-max-allocs entry gives, so there is no count per call to hold to a ceiling.",
+      "remedy": "The counter in V8's API that bench-max-allocs needs."
     },
     {
       "id": "bench-max-bytes",
@@ -43,7 +49,7 @@
     },
     {
       "id": "contract.excluding",
-      "why": "Go writes a benchmark body inline under testing.B, so a setup closure would take the caller out of both the loop and the chain. It marks the setup in place with Excluding instead."
+      "why": "The harness owns the loop here, so setup goes in a second closure, handed to measuring, that the harness runs outside the measurement. Marking the setup in place would need the body to reach the contract it was handed to."
     },
     {
       "id": "assertion",

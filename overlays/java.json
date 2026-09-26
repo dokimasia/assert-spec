@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@1.0.0",
+  "extends": "spec://assertions@1.1.0",
   "language": "java",
   "diverge": [
     {
@@ -7,6 +7,12 @@
       "stance": "blocked",
       "why": "The JVM exposes bytes allocated per thread through com.sun.management.ThreadMXBean, but no count of allocations. JFR samples allocation events rather than counting them, so a per-iteration total is an estimate that changes with the sampling rate.",
       "remedy": "A counter alongside getThreadAllocatedBytes. bench-max-bytes is implemented, and holds a ceiling on the same behaviour by weight rather than by count."
+    },
+    {
+      "id": "max-allocs",
+      "stance": "blocked",
+      "why": "The JVM reports bytes allocated per thread and no count of allocations, for the reason the bench-max-allocs entry gives, so there is no count per call to hold to a ceiling.",
+      "remedy": "The counter beside getThreadAllocatedBytes that bench-max-allocs needs."
     }
   ],
   "limits": [
@@ -19,7 +25,7 @@
   "surface": [
     {
       "id": "contract.excluding",
-      "why": "Go writes a benchmark body inline under testing.B, so a setup closure would take the caller out of both the loop and the chain. It marks the setup in place with Excluding instead."
+      "why": "The harness owns the loop here, so setup goes in a second closure, handed to measuring, that the harness runs outside the measurement. Marking the setup in place would need the body to reach the contract it was handed to."
     }
   ]
 }

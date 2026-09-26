@@ -25,9 +25,9 @@ rather than a list of exceptions to remember.
 
 A case states its arguments as typed literals, so it covers only
 assertions whose arguments cross a language boundary as data. That is
-17 of the 41.
+17 of the 42.
 
-The other 24 take a callable, a cancellation handle, a predicate, a
+The other 25 take a callable, a cancellation handle, a predicate, a
 golden file or a benchmark. None of those is data, so each language
 tests them itself, and the completeness gate checks only that they are
 present. An implementation is held to the standard on meaning where

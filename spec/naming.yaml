@@ -3,7 +3,7 @@
 # A qualified name names a member of the subpackage the assertion table
 # gives it. The separator is the language's own: a dot in Go, Java,
 # Kotlin, Python and TypeScript, two colons in Rust.
-version: "1.0.0"
+version: "1.1.0"
 
 languages: [go, java, kotlin, php, python, rust, typescript]
 
@@ -239,6 +239,13 @@ names:
     typescript: "noTaskLeaks"
     java: "noTaskLeaks"
     kotlin: "noTaskLeaks"
+  "max-allocs":
+    go: "MaxAllocs"
+    python: "max_allocs"
+    rust: "max_allocs"
+    typescript: "maxAllocs"
+    java: "maxAllocs"
+    kotlin: "maxAllocs"
   "golden-match":
     go: "golden.Match"
     python: "golden.match"

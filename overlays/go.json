@@ -1,7 +1,24 @@
 {
-  "extends": "spec://assertions@1.0.0",
+  "extends": "spec://assertions@1.1.0",
   "language": "go",
   "diverge": [],
+  "limits": [
+    {
+      "id": "max-allocs",
+      "what": "Checks the ceiling in an ordinary build. In a build with the race detector, msan or asan, and in a build whose -gcflags turn off optimisation (-N) or inlining (-l), it calls the callable as an ordinary build does and checks no ceiling. It reads those flags from the binary's build information.",
+      "why": "Those builds allocate differently from the one that ships. Under the race detector sync.Pool drops a quarter of the items it is given, and the compiler's own allocation test counts 8 allocations under -race where the ordinary build makes 1. With inlining off, a constructor returning a pointer allocated once per call where the ordinary build allocated nothing. A ceiling checked there would fail code that meets it. The assertion passes rather than skipping, because a skip would stop every check after it in the caller's test."
+    },
+    {
+      "id": "bench-max-allocs",
+      "what": "Checks the ceiling in an ordinary build. In the builds the max-allocs entry names, the contract publishes the count and does not check the ceiling.",
+      "why": "Those builds allocate differently from the one that ships, as the max-allocs entry states, so a count from such a build does not describe the code."
+    },
+    {
+      "id": "bench-max-bytes",
+      "what": "Checks the ceiling in an ordinary build. In the builds the max-allocs entry names, the contract publishes the bytes and does not check the ceiling.",
+      "why": "Those builds allocate differently from the one that ships, as the max-allocs entry states, so the bytes from such a build do not describe the code."
+    }
+  ],
   "surface": [
     {
       "id": "standard-seat",
@@ -17,7 +34,7 @@
     },
     {
       "id": "contract.measuring",
-      "why": "The harness owns the loop here, so setup is a second closure it runs outside the measurement. Marking in place would need the body to reach the contract it was handed to."
+      "why": "Go writes a benchmark body inline under testing.B, so a setup closure would take the caller out of both the loop and the chain. It marks the setup in place with Excluding instead."
     }
   ]
 }
