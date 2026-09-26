@@ -14,3 +14,4 @@ they record why not.
 | [0006](0006-the-clock.md) | The clock | Accepted |
 | [0007](0007-conformance-beyond-the-corpus.md) | Conformance beyond the corpus | Accepted |
 | [0008](0008-what-a-benchmark-measures.md) | What a benchmark measures | Accepted |
+| [0009](0009-an-allocation-ceiling-in-a-test.md) | An allocation ceiling in a test | Accepted |
