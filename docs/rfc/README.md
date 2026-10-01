@@ -15,3 +15,4 @@ they record why not.
 | [0007](0007-conformance-beyond-the-corpus.md) | Conformance beyond the corpus | Accepted |
 | [0008](0008-what-a-benchmark-measures.md) | What a benchmark measures | Accepted |
 | [0009](0009-an-allocation-ceiling-in-a-test.md) | An allocation ceiling in a test | Accepted |
+| [0010](0010-properties-over-generated-inputs.md) | Properties over generated inputs | Accepted |
