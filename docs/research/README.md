@@ -7,6 +7,7 @@ sources behind them. An RFC or an ADR cites these by number.
 |---|---|---|---|
 | [0001](0001-earning-a-place-in-five-ecosystems.md) | Which capabilities would make each implementation worth adopting in its own ecosystem? | 2026-08-30 | Answered |
 | [0002](0002-what-the-assertion-layer-can-carry.md) | Which of the shape catalogue's 107 relations can the assertion standard carry? | 2026-08-30 | Answered |
+| [0003](0003-what-property-testing-engines-establish.md) | Which property-testing engine capabilities have evidence behind them, and does any engine give the same inputs in more than one language? | 2026-10-01 | Answered |
 
 Research goes stale on its own, without anyone changing the repository,
 which is why every row carries a date. Status is Answered, Partial when
