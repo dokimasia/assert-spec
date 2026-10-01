@@ -1,0 +1,41 @@
+# The replay token. A case states choices, and pins the one token that
+# encodes them, or states a token, and pins the choices it decodes to or
+# that a replay refuses it. A replay accepts a token only in the form an
+# encoder writes. `make render` writes the outputs.
+kind: token
+cases:
+  - id: token/encodes-no-choices
+    choices: []
+  - id: token/encodes-integers-of-both-signs
+    choices: [0, 1, -1, 127, 128, -300]
+  - id: token/encodes-the-extremes-of-both-integer-ranges
+    choices: ["18446744073709551615", "-9223372036854775808"]
+  - id: token/encodes-floats-as-eight-little-endian-bytes
+    choices: [{float: 1.5}, {float: -0.0}, {float: "Inf"}, {float: "-Inf"}]
+  - id: token/encodes-nan-with-the-canonical-bits
+    choices: [{float: "NaN"}]
+  - id: token/encodes-a-sequence-as-its-length-then-its-elements
+    choices: [{sequence: [104, 105, 300]}]
+
+  - id: token/decodes-a-token-an-encoder-writes
+    token: "prop1:AAAA-AE"
+  - id: token/decodes-the-smallest-signed-integer
+    token: "prop1:AYCAgICAgICAgAE"
+  - id: token/refuses-a-token-without-the-prefix
+    token: "AAAA-AE"
+  - id: token/refuses-the-standard-base64-alphabet
+    token: "prop1:AAAA+AE"
+  - id: token/refuses-padding
+    token: "prop1:AAA="
+  - id: token/refuses-a-superfluous-leb128-byte
+    token: "prop1:AIAA"
+  - id: token/refuses-a-negative-zero
+    token: "prop1:AQA"
+  - id: token/refuses-a-number-of-2-to-the-64
+    token: "prop1:AICAgICAgICAgAI"
+  - id: token/refuses-a-negative-magnitude-above-2-to-the-63
+    token: "prop1:AYGAgICAgICAgAE"
+  - id: token/refuses-an-unknown-tag
+    token: "prop1:BA"
+  - id: token/refuses-a-truncated-float
+    token: "prop1:AgAA"

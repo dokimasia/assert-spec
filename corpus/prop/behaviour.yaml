@@ -1,0 +1,162 @@
+# Behaviour: a body run under settings. Each case pins the detail of the
+# run, with every field present and the fields its outcome does not use
+# null. A body draws one value, labelled `value`, and classifies, rejects
+# and fails by predicates over it, or is one of the named bodies. Every
+# outcome has a case. `make render` writes the outputs.
+kind: behaviour
+cases:
+  - id: behaviour/passes-a-body-that-never-fails
+    body:
+      draw: {gen: integer, min: 0, max: 1000}
+    settings: {seed: "7"}
+
+  - id: behaviour/reports-the-minimal-counterexample-and-the-nearest-passing-value
+    body:
+      draw: {gen: integer, min: 0, max: 10000}
+      fails: [{identity: big, when: {kind: at-least, n: 1001}}]
+    settings: {seed: "7"}
+  - id: behaviour/reports-on-four-workers-what-it-reports-on-one
+    body:
+      draw: {gen: integer, min: 0, max: 10000}
+      fails: [{identity: big, when: {kind: at-least, n: 1001}}]
+    settings: {seed: "7", workers: 4}
+  - id: behaviour/reports-the-first-failing-case-when-shrinking-is-off
+    body:
+      draw: {gen: integer, min: 0, max: 10000}
+      fails: [{identity: big, when: {kind: at-least, n: 1001}}]
+    settings: {seed: "7", shrink: 0}
+  - id: behaviour/marks-a-draw-where-any-value-fails
+    body:
+      draw: {gen: integer, min: 0, max: 100}
+      fails: [{identity: every, when: {kind: always}}]
+    settings: {seed: "7"}
+  # A filling of a unique list of three values in [0, 2] can discard its
+  # way below min_size. Such a filling decodes no value and is skipped.
+  - id: behaviour/marks-a-draw-whose-rejected-fillings-are-skipped
+    body:
+      draw: {gen: list, of: {gen: integer, min: 0, max: 2}, unique: true, min_size: 3, max_size: 3}
+      fails: [{identity: always, when: {kind: always}}]
+    settings: {seed: "0"}
+  # Each filling's filter finds no 7 in three attempts, so no filling
+  # decodes a value and the draw is not tested.
+  - id: behaviour/leaves-a-draw-untested-when-no-filling-decodes
+    body:
+      draw:
+        gen: filter
+        of: {gen: integer, min: 0, max: 9}
+        keep: {kind: equals, value: {type: int, value: 7}}
+      fails: [{identity: seven, when: {kind: always}}]
+    settings: {seed: "2"}
+  - id: behaviour/reports-a-second-failure-under-others
+    body:
+      draw: {gen: integer, min: 0, max: 1000}
+      fails:
+        - {identity: odd, when: {kind: divisible-by, n: 2, not: true}}
+        - {identity: big, when: {kind: at-least, n: 51}}
+    settings: {seed: "7"}
+  - id: behaviour/finds-a-failure-at-the-maximum-in-an-edge-case
+    body:
+      draw: {gen: integer, min: 0, max: "18446744073709551615"}
+      fails: [{identity: largest, when: {kind: at-least, n: "18446744073709551615"}}]
+    settings: {seed: "7"}
+  # Random case 0 of seed 7 is [558560502, 56666], and its prefix case
+  # keeps the first two of its five choices, so it decodes [558560502, 0].
+  - id: behaviour/finds-a-failure-in-the-prefix-case-of-random-case-0
+    body:
+      draw:
+        gen: list
+        of: {gen: integer, min: 0, max: 1000000000}
+        min_size: 2
+        max_size: 2
+      fails:
+        - identity: prefix
+          when: {kind: equals, value: {type: list, of: int, value: [558560502, 0]}}
+    settings: {seed: "7", shrink: 0}
+  - id: behaviour/tries-a-stored-case-before-the-simplest
+    body:
+      draw: {gen: integer, min: 0, max: 1000}
+      fails: [{identity: big, when: {kind: at-least, n: 900}}]
+    settings: {seed: "7", stored: [[950]]}
+
+  - id: behaviour/replays-a-failing-token-and-nothing-else
+    body:
+      draw: {gen: integer, min: 0, max: 9}
+      fails: [{identity: big, when: {kind: at-least, n: 5}}]
+    settings: {seed: "7", replay: "prop1:AAc"}
+  - id: behaviour/passes-a-replayed-case-that-passes
+    body:
+      draw: {gen: integer, min: 0, max: 9}
+      fails: [{identity: big, when: {kind: at-least, n: 5}}]
+    settings: {seed: "7", replay: "prop1:AAM"}
+
+  - id: behaviour/rejects-a-run-that-rejects-every-case
+    body:
+      draw: {gen: integer, min: 0, max: 1000}
+      rejects-when: {kind: always}
+    settings: {seed: "7"}
+  - id: behaviour/passes-a-run-that-rejects-four-cases-in-five
+    body:
+      draw: {gen: integer, min: 0, max: 1000}
+      rejects-when: {kind: divisible-by, n: 5, not: true}
+    settings: {seed: "7"}
+  - id: behaviour/rejects-a-case-larger-than-max-choices
+    body:
+      draw: {gen: list, of: {gen: integer, min: 0, max: 1000}}
+      fails: [{identity: long, when: {kind: length-at-least, n: 2}}]
+    settings: {seed: "7", max-choices: 4}
+
+  - id: behaviour/fails-a-body-that-requests-no-input
+    body: {kind: draws-nothing}
+    settings: {seed: "7"}
+  - id: behaviour/reports-a-body-whose-requests-diverge
+    body: {kind: diverges}
+    settings: {seed: "7"}
+  - id: behaviour/reports-a-failure-that-passes-on-replay
+    body: {kind: fails-once}
+    settings: {seed: "7"}
+
+  - id: behaviour/passes-once-every-input-of-a-small-domain-is-tested
+    body:
+      draw:
+        gen: one-of
+        of:
+          - {gen: boolean}
+          - gen: sampled-from
+            values: [{type: string, value: "a"}, {type: string, value: "b"}, {type: string, value: "c"}]
+    settings: {seed: "7"}
+  - id: behaviour/counts-each-input-once
+    body:
+      draw: {gen: integer, min: 0, max: 30}
+    settings: {seed: "7"}
+  # The case tree walks every attempt of a filter, the rejected ones
+  # included, so true after no, one and two rejected attempts are three
+  # inputs. A worker that runs a case outside the tree enters every
+  # attempt of the case afterwards.
+  - id: behaviour/enters-every-filter-attempt-into-the-tree-on-four-workers
+    body:
+      draw:
+        gen: filter
+        of: {gen: boolean}
+        keep: {kind: equals, value: {type: bool, value: true}}
+    settings: {seed: "7", workers: 4}
+
+  - id: behaviour/meets-a-coverage-requirement
+    body:
+      draw: {gen: integer, min: 0, max: 1000}
+      classify: {even: {kind: divisible-by, n: 2}}
+    settings: {seed: "7", requirements: [{label: even, share: 0.3}]}
+  - id: behaviour/refutes-a-coverage-requirement
+    body:
+      draw: {gen: integer, min: 0, max: 1000}
+      classify: {even: {kind: divisible-by, n: 2}}
+    settings: {seed: "7", requirements: [{label: even, share: 0.9}]}
+  - id: behaviour/meets-a-requirement-by-an-exact-share
+    body:
+      draw: {gen: integer, min: 0, max: 9}
+      classify: {small: {kind: at-least, n: 5, not: true}}
+    settings: {seed: "7", requirements: [{label: small, share: 0.5}]}
+  - id: behaviour/fails-a-requirement-by-an-exact-share
+    body:
+      draw: {gen: integer, min: 0, max: 9}
+      classify: {nine: {kind: at-least, n: 9}}
+    settings: {seed: "7", requirements: [{label: nine, share: 0.2}]}

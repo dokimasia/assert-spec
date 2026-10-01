@@ -309,6 +309,23 @@
             ],
             "summary": "Every adjacent pair of a sequence satisfies a predicate. Nought or one item passes.\n"
         },
+        "prop-for-all": {
+            "arity": 2,
+            "detail_fields": [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage"
+            ],
+            "package": "prop",
+            "summary": "A body passes for every input a run generates. A run replays the stored failures, tries the simplest input and the boundary inputs, then generates inputs it has not tested until it has run the stated number of cases or tested every input. A fixed sequence of passes shrinks a failing case towards the smallest case that fails the same way.\n"
+        },
         "pure": {
             "arity": 4,
             "detail_fields": [
@@ -377,5 +394,5 @@
             "summary": "Reports a failure twice and succeeds on the third attempt.\n"
         }
     },
-    "version": "1.1.0"
+    "version": "1.2.0"
 }

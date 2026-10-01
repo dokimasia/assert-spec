@@ -1,0 +1,104 @@
+"""One call of a body, and how it ended.
+
+The runner, the shrinker and the explain phase each call the body through
+execute(). A case that walks the case tree can end early as a repeat or a
+divergence. A case outside the tree, such as a stored case or a shrink
+candidate, cannot.
+"""
+
+from __future__ import annotations
+
+from collections.abc import Callable
+from dataclasses import dataclass
+from enum import StrEnum
+
+from .case import Case, Failed, Overrun, Provider, Rejected
+from .tree import Diverged, Ending, Repeated, Tree
+
+#: A body: it receives the case, draws from it, and fails it or returns.
+#: Its return value is ignored.
+Body = Callable[[Case], object]
+
+
+class Status(StrEnum):
+    """How one case ended."""
+
+    PASSED = "passed"
+    FAILED = "failed"
+    REJECTED = "rejected"
+    REPEATED = "repeated"
+    DIVERGED = "diverged"
+
+
+@dataclass(frozen=True)
+class Divergence:
+    """The first difference between two runs of the same choices.
+
+    what names the kind of difference: "request" for the bounds of a
+    request, where None stands for a case that ended; "fingerprint" for an
+    observed fingerprint, where None stands for no fingerprint; and
+    "verdict" for a replay that passed or failed another way, with the two
+    identities, where None stands for a pass.
+
+    index is the position of the request or the fingerprint that differs.
+    For a verdict, it is the number of choices the recorded case made,
+    the position where the case ended.
+    """
+
+    what: str
+    index: int
+    recorded: object
+    replayed: object
+
+
+@dataclass(frozen=True)
+class Execution:
+    """One call of the body: its case and how it ended."""
+
+    case: Case
+    status: Status
+    failure: Failed | None = None
+    divergence: Divergence | None = None
+
+    @property
+    def identity(self) -> str | None:
+        """Return the failure's identity, or None when the case did not fail."""
+        return None if self.failure is None else self.failure.identity
+
+
+def execute(
+    body: Body, provider: Provider, max_choices: int, tree: Tree | None = None
+) -> Execution:
+    """Call the body once on a case whose values come from provider.
+
+    With a tree, the case walks it, and a repeat or a divergence ends the
+    case early. A case that overruns its cap is rejected without a leaf.
+    """
+    walker = None if tree is None else tree.walker()
+    case = Case(provider, max_choices, walker)
+    failure = None
+    try:
+        body(case)
+    except Repeated:
+        return Execution(case, Status.REPEATED)
+    except Diverged as diverged:
+        return Execution(case, Status.DIVERGED, divergence=_divergence(diverged))
+    except Overrun:
+        return Execution(case, Status.REJECTED)
+    except Rejected:
+        ending = Ending.REJECTED
+    except Failed as failed:
+        ending, failure = Ending.FAILED, failed
+    else:
+        ending = Ending.PASSED
+    if walker is not None:
+        try:
+            walker.end(ending)
+        except Diverged as diverged:
+            return Execution(case, Status.DIVERGED, divergence=_divergence(diverged))
+    return Execution(case, Status(ending.value), failure)
+
+
+def _divergence(diverged: Diverged) -> Divergence:
+    """Return the tree's divergence as a request divergence."""
+    return Divergence("request", diverged.index, diverged.recorded, diverged.requested)

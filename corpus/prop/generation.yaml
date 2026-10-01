@@ -1,0 +1,186 @@
+# Generation: the first cases a seed generates for a generator. Case i
+# draws from the random source initialised with the seed plus i. Each
+# case pins the choices it drew and the value they decode to, so a
+# vector fails on the first draw that consumes the stream differently.
+# `make render` writes the outputs.
+kind: generation
+cases:
+  - id: integer/draws-from-a-signed-range
+    generator: {gen: integer, min: -100, max: 100}
+    seed: "42"
+    count: 6
+  - id: integer/draws-from-the-whole-unsigned-range
+    generator: {gen: integer, min: 0, max: "18446744073709551615"}
+    seed: "7"
+    count: 6
+
+  - id: float/draws-from-a-finite-range
+    generator: {gen: float, min: -10, max: 10}
+    seed: "42"
+    count: 8
+  - id: float/draws-from-every-float-and-nan
+    generator: {gen: float, min: "-Inf", max: "Inf", allow_nan: true}
+    seed: "7"
+    count: 8
+
+  - id: boolean/draws-with-even-odds
+    generator: {gen: boolean}
+    seed: "42"
+    count: 6
+  - id: boolean/draws-with-stated-odds
+    generator: {gen: boolean, p: [1, 3]}
+    seed: "7"
+    count: 6
+
+  - id: just/makes-no-choice
+    generator: {gen: just, value: {type: bytes, value: "00ff"}}
+    seed: "42"
+    count: 2
+  - id: just/consumes-nothing-between-other-choices
+    generator: {gen: list, of: {gen: just, value: {type: int, value: 5}}, max_size: 4}
+    seed: "7"
+    count: 4
+
+  - id: sampled-from/draws-an-index
+    generator:
+      gen: sampled-from
+      values: [{type: string, value: "a"}, {type: string, value: "b"}, {type: string, value: "c"}]
+    seed: "42"
+    count: 6
+  - id: sampled-from/consumes-nothing-for-one-value
+    generator:
+      gen: list
+      of: {gen: sampled-from, values: [{type: string, value: "a"}]}
+      max_size: 4
+    seed: "7"
+    count: 4
+
+  - id: one-of/draws-an-index-then-the-chosen-generator
+    generator:
+      gen: one-of
+      of: [{gen: integer, min: 0, max: 9}, {gen: boolean}]
+    seed: "42"
+    count: 6
+  - id: one-of/draws-from-generators-of-different-types
+    generator:
+      gen: one-of
+      of: [{gen: just, value: {type: "null"}}, {gen: string, alphabet: "ab", max_size: 3}]
+    seed: "7"
+    count: 6
+
+  - id: optional/draws-presence-then-the-value
+    generator: {gen: optional, of: {gen: integer, min: 0, max: 100}}
+    seed: "42"
+    count: 6
+  - id: optional/draws-an-optional-string
+    generator: {gen: optional, of: {gen: string, max_size: 2}}
+    seed: "7"
+    count: 6
+
+  - id: list/draws-a-length-one-element-at-a-time
+    generator: {gen: list, of: {gen: integer, min: 0, max: 9}, max_size: 10}
+    seed: "42"
+    count: 6
+  - id: list/draws-a-unique-list
+    generator: {gen: list, of: {gen: integer, min: 0, max: 3}, unique: true, min_size: 1, max_size: 4}
+    seed: "7"
+    count: 6
+
+  - id: dict/draws-entries-with-distinct-keys
+    generator:
+      gen: dict
+      keys: {gen: integer, min: 0, max: 5}
+      values: {gen: boolean}
+      max_size: 4
+    seed: "42"
+    count: 6
+  - id: dict/draws-string-keys
+    generator:
+      gen: dict
+      keys: {gen: string, alphabet: "abc", max_size: 1}
+      values: {gen: integer, min: -5, max: 5}
+    seed: "7"
+    count: 6
+
+  - id: string/draws-from-the-default-alphabet
+    generator: {gen: string, max_size: 8}
+    seed: "42"
+    count: 6
+  - id: string/draws-from-a-stated-alphabet
+    generator: {gen: string, alphabet: "ACGT", min_size: 2, max_size: 6}
+    seed: "7"
+    count: 6
+
+  - id: bytes/draws-bytes
+    generator: {gen: bytes, max_size: 8}
+    seed: "42"
+    count: 6
+  - id: bytes/draws-bytes-of-one-length
+    generator: {gen: bytes, min_size: 4, max_size: 4}
+    seed: "7"
+    count: 3
+
+  - id: duration/draws-from-a-range-of-nanoseconds
+    generator: {gen: duration, min: 0, max: 60000000000}
+    seed: "42"
+    count: 6
+  - id: duration/draws-from-a-negative-range
+    generator: {gen: duration, min: -1000000, max: -1}
+    seed: "7"
+    count: 6
+
+  - id: permutation/draws-one-swap-per-position
+    generator:
+      gen: permutation
+      values: [{type: int, value: 1}, {type: int, value: 2}, {type: int, value: 3}, {type: int, value: 4}, {type: int, value: 5}]
+    seed: "42"
+    count: 6
+  - id: permutation/makes-no-choice-for-one-value
+    generator:
+      gen: permutation
+      values: [{type: string, value: "x"}]
+    seed: "7"
+    count: 2
+
+  - id: string-matching/draws-classes-and-counted-repetitions
+    generator: {gen: string-matching, pattern: "[a-f0-9]{4}-\\d{2}"}
+    seed: "42"
+    count: 6
+  - id: string-matching/draws-alternations-and-unbounded-repetitions
+    generator: {gen: string-matching, pattern: "(foo|ba[rz])+\\.?"}
+    seed: "7"
+    count: 6
+
+  - id: recursive/draws-a-tree-of-lists
+    generator:
+      gen: recursive
+      base: {gen: integer, min: 0, max: 9}
+      extend: {gen: list, of: {gen: self}, max_size: 3}
+      max_leaves: 10
+    seed: "42"
+    count: 6
+  - id: recursive/draws-optional-and-listed-positions
+    generator:
+      gen: recursive
+      base: {gen: boolean}
+      extend:
+        gen: one-of
+        of: [{gen: list, of: {gen: self}, max_size: 2}, {gen: optional, of: {gen: self}}]
+      max_leaves: 5
+    seed: "7"
+    count: 6
+
+  - id: filter/draws-until-the-predicate-keeps-a-value
+    generator: {gen: filter, of: {gen: integer, min: 0, max: 9}, keep: {kind: divisible-by, n: 3}}
+    seed: "42"
+    count: 8
+  # The elements are integers that may reuse an earlier value of the case.
+  # A rejected attempt's elements are no longer in the record, so a later
+  # attempt reuses none of them.
+  - id: filter/reuses-no-value-of-a-rejected-attempt
+    generator:
+      gen: filter
+      of: {gen: list, of: {gen: integer, min: 0, max: 9}, max_size: 4}
+      keep: {kind: sum-above, n: 10}
+    seed: "7"
+    count: 6

@@ -28,7 +28,10 @@ select = ["E", "F", "I", "N", "UP", "B", "SIM", "RUF", "D", "ANN", "PL"]
 # ANN401 bans Any. This code reads arbitrary decoded JSON and its
 # job is to decide whether that JSON is well formed, so Any is the
 # honest annotation for what comes back from json.loads.
-ignore = ["D203", "D213", "ANN401"]
+# N818 asks for an Error suffix on every exception class. PEP 8 asks
+# for it only on exceptions that are errors. The property engine's
+# signals, such as Rejected and Failed, end a case and are not errors.
+ignore = ["D203", "D213", "ANN401", "N818"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "google"
@@ -45,6 +48,9 @@ strict = true
 venvPath = "."
 venv = ".venv"
 typeCheckingMode = "recommended"
+# The tools run as scripts, `python tools/render.py`, so tools/ is the
+# import root and `prop` is a top-level package, as ruff's src states.
+executionEnvironments = [{ root = "tools" }]
 reportAny = false
 reportExplicitAny = false
 reportUnknownArgumentType = false

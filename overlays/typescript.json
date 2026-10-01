@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@1.1.0",
+  "extends": "spec://assertions@1.2.0",
   "language": "typescript",
   "diverge": [
     {
@@ -36,6 +36,11 @@
       "id": "recorder-seat",
       "what": "Carries no lock. The runtime has one thread, so two assertions cannot report at the same instant.",
       "why": "The standard asks that a seat be usable from more than one thread. A runtime with one thread meets that without doing anything, and says so here rather than leaving a reader to work out which it is."
+    },
+    {
+      "id": "prop.workers",
+      "what": "Runs one case at a time, whatever the number of workers. The run reports what a run on one worker reports, as it does in every language.",
+      "why": "A body runs on the runtime's one thread. An asynchronous body would interleave with another case at each await instead of running beside it, and a body that is not safe to interleave with itself would then fail in a way that a run on one worker never shows."
     }
   ],
   "surface": [

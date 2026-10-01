@@ -1,0 +1,226 @@
+# Decoding: a generator applied to stated choices. Each case pins the
+# choices the case recorded and the value they decode to. A recorded
+# choice of another kind, or outside the bounds the generator now
+# requests, takes the target of those bounds. A request past the last
+# stated choice takes its target. `make render` writes the outputs.
+kind: decoding
+cases:
+  - id: integer/decodes-a-choice-inside-its-bounds
+    generator: {gen: integer, min: -1000, max: 1000}
+    choices: [-17]
+  - id: integer/decodes-a-choice-beyond-2-to-the-53
+    generator: {gen: integer, min: 0, max: "18446744073709551615"}
+    choices: ["18446744073709551615"]
+  - id: integer/takes-the-target-for-a-choice-outside-its-bounds
+    generator: {gen: integer, min: -9, max: -3}
+    choices: [7]
+
+  - id: float/decodes-a-choice-inside-its-bounds
+    generator: {gen: float, min: -10, max: 10}
+    choices: [{float: 2.5}]
+  - id: float/takes-the-target-for-nan-when-nan-is-not-allowed
+    generator: {gen: float, min: "-Inf", max: "Inf"}
+    choices: [{float: "NaN"}]
+  - id: float/takes-the-target-for-a-value-its-width-cannot-state
+    generator: {gen: float, min: 0.25, max: 0.75, width: 32}
+    choices: [{float: 0.3}]
+
+  - id: boolean/decodes-one-as-true
+    generator: {gen: boolean}
+    choices: [1]
+  - id: boolean/takes-false-for-a-choice-outside-zero-and-one
+    generator: {gen: boolean, p: [9, 10]}
+    choices: [2]
+  - id: boolean/takes-false-past-the-last-choice
+    generator: {gen: boolean}
+    choices: []
+
+  - id: just/makes-no-choice
+    generator: {gen: just, value: {type: int, value: 5}}
+    choices: []
+  - id: just/leaves-the-stated-choices-unread
+    generator: {gen: just, value: {type: string, value: "x"}}
+    choices: [3, 4]
+  - id: just/returns-a-map-with-integer-keys
+    generator:
+      gen: just
+      value:
+        type: map
+        entries: [[{type: int, value: 1}, {type: string, value: "a"}]]
+    choices: []
+
+  - id: sampled-from/decodes-an-index
+    generator:
+      gen: sampled-from
+      values: [{type: string, value: "a"}, {type: string, value: "b"}, {type: string, value: "c"}]
+    choices: [2]
+  - id: sampled-from/takes-the-first-value-for-an-index-past-the-values
+    generator:
+      gen: sampled-from
+      values: [{type: string, value: "a"}, {type: string, value: "b"}, {type: string, value: "c"}]
+    choices: [3]
+  - id: sampled-from/takes-the-first-value-past-the-last-choice
+    generator:
+      gen: sampled-from
+      values: [{type: float, value: 1.5}, {type: "null"}]
+    choices: []
+
+  - id: one-of/decodes-the-chosen-generator
+    generator:
+      gen: one-of
+      of: [{gen: integer, min: 0, max: 9}, {gen: string, alphabet: "ab", max_size: 2}]
+    choices: [1, {sequence: [1, 0]}]
+  - id: one-of/takes-the-target-for-a-choice-of-another-kind
+    generator:
+      gen: one-of
+      of: [{gen: integer, min: 0, max: 9}, {gen: string, alphabet: "ab", max_size: 2}]
+    choices: [1, 5]
+  - id: one-of/takes-the-first-generator-past-the-last-choice
+    generator:
+      gen: one-of
+      of: [{gen: integer, min: 0, max: 9}, {gen: string, alphabet: "ab", max_size: 2}]
+    choices: []
+
+  - id: optional/decodes-a-present-value
+    generator: {gen: optional, of: {gen: integer, min: 1, max: 100}}
+    choices: [1, 42]
+  - id: optional/decodes-an-absent-value-as-null
+    generator: {gen: optional, of: {gen: integer, min: 1, max: 100}}
+    choices: [0, 42]
+  - id: optional/takes-absent-past-the-last-choice
+    generator: {gen: optional, of: {gen: integer, min: 1, max: 100}}
+    choices: []
+
+  - id: list/decodes-from-choices
+    generator: {gen: list, of: {gen: integer, min: 0, max: 9}, max_size: 3}
+    choices: [1, 7, 1, 3, 0]
+  - id: list/discards-an-element-a-unique-list-already-has
+    generator: {gen: list, of: {gen: integer, min: 0, max: 9}, unique: true, max_size: 3}
+    choices: [1, 4, 1, 4, 1, 5, 0]
+  - id: list/rejects-a-unique-list-below-min-size-after-ten-discards
+    generator: {gen: list, of: {gen: integer, min: 0, max: 9}, unique: true, min_size: 2}
+    choices: []
+  # The second dict states the first's entries in the other order, so the
+  # unique list discards it.
+  - id: list/discards-a-dict-equal-to-an-earlier-one-in-another-order
+    generator:
+      gen: list
+      unique: true
+      max_size: 3
+      of:
+        gen: dict
+        keys: {gen: sampled-from, values: [{type: string, value: "a"}, {type: string, value: "b"}]}
+        values: {gen: integer, min: 0, max: 9}
+        max_size: 2
+    choices: [1, 1, 0, 1, 1, 1, 2, 0, 1, 1, 1, 2, 1, 0, 1, 0, 0]
+
+  - id: dict/decodes-entries-in-order
+    generator:
+      gen: dict
+      keys: {gen: sampled-from, values: [{type: string, value: "a"}, {type: string, value: "b"}]}
+      values: {gen: integer, min: 0, max: 9}
+    choices: [1, 1, 5, 1, 0, 7, 0]
+  - id: dict/discards-an-entry-whose-key-it-already-has
+    generator:
+      gen: dict
+      keys: {gen: sampled-from, values: [{type: string, value: "a"}, {type: string, value: "b"}]}
+      values: {gen: integer, min: 0, max: 9}
+    choices: [1, 0, 5, 1, 0, 6, 1, 1, 2, 0]
+  - id: dict/rejects-a-dict-below-min-size-after-ten-discards
+    generator:
+      gen: dict
+      keys: {gen: just, value: {type: string, value: "k"}}
+      values: {gen: integer, min: 0, max: 9}
+      min_size: 2
+    choices: []
+
+  - id: string/decodes-indices-into-the-default-alphabet
+    generator: {gen: string, max_size: 4}
+    choices: [{sequence: [0, 10, 36, 62]}]
+  - id: string/decodes-indices-into-a-stated-alphabet
+    generator: {gen: string, alphabet: "xyz", min_size: 1, max_size: 3}
+    choices: [{sequence: [2, 0]}]
+  - id: string/fits-a-recorded-sequence-to-its-bounds
+    generator: {gen: string, alphabet: "xyz", min_size: 3, max_size: 3}
+    choices: [{sequence: [5, 1]}]
+
+  - id: bytes/decodes-a-sequence-of-bytes
+    generator: {gen: bytes}
+    choices: [{sequence: [104, 105]}]
+  - id: bytes/cuts-a-sequence-longer-than-max-size
+    generator: {gen: bytes, max_size: 2}
+    choices: [{sequence: [1, 2, 3]}]
+  - id: bytes/takes-min-size-zero-bytes-past-the-last-choice
+    generator: {gen: bytes, min_size: 3}
+    choices: []
+
+  - id: duration/decodes-nanoseconds
+    generator: {gen: duration, min: -1000000000, max: 1000000000}
+    choices: [250000000]
+  - id: duration/takes-the-target-for-a-choice-outside-its-bounds
+    generator: {gen: duration, min: 1000, max: 2000}
+    choices: [5]
+  - id: duration/takes-the-target-past-the-last-choice
+    generator: {gen: duration, min: -2000, max: -1000}
+    choices: []
+
+  - id: permutation/decodes-one-swap-per-position
+    generator:
+      gen: permutation
+      values: [{type: string, value: "a"}, {type: string, value: "b"}, {type: string, value: "c"}, {type: string, value: "d"}]
+    choices: [2, 3, 3]
+  - id: permutation/takes-the-target-for-a-swap-outside-its-bounds
+    generator:
+      gen: permutation
+      values: [{type: string, value: "a"}, {type: string, value: "b"}, {type: string, value: "c"}, {type: string, value: "d"}]
+    choices: [1, 0, 0]
+  - id: permutation/keeps-the-stated-order-past-the-last-choice
+    generator:
+      gen: permutation
+      values: [{type: string, value: "a"}, {type: string, value: "b"}, {type: string, value: "c"}, {type: string, value: "d"}]
+    choices: []
+
+  - id: string-matching/decodes-a-class-repeated-a-counted-number-of-times
+    generator: {gen: string-matching, pattern: "[a-c]{2,3}"}
+    choices: [1, 2, 1, 0, 1, 1, 0]
+  - id: string-matching/decodes-the-chosen-branch-of-an-alternation
+    generator: {gen: string-matching, pattern: "cat|dog"}
+    choices: [1]
+  - id: string-matching/takes-the-first-branch-and-the-fewest-repetitions
+    generator: {gen: string-matching, pattern: "^(ab|c)+d?$"}
+    choices: []
+
+  - id: recursive/decodes-a-nested-value
+    generator:
+      gen: recursive
+      base: {gen: integer, min: 0, max: 9}
+      extend: {gen: list, of: {gen: self}, max_size: 2}
+      max_leaves: 3
+    choices: [1, 1, 1, 1, 0, 2, 0, 1, 0, 3]
+  - id: recursive/takes-the-base-once-it-has-drawn-max-leaves
+    generator:
+      gen: recursive
+      base: {gen: integer, min: 0, max: 9}
+      extend: {gen: list, of: {gen: self}, max_size: 3}
+      max_leaves: 1
+    choices: [1, 1, 0, 4, 1, 1, 5, 0]
+  - id: recursive/takes-the-base-past-the-last-choice
+    generator:
+      gen: recursive
+      base: {gen: integer, min: 0, max: 9}
+      extend: {gen: list, of: {gen: self}, max_size: 2}
+    choices: []
+
+  - id: filter/decodes-a-value-the-predicate-keeps
+    generator: {gen: filter, of: {gen: integer, min: 0, max: 9}, keep: {kind: divisible-by, n: 2}}
+    choices: [4]
+  # Each attempt reads the recorded 3 again, so all three are rejected.
+  - id: filter/rejects-a-replayed-value-at-every-attempt
+    generator: {gen: filter, of: {gen: integer, min: 0, max: 9}, keep: {kind: divisible-by, n: 2}}
+    choices: [3]
+  - id: filter/decodes-a-collection-the-predicate-keeps
+    generator:
+      gen: filter
+      of: {gen: list, of: {gen: integer, min: 0, max: 9}, max_size: 3}
+      keep: {kind: length-at-least, n: 2}
+    choices: [1, 3, 1, 4, 0]

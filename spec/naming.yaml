@@ -3,7 +3,7 @@
 # A qualified name names a member of the subpackage the assertion table
 # gives it. The separator is the language's own: a dot in Go, Java,
 # Kotlin, Python and TypeScript, two colons in Rust.
-version: "1.1.0"
+version: "1.2.0"
 
 languages: [go, java, kotlin, php, python, rust, typescript]
 
@@ -302,6 +302,13 @@ names:
     typescript: "rejects"
     java: "rejects"
     kotlin: "rejects"
+  "prop-for-all":
+    go: "prop.ForAll"
+    python: "prop.for_all"
+    rust: "prop::for_all"
+    typescript: "prop.forAll"
+    java: "Prop.forAll"
+    kotlin: "Prop.forAll"
 
 # What each language calls the relaxations. A language declaring one
 # absent in its overlay carries no name for it.
@@ -360,6 +367,10 @@ relaxations:
 # Java names the platform clock SystemClock because System is
 # java.lang.System, which every class in the package would otherwise
 # have to qualify. The same reason throws became throwsException.
+#
+# Java and Kotlin spell the boolean and float generators bool and
+# floating, because boolean and float are Java keywords and the two
+# languages share one set of names.
 surface:
   types:
     "seat":
@@ -450,6 +461,20 @@ surface:
       go: "Assertion"
       java: "Assertion"
       kotlin: "Assertion"
+    "generator":
+      go: "prop.Generator"
+      python: "prop.Generator"
+      rust: "prop::Generator"
+      typescript: "prop.Generator"
+      java: "Generator"
+      kotlin: "Generator"
+    "case":
+      go: "prop.Case"
+      python: "prop.Case"
+      rust: "prop::Case"
+      typescript: "prop.Case"
+      java: "Case"
+      kotlin: "Case"
   members:
     "seat.helper":
       go: "Helper"
@@ -597,6 +622,69 @@ surface:
       typescript: "check"
       java: "check"
       kotlin: "check"
+    "case.draw":
+      go: "Draw"
+      python: "draw"
+      rust: "draw"
+      typescript: "draw"
+      java: "draw"
+      kotlin: "draw"
+    "case.assume":
+      go: "Assume"
+      python: "assume"
+      rust: "assume"
+      typescript: "assume"
+      java: "assume"
+      kotlin: "assume"
+    "case.classify":
+      go: "Classify"
+      python: "classify"
+      rust: "classify"
+      typescript: "classify"
+      java: "classify"
+      kotlin: "classify"
+    "case.note":
+      go: "Note"
+      python: "note"
+      rust: "note"
+      typescript: "note"
+      java: "note"
+      kotlin: "note"
+    "case.rand":
+      go: "Rand"
+      python: "rand"
+      rust: "rand"
+      typescript: "rand"
+      java: "rand"
+      kotlin: "rand"
+    "case.observe":
+      go: "Observe"
+      python: "observe"
+      rust: "observe"
+      typescript: "observe"
+      java: "observe"
+      kotlin: "observe"
+    "generator.map":
+      go: "Map"
+      python: "map"
+      rust: "map"
+      typescript: "map"
+      java: "map"
+      kotlin: "map"
+    "generator.filter":
+      go: "Filter"
+      python: "filter"
+      rust: "filter"
+      typescript: "filter"
+      java: "filter"
+      kotlin: "filter"
+    "generator.bind":
+      go: "Bind"
+      python: "bind"
+      rust: "bind"
+      typescript: "bind"
+      java: "bind"
+      kotlin: "bind"
   helpers:
     "that":
       go: "That"
@@ -637,3 +725,192 @@ surface:
       typescript: "golden.shouldUpdate"
       java: "Golden.shouldUpdate"
       kotlin: "Golden.shouldUpdate"
+    "prop.integer":
+      go: "prop.Integer"
+      python: "prop.integer"
+      rust: "prop::integer"
+      typescript: "prop.integer"
+      java: "Prop.integer"
+      kotlin: "Prop.integer"
+    "prop.float":
+      go: "prop.Float"
+      python: "prop.float"
+      rust: "prop::float"
+      typescript: "prop.float"
+      java: "Prop.floating"
+      kotlin: "Prop.floating"
+    "prop.boolean":
+      go: "prop.Boolean"
+      python: "prop.boolean"
+      rust: "prop::boolean"
+      typescript: "prop.boolean"
+      java: "Prop.bool"
+      kotlin: "Prop.bool"
+    "prop.just":
+      go: "prop.Just"
+      python: "prop.just"
+      rust: "prop::just"
+      typescript: "prop.just"
+      java: "Prop.just"
+      kotlin: "Prop.just"
+    "prop.sampled-from":
+      go: "prop.SampledFrom"
+      python: "prop.sampled_from"
+      rust: "prop::sampled_from"
+      typescript: "prop.sampledFrom"
+      java: "Prop.sampledFrom"
+      kotlin: "Prop.sampledFrom"
+    "prop.one-of":
+      go: "prop.OneOf"
+      python: "prop.one_of"
+      rust: "prop::one_of"
+      typescript: "prop.oneOf"
+      java: "Prop.oneOf"
+      kotlin: "Prop.oneOf"
+    "prop.optional":
+      go: "prop.Optional"
+      python: "prop.optional"
+      rust: "prop::optional"
+      typescript: "prop.optional"
+      java: "Prop.optional"
+      kotlin: "Prop.optional"
+    "prop.list":
+      go: "prop.List"
+      python: "prop.list"
+      rust: "prop::list"
+      typescript: "prop.list"
+      java: "Prop.list"
+      kotlin: "Prop.list"
+    "prop.dict":
+      go: "prop.Dict"
+      python: "prop.dict"
+      rust: "prop::dict"
+      typescript: "prop.dict"
+      java: "Prop.dict"
+      kotlin: "Prop.dict"
+    "prop.string":
+      go: "prop.String"
+      python: "prop.string"
+      rust: "prop::string"
+      typescript: "prop.string"
+      java: "Prop.string"
+      kotlin: "Prop.string"
+    "prop.bytes":
+      go: "prop.Bytes"
+      python: "prop.bytes"
+      rust: "prop::bytes"
+      typescript: "prop.bytes"
+      java: "Prop.bytes"
+      kotlin: "Prop.bytes"
+    "prop.duration":
+      go: "prop.Duration"
+      python: "prop.duration"
+      rust: "prop::duration"
+      typescript: "prop.duration"
+      java: "Prop.duration"
+      kotlin: "Prop.duration"
+    "prop.permutation":
+      go: "prop.Permutation"
+      python: "prop.permutation"
+      rust: "prop::permutation"
+      typescript: "prop.permutation"
+      java: "Prop.permutation"
+      kotlin: "Prop.permutation"
+    "prop.string-matching":
+      go: "prop.StringMatching"
+      python: "prop.string_matching"
+      rust: "prop::string_matching"
+      typescript: "prop.stringMatching"
+      java: "Prop.stringMatching"
+      kotlin: "Prop.stringMatching"
+    "prop.recursive":
+      go: "prop.Recursive"
+      python: "prop.recursive"
+      rust: "prop::recursive"
+      typescript: "prop.recursive"
+      java: "Prop.recursive"
+      kotlin: "Prop.recursive"
+    "prop.composite":
+      go: "prop.Composite"
+      python: "prop.composite"
+      rust: "prop::composite"
+      typescript: "prop.composite"
+      java: "Prop.composite"
+      kotlin: "Prop.composite"
+    "prop.cases":
+      go: "prop.Cases"
+      python: "prop.cases"
+      rust: "prop::cases"
+      typescript: "prop.cases"
+      java: "Prop.cases"
+      kotlin: "Prop.cases"
+    "prop.seed":
+      go: "prop.Seed"
+      python: "prop.seed"
+      rust: "prop::seed"
+      typescript: "prop.seed"
+      java: "Prop.seed"
+      kotlin: "Prop.seed"
+    "prop.replay":
+      go: "prop.Replay"
+      python: "prop.replay"
+      rust: "prop::replay"
+      typescript: "prop.replay"
+      java: "Prop.replay"
+      kotlin: "Prop.replay"
+    "prop.require":
+      go: "prop.Require"
+      python: "prop.require"
+      rust: "prop::require"
+      typescript: "prop.require"
+      java: "Prop.require"
+      kotlin: "Prop.require"
+    "prop.shrink":
+      go: "prop.Shrink"
+      python: "prop.shrink"
+      rust: "prop::shrink"
+      typescript: "prop.shrink"
+      java: "Prop.shrink"
+      kotlin: "Prop.shrink"
+    "prop.shrink-time":
+      go: "prop.ShrinkTime"
+      python: "prop.shrink_time"
+      rust: "prop::shrink_time"
+      typescript: "prop.shrinkTime"
+      java: "Prop.shrinkTime"
+      kotlin: "Prop.shrinkTime"
+    "prop.max-choices":
+      go: "prop.MaxChoices"
+      python: "prop.max_choices"
+      rust: "prop::max_choices"
+      typescript: "prop.maxChoices"
+      java: "Prop.maxChoices"
+      kotlin: "Prop.maxChoices"
+    "prop.store":
+      go: "prop.Store"
+      python: "prop.store"
+      rust: "prop::store"
+      typescript: "prop.store"
+      java: "Prop.store"
+      kotlin: "Prop.store"
+    "prop.explain":
+      go: "prop.Explain"
+      python: "prop.explain"
+      rust: "prop::explain"
+      typescript: "prop.explain"
+      java: "Prop.explain"
+      kotlin: "Prop.explain"
+    "prop.workers":
+      go: "prop.Workers"
+      python: "prop.workers"
+      rust: "prop::workers"
+      typescript: "prop.workers"
+      java: "Prop.workers"
+      kotlin: "Prop.workers"
+    "prop.fuzz":
+      go: "prop.Fuzz"
+      python: "prop.fuzz"
+      rust: "prop::fuzz"
+      typescript: "prop.fuzz"
+      java: "Prop.fuzz"
+      kotlin: "Prop.fuzz"

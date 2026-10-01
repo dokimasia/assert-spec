@@ -19,7 +19,7 @@ manifest: ## Rebuild the digest of everything an implementation vendors
 
 stale: ## Fail when the rendered JSON does not match the YAML
 	@uv run python tools/manifest.py --check
-	@git diff --quiet -- spec/*.json || { \
+	@git diff --quiet -- spec/*.json corpus/prop/*.json || { \
 		echo "spec: the rendered JSON is stale; run make render and commit"; exit 1; }
 	@echo "spec: the rendered JSON matches the YAML"
 

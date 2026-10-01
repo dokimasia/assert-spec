@@ -1,12 +1,12 @@
 # The definition
 
-`assertions.yaml` and `naming.yaml` are the definition. People edit
-those.
+People edit `assertions.yaml` and `naming.yaml`, which are the
+definition.
 
-`assertions.json` and `naming.json` are rendered from them and
-committed. They are what an implementation reads: every target language
-parses JSON from its standard library, and several would otherwise take
-a dependency to read the definition at all.
+`make render` writes `assertions.json` and `naming.json` from them, and
+both are committed. An implementation reads the JSON: every target
+language parses JSON with its standard library, and none of them has a
+YAML parser there.
 
 Re-render after editing:
 
@@ -18,17 +18,29 @@ make render
 
 Every id and every name is quoted. YAML reads an unquoted `true`,
 `false`, `yes`, `no`, `on` or `off` as a boolean, and four of those are
-assertion ids or Go identifiers here. Quoting all of them is one rule
-rather than a list of exceptions to remember.
+assertion ids or Go identifiers here. One rule for every string is
+simpler than a list of exceptions.
 
-## What the corpus covers
+## Corpus coverage by assertion
 
-A case states its arguments as typed literals, so it covers only
-assertions whose arguments cross a language boundary as data. That is
-17 of the 42.
+A case states its arguments as typed literals, or names a subject from a
+small vocabulary that each implementation builds natively. 25 of the 43
+assertions have corpus cases:
 
-The other 25 take a callable, a cancellation handle, a predicate, a
-golden file or a benchmark. None of those is data, so each language
-tests them itself, and the completeness gate checks only that they are
-present. An implementation is held to the standard on meaning where
-meaning can be stated, and on membership everywhere else.
+- 17 take data.
+- 8 take a callable that a subject describes.
+
+The other 18 take an error value, a predicate, a callable that no
+subject describes, a golden file, a benchmark or a property's body. Each
+language tests them itself, and the completeness gate checks only that
+they are present. The standard checks an implementation's meaning where
+a case can state it, and its membership everywhere else.
+
+The engine behind `prop-for-all` is data in and data out, so the vectors
+under `corpus/prop/` pin the decoding of every generator, the generation
+from a seed, the shrinking, the coverage test, the fuzz bridge, the
+replay token, the detail of a run, and the store's entries, file names
+and verdicts. People write each vector's inputs
+in `corpus/prop/<kind>.yaml`. `make render` computes the outputs with
+the executable reference in `tools/prop/` and writes the JSON beside
+them.

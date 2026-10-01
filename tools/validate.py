@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
-"""Hold the definition and the corpus to their own rules.
+"""Check the definition, the corpus and the overlays against their rules.
 
-A standard nobody can check is a document. This reads what the repo
-publishes, the rendered JSON rather than the YAML behind it, because
-that is what an implementation reads, and reports every problem it
-finds rather than stopping at the first.
+The validator reads the published files, the rendered JSON an
+implementation reads, and not the YAML behind them. It reports every
+problem it finds in one run.
 
-Standard library only. A repo that defines a cross-language standard
-should not need a toolchain to say whether it is well formed.
+It needs the standard library and this repository's executable
+reference, which needs nothing else, so a bare Python runs it.
 """
 
 from __future__ import annotations
@@ -15,29 +14,41 @@ from __future__ import annotations
 import json
 import re
 import sys
+from collections.abc import Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from prop import literal
+from prop.coverage import Verdict
+from prop.generator import IDS
+from prop.runner import Kind
+from prop.store import Verdict as StoreVerdict
+from prop.vectors import KINDS
+
 ROOT = Path(__file__).resolve().parent.parent
 
-#: The types a corpus case may state, and the keys each one carries
-#: beyond ``type``. Mirrors the table in the encoding document.
+#: The scalar types a list's ``of`` and a map's ``key`` may name.
 SCALARS = {"bool", "int", "float", "string"}
-LITERALS: dict[str, set[str]] = {
-    "null": set(),
-    "bool": {"value"},
-    "int": {"value"},
-    "float": {"value"},
-    "string": {"value"},
-    "list": {"of", "value"},
-    "map": {"key", "of", "value"},
+
+#: The types a typed literal may state, and the forms of each: the keys a
+#: literal of the type has beside ``type``. The table in the encoding
+#: document states the same forms.
+FORMS: dict[str, tuple[frozenset[str], ...]] = {
+    "null": (frozenset(),),
+    "bool": (frozenset({"value"}),),
+    "int": (frozenset({"value"}),),
+    "float": (frozenset({"value"}),),
+    "string": (frozenset({"value"}),),
+    "bytes": (frozenset({"value"}),),
+    "list": (frozenset({"of", "value"}), frozenset({"items"})),
+    "map": (frozenset({"key", "of", "value"}), frozenset({"entries"})),
 }
 
-#: JSON carries no NaN or infinity, so a float may name one instead.
+#: JSON has no NaN or infinity, so a float states them by these names.
 NON_FINITE = {"NaN", "Inf", "-Inf"}
 
-#: What a case may say it expects of the assertion under test.
+#: The outcomes a case may expect of the assertion under test.
 OUTCOMES = {"pass", "fail"}
 
 #: Ids and names are lowercase words joined by hyphens. A qualified
@@ -45,26 +56,33 @@ OUTCOMES = {"pass", "fail"}
 ID = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 CASE_ID = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*/[a-z0-9]+(-[a-z0-9]+)*$")
 
+#: The vector kinds whose ids name the generator under test, as
+#: <generator>/<case>. The ids of every other kind start with the kind.
+GENERATOR_KINDS = frozenset({"decoding", "generation", "shrinking"})
+
+#: The outcomes a shrinking vector of each generator must include.
+SHRUNK_BOTH_WAYS = (Kind.COUNTEREXAMPLE.value, Kind.PASSED.value)
+
 
 class Problems:
-    """Every problem found, in the order they were found."""
+    """Every problem found, in the order the checks found them."""
 
     def __init__(self) -> None:
-        """Return a report with nothing in it."""
+        """Start a report with no problem."""
         self._found: list[str] = []
 
     def at(self, where: str, what: str) -> None:
-        """Record one problem, and where it is."""
+        """Record one problem and where it is."""
         self._found.append(f"{where}: {what}")
 
     def unless(self, held: bool, where: str, what: str) -> bool:
-        """Record a problem when held is false, and answer held."""
+        """Record a problem when held is false, and return held."""
         if not held:
             self.at(where, what)
         return held
 
     def report(self) -> int:
-        """Print what was found and answer the exit status."""
+        """Print every problem, and return 1 when there is one and 0 otherwise."""
         for problem in self._found:
             print(problem, file=sys.stderr)
         if self._found:
@@ -74,7 +92,7 @@ class Problems:
 
 
 def _load(path: Path, problems: Problems) -> Any:
-    """Read one JSON file, recording a problem rather than raising."""
+    """Return a JSON file's content, or record a problem and return None."""
     try:
         return json.loads(path.read_text())
     except (OSError, json.JSONDecodeError) as err:
@@ -83,21 +101,24 @@ def _load(path: Path, problems: Problems) -> Any:
 
 
 def check_version(spec: Any, naming: Any, version: str, problems: Problems) -> None:
-    """The VERSION file and both tables must agree."""
+    """Record a problem for each table whose version differs from VERSION."""
     problems.unless(
         spec.get("version") == version,
         "spec/assertions.json",
-        f"states version {spec.get('version')!r}, VERSION says {version!r}",
+        f"states version {spec.get('version')!r}, and VERSION states {version!r}",
     )
     problems.unless(
         naming.get("version") == version,
         "spec/naming.json",
-        f"states version {naming.get('version')!r}, VERSION says {version!r}",
+        f"states version {naming.get('version')!r}, and VERSION states {version!r}",
     )
 
 
 def check_assertions(spec: Any, problems: Problems) -> dict[str, set[str]]:
-    """Every assertion states an id, an arity and a summary."""
+    """Check every assertion's id, arity, summary, detail fields and package.
+
+    Returns each assertion's detail fields, by id.
+    """
     assertions = spec.get("assertions", {})
     problems.unless(bool(assertions), "spec/assertions.json", "states no assertions")
 
@@ -142,11 +163,11 @@ def check_assertions(spec: Any, problems: Problems) -> dict[str, set[str]]:
 
 
 def check_subjects(spec: Any, problems: Problems) -> set[str]:
-    """The subject vocabulary a corpus case may name.
+    """Check the subject vocabulary, and return its kinds.
 
-    A case that cannot state a callable names a behaviour instead, and
-    each implementation builds it natively. The vocabulary is small on
-    purpose: every kind is one an implementation has to be able to make.
+    A case that cannot state a callable names a subject kind instead, and
+    each implementation builds that subject natively. Every implementation
+    must build every kind, so the vocabulary is small.
     """
     subjects = spec.get("subjects", {})
     problems.unless(
@@ -163,20 +184,19 @@ def check_subjects(spec: Any, problems: Problems) -> set[str]:
 def check_naming(
     naming: Any, spec: Any, assertions: set[str], problems: Problems
 ) -> None:
-    """The naming table covers every assertion, in every language.
+    """Check that the naming table names every assertion in every language.
 
-    A name is qualified exactly when the assertion names a package.
-    The separator is the language's own: a dot in Go, Java and Python,
-    two colons in Rust.
-    That is the check worth having: the two tables are edited apart,
-    and a name that says ``golden.match`` for an assertion in the root
-    namespace sends every implementation looking in the wrong place.
+    A name is qualified exactly when its assertion names a package. The
+    separator is the language's own: a dot in Go, Java and Python, and
+    two colons in Rust. The two tables are edited separately, and a name
+    such as ``golden.match`` for an assertion in the root namespace sends
+    every implementation to the wrong place.
 
-    What the qualifier is stays the language's business. Python and
-    TypeScript qualify by module, so the head is the package name. Java
-    and Kotlin qualify by type and reach the package through an import,
-    so theirs is a class name. Requiring the package name would be
-    requiring one language's conventions of all of them.
+    The qualifier itself is the language's choice. Python and TypeScript
+    qualify by module, so the head is the package name. Java and Kotlin
+    qualify by type and reach the package through an import, so the head
+    is a class name. A rule that required the package name would impose
+    one language's conventions on all of them.
     """
     defined = spec.get("assertions", {})
     languages = naming.get("languages", [])
@@ -213,45 +233,56 @@ def check_naming(
 
 
 def check_literal(value: Any, where: str, problems: Problems) -> None:
-    """One typed literal, held to the encoding."""
+    """Check one typed literal against the encoding.
+
+    A literal whose keys fit no form of its type is reported by key. A
+    literal whose keys fit is decoded with the reference's codec, which
+    reports a value the type cannot take, such as a JavaScript-unsafe
+    integer stated as a number or bytes that are not lowercase hex.
+    """
     if not isinstance(value, dict):
         problems.at(where, f"is {type(value).__name__}, not a typed literal")
         return
 
     kind = value.get("type")
-    if kind not in LITERALS:
+    if kind not in FORMS:
         problems.at(where, f"states type {kind!r}, which the encoding does not define")
         return
 
-    allowed = LITERALS[kind] | {"type"}
-    for key in sorted(set(value) - allowed):
-        problems.at(where, f"carries {key!r}, which type {kind!r} does not take")
-    for key in sorted(LITERALS[kind] - set(value)):
+    keys = frozenset(value) - {"type"}
+    form = max(FORMS[kind], key=lambda f: len(f & keys))
+    for key in sorted(keys - form):
+        problems.at(where, f"states {key!r}, which type {kind!r} does not take")
+    for key in sorted(form - keys):
         problems.at(where, f"type {kind!r} needs {key!r}")
+    if keys != form:
+        return
 
     for key in ("of", "key"):
-        if key in value:
-            problems.unless(
-                value[key] in SCALARS,
-                where,
-                f"{key} is {value[key]!r}, which is not a scalar type",
-            )
+        if key in value and value[key] not in SCALARS:
+            problems.at(where, f"{key} is {value[key]!r}, which is not a scalar type")
+            return
 
-    if kind == "float" and isinstance(value.get("value"), str):
-        problems.unless(
-            value["value"] in NON_FINITE,
-            where,
-            f"states float {value['value']!r}; only {sorted(NON_FINITE)} are named",
+    named = value.get("value")
+    if kind == "float" and isinstance(named, str) and named not in NON_FINITE:
+        problems.at(
+            where, f"states float {named!r}; only {sorted(NON_FINITE)} are named"
         )
+        return
+
+    try:
+        literal.decode(value)
+    except literal.LiteralError as bad:
+        problems.at(where, str(bad).removeprefix("prop: "))
 
 
 @dataclass(frozen=True)
 class Vocabulary:
-    """What a corpus case may name.
+    """The names a corpus case may use.
 
-    One value rather than two arguments: the detail fields an assertion
-    declares and the subject kinds the definition states are both what a
-    case is held to, and a case names one or the other.
+    The detail fields of the assertion under test and the subject kinds
+    of the definition are checked together, because a case names either
+    detail fields or a subject.
     """
 
     detail: set[str]
@@ -261,7 +292,7 @@ class Vocabulary:
 def check_case(
     case: Any, assertion: str, vocabulary: Vocabulary, where: str, problems: Problems
 ) -> str | None:
-    """One corpus case, held to its own shape. Answers its id."""
+    """Check one corpus case, and return its id, or None when it is no object."""
     if not isinstance(case, dict):
         problems.at(where, "is not an object")
         return None
@@ -292,7 +323,7 @@ def check_case(
     problems.unless(
         args is None or subject is None,
         f"{where} [{cid}]",
-        "states both args and a subject; a case hands over one or the other",
+        "states both args and a subject; a case states one of them",
     )
     if isinstance(args, list):
         for index, arg in enumerate(args):
@@ -343,7 +374,10 @@ def check_case(
 def check_corpus(
     assertions: dict[str, set[str]], subjects: set[str], problems: Problems
 ) -> int:
-    """Every corpus file names a defined assertion; every id is unique."""
+    """Check every corpus file and case, and return the number of cases.
+
+    Each file names a defined assertion, and each case id is unique.
+    """
     seen: dict[str, str] = {}
     total = 0
 
@@ -365,7 +399,7 @@ def check_corpus(
         problems.unless(
             path.stem == assertion,
             where,
-            f"is named {path.stem!r} but carries {assertion!r}",
+            f"is named {path.stem!r} but states {assertion!r}",
         )
 
         cases = document.get("cases", [])
@@ -374,9 +408,9 @@ def check_corpus(
         ):
             continue
 
-        # An assertion driven only by inputs that satisfy it is checked
-        # by a suite that would pass if the assertion reported nothing
-        # at all. Both outcomes, or the corpus is stating half of it.
+        # A suite that drives an assertion only with inputs that satisfy
+        # it passes when the assertion reports nothing. Each assertion
+        # therefore has a passing and a failing case.
         outcomes = {case.get("expect") for case in cases if isinstance(case, dict)}
         for wanted in OUTCOMES:
             problems.unless(
@@ -406,13 +440,135 @@ def check_corpus(
     return total
 
 
+def literals(node: Any, path: str = "") -> Iterator[tuple[str, Any]]:
+    """Yield every typed literal under node with its path.
+
+    A typed literal is an object with a ``type`` key. The parts of a
+    literal are not yielded on their own, because check_literal checks a
+    literal whole.
+    """
+    if isinstance(node, dict):
+        if "type" in node:
+            yield path, node
+            return
+        for key, child in node.items():
+            yield from literals(child, f"{path}.{key}" if path else str(key))
+    elif isinstance(node, list):
+        for index, child in enumerate(node):
+            yield from literals(child, f"{path}[{index}]")
+
+
+def check_vector_cases(
+    kind: str, cases: list[Any], where: str, problems: Problems
+) -> None:
+    """Check one kind's vectors: their ids, their literals and what they cover.
+
+    Every generator has decoding, generation and shrinking vectors, and a
+    shrinking vector that fails and one that passes. The behaviour
+    vectors end in every outcome, and the coverage and store vectors
+    reach every verdict of their kind.
+    """
+    prefixes = IDS if kind in GENERATOR_KINDS else frozenset({kind})
+    seen: set[str] = set()
+    found: dict[str, set[str]] = {}
+    for case in cases:
+        if not problems.unless(
+            isinstance(case, dict), where, "a case is not an object"
+        ):
+            continue
+        cid = str(case.get("id", ""))
+        problems.unless(
+            bool(CASE_ID.match(cid)),
+            where,
+            f"states id {cid!r}, want <subject>/<case> in hyphenated lowercase",
+        )
+        problems.unless(cid not in seen, where, f"repeats case id {cid!r}")
+        seen.add(cid)
+        prefix = cid.split("/", 1)[0]
+        problems.unless(
+            prefix in prefixes,
+            where,
+            f"id {cid!r} begins with {prefix!r}, which names no "
+            + ("generator" if kind in GENERATOR_KINDS else f"{kind} vector"),
+        )
+        for path, value in literals(case):
+            check_literal(value, f"{where} [{cid}] {path}", problems)
+        detail = case.get("detail")
+        reached = case.get("outcome") or case.get("verdict")
+        if isinstance(detail, dict):
+            reached = detail.get("outcome")
+        found.setdefault(prefix, set()).add(str(reached))
+
+    if kind in GENERATOR_KINDS:
+        for gen in sorted(IDS - set(found)):
+            problems.at(where, f"has no vector for generator {gen!r}")
+    if kind == "shrinking":
+        for gen in sorted(IDS & set(found)):
+            for outcome in SHRUNK_BOTH_WAYS:
+                problems.unless(
+                    outcome in found[gen],
+                    where,
+                    f"has no {gen} vector whose outcome is {outcome!r}; a "
+                    "generator is shrunk both ways or the corpus proves nothing",
+                )
+    ends = {
+        "behaviour": [k.value for k in Kind],
+        "coverage": [v.value for v in Verdict],
+        "store": [v.value for v in StoreVerdict],
+    }
+    for end in ends.get(kind, []):
+        problems.unless(
+            end in found.get(kind, set()),
+            where,
+            f"has no vector that ends in {end!r}",
+        )
+
+
+def check_vectors(problems: Problems) -> int:
+    """Check the property engine's vector files, and return the number of vectors.
+
+    The outputs of each vector are the executable reference's. `make
+    render` writes them from the YAML inputs, and the stale check fails
+    when the reference computes other outputs. This check covers what the
+    renderer copies from the YAML: each file's kind, the ids, the typed
+    literals, and that the vectors cover the vocabulary.
+    """
+    folder = ROOT / "corpus" / "prop"
+    files = {path.stem: path for path in sorted(folder.glob("*.json"))}
+    for kind in KINDS:
+        problems.unless(kind in files, "corpus/prop/", f"has no {kind} vectors")
+
+    total = 0
+    for stem, path in files.items():
+        where = str(path.relative_to(ROOT))
+        document = _load(path, problems)
+        if document is None:
+            continue
+        kind = document.get("kind")
+        problems.unless(
+            kind == stem, where, f"is named {stem!r} but states kind {kind!r}"
+        )
+        if not problems.unless(
+            kind in KINDS, where, f"states kind {kind!r}, which no vector has"
+        ):
+            continue
+        cases = document.get("cases")
+        if not problems.unless(
+            isinstance(cases, list) and bool(cases), where, "states no cases"
+        ):
+            continue
+        total += len(cases)
+        check_vector_cases(str(kind), cases, where, problems)
+    return total
+
+
 @dataclass(frozen=True)
 class Relaxations:
-    """What the definition and the table say about the relaxations.
+    """What the definition and the naming table state about the relaxations.
 
-    One value rather than three arguments, because the three travel
-    together: the ids the definition declares, which of them each
-    language names, and which languages implement anything at all.
+    declared is the ids the definition states, named is the ids each
+    language names, and implementing is the languages that name at least
+    one assertion.
     """
 
     declared: frozenset[str]
@@ -421,14 +577,12 @@ class Relaxations:
 
 
 def check_relaxations(spec: Any, naming: Any, problems: Problems) -> Relaxations:
-    """The relaxations are named, and every assertion referencing one means it.
+    """Check that every relaxation is named, and every reference to one is defined.
 
-    A relaxation widens what counts as equal for one call. Naming them
-    here is what stops each language inventing its own set: four of the
-    implementations arrived at the same two, and a fifth at neither,
-    which is only comparable once the standard states what they are.
+    A relaxation widens what counts as equal for one call. The definition
+    states the set, so every language offers the same relaxations.
 
-    Returns what the overlay check holds each language to.
+    Returns the relaxations the overlay check applies to each language.
     """
     declared = spec.get("relaxations", {})
     problems.unless(bool(declared), "spec/assertions.json", "states no relaxations")
@@ -465,9 +619,8 @@ def check_relaxations(spec: Any, naming: Any, problems: Problems) -> Relaxations
         for language in per_language:
             by_language.setdefault(language, set()).add(rid)
 
-    # A declared target with no names yet owes nothing: requiring it to
-    # decline every relaxation would make declaring a target language a
-    # chore before any work exists.
+    # A declared language that names no assertion is not checked, so a
+    # language can be declared before its implementation exists.
     implementing: set[str] = set()
     for per_language in naming.get("names", {}).values():
         implementing.update(per_language)
@@ -485,19 +638,19 @@ SURFACE_SECTIONS = ("types", "members", "helpers")
 #: states it: lowercase words, hyphenated.
 FIELD = re.compile(r"^[a-z][a-z0-9-]*$")
 
-#: Surface ids: kebab words, one dot for a member's owner or a helper's
-#: package. `recorder-seat.message` and `golden.should-update` fit;
-#: bare `flush` and `a.b.c` do not.
+#: A surface id: hyphenated lowercase words, with one dot between a member
+#: and its owner or a helper and its package, as in
+#: `recorder-seat.message`. `a.b.c` is not a surface id.
 SURFACE_ID = re.compile(r"^[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)?$")
 
 
 def check_surface(naming: Any, languages: set[str], problems: Problems) -> None:
-    """The surface table names what a caller touches beyond the assertions.
+    """Check the surface table: what a caller uses beside the assertions.
 
-    Every entry is well formed, every member names an owner the types
-    section declares, and every name belongs to a declared language. The
-    per-language completeness rule lives with the overlays, the same way
-    the relaxations' does.
+    Every entry is well formed, every member names an owner that the
+    types section declares, and every name is in a declared language.
+    The overlay check applies the rule that every implementing language
+    names or declines every row.
     """
     surface = naming.get("surface", {})
     problems.unless(bool(surface), "spec/naming.json", "states no surface table")
@@ -532,11 +685,10 @@ def check_surface(naming: Any, languages: set[str], problems: Problems) -> None:
 
 @dataclass(frozen=True)
 class Tables:
-    """Everything the overlay checks hold a language to.
+    """What the overlay check reads from the naming table.
 
-    One value rather than four arguments: the relaxations, the surface
-    ids and who names them, and the declared languages all describe the
-    same naming document and travel together.
+    The relaxations, the surface ids, the surface ids each language
+    names, and the declared languages.
     """
 
     relaxations: Relaxations
@@ -546,7 +698,7 @@ class Tables:
 
 
 def surface_names_by_language(naming: Any) -> dict[str, set[str]]:
-    """Which surface ids each language names, across all three sections."""
+    """Return the surface ids each language names, across all three sections."""
     out: dict[str, set[str]] = {}
     for section in SURFACE_SECTIONS:
         for sid, per_language in naming.get("surface", {}).get(section, {}).items():
@@ -556,7 +708,7 @@ def surface_names_by_language(naming: Any) -> dict[str, set[str]]:
 
 
 def surface_ids(naming: Any) -> frozenset[str]:
-    """Every id the surface table states."""
+    """Return every id the surface table states."""
     found: set[str] = set()
     for section in SURFACE_SECTIONS:
         found.update(naming.get("surface", {}).get(section, {}))
@@ -566,11 +718,10 @@ def surface_ids(naming: Any) -> frozenset[str]:
 def check_overlay_surface(
     overlay: Any, where: str, language: Any, tables: Tables, problems: Problems
 ) -> None:
-    """One language's answer to the surface, held to name-or-decline.
+    """Check that one implementing language names or declines every surface id.
 
-    The same rule as the relaxations: an implementing language answers
-    every surface id one way, declining needs a reason, and declining
-    something the table also names for it is a contradiction.
+    A decline states a reason, and a language may not both name and
+    decline one id.
     """
     declined_entries = overlay.get("surface", [])
     if not problems.unless(
@@ -620,11 +771,10 @@ def check_overlay_relaxations(
     relaxations: Relaxations,
     problems: Problems,
 ) -> None:
-    """One language's answer to the relaxations, held to name-or-decline.
+    """Check that one implementing language names or declines every relaxation.
 
-    Declining needs a reason, declining the undefined is refused, and an
-    implementing language answers every relaxation exactly one way:
-    named and declined is a contradiction, neither is a silent gap.
+    A decline states a reason and a defined relaxation, and a language
+    may not both name and decline one relaxation.
     """
     relaxed = overlay.get("relaxations", [])
     if problems.unless(isinstance(relaxed, list), where, "relaxations is not a list"):
@@ -657,8 +807,7 @@ def check_overlay_relaxations(
             rid in named_here or rid in declined,
             where,
             f"neither names nor declines relaxation {rid!r}; "
-            "an implementing language answers every relaxation "
-            "one way or the other",
+            "an implementing language names or declines every relaxation",
         )
         problems.unless(
             not (rid in named_here and rid in declined),
@@ -670,17 +819,16 @@ def check_overlay_relaxations(
 def check_overlays(
     assertions: set[str], tables: Tables, version: str, problems: Problems
 ) -> None:
-    """An overlay extends this version and diverges only on real ids.
+    """Check that every overlay extends this version and names only defined ids.
 
-    A divergence carries id, stance and why. The point of the mechanism
-    is that a gap nobody could close and a gap nobody got to look
-    identical unless someone writes down which it is, so an entry with
-    no reason defeats it and fails here.
+    A divergence states an id, a stance and a reason. Without the reason,
+    a gap that cannot be closed and a gap nobody has worked on look the
+    same, so an entry without one fails.
 
     A limit is the third state: the assertion is implemented, and there
-    is a case it cannot see. It carries id, what and why, and an
-    assertion cannot be both, because a divergence must be absent and a
-    limit must be present.
+    is a case it cannot see. It states an id, what it misses and why. An
+    assertion cannot be both, because a divergence is absent and a limit
+    is present.
     """
     for path in sorted((ROOT / "overlays").glob("*.json")):
         where = str(path.relative_to(ROOT))
@@ -719,10 +867,9 @@ def check_overlays(
                 ):
                     continue
                 aid = entry.get("id")
-                # A limit names something the standard states, which is
-                # an assertion or a row of the surface table. A seat
-                # that carries no lock is a limit on the seat, not on
-                # any one assertion.
+                # A limit names an assertion or a row of the surface table.
+                # A seat without a lock is a limit on the seat, not on one
+                # assertion.
                 problems.unless(
                     aid in assertions or aid in tables.surface_ids,
                     where,
@@ -770,7 +917,7 @@ def check_overlays(
 
 
 def main() -> int:
-    """Read everything, check everything, report once."""
+    """Run every check over the published files, and print every problem once."""
     problems = Problems()
 
     version = (ROOT / "VERSION").read_text().strip()
@@ -784,6 +931,7 @@ def main() -> int:
     relaxations = check_relaxations(spec, naming, problems)
     check_naming(naming, spec, set(assertions), problems)
     cases = check_corpus(assertions, check_subjects(spec, problems), problems)
+    vectors = check_vectors(problems)
     check_surface(naming, set(naming.get("languages", [])), problems)
     check_overlays(
         set(assertions),
@@ -801,7 +949,7 @@ def main() -> int:
     if status == 0:
         print(
             f"spec {version}: {len(assertions)} assertions, "
-            f"{cases} corpus cases, all consistent"
+            f"{cases} corpus cases, {vectors} vectors, all consistent"
         )
     return status
 

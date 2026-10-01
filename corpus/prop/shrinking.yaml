@@ -1,0 +1,191 @@
+# Shrinking: a property that draws one value and fails when a predicate
+# holds of it, run with a seed and, where stated, a shrink budget. Each
+# case pins the outcome, the valid cases before the failure, the minimal
+# value and its choices, the replay token, and the runs the shrink and
+# the explanation spent. Every generator has a case that fails and a
+# case that passes. `make render` writes the outputs.
+kind: shrinking
+cases:
+  - id: integer/shrinks-to-the-lower-boundary-of-the-failing-range
+    generator: {gen: integer, min: -1000, max: 1000}
+    fails-when: {kind: at-least, n: 500}
+    seed: "7"
+  - id: integer/passes-when-no-value-fails
+    generator: {gen: integer, min: -1000, max: 1000}
+    fails-when: {kind: never}
+    seed: "7"
+
+  - id: float/shrinks-to-the-simplest-float-above-a-bound
+    generator: {gen: float, min: 0, max: 100}
+    fails-when: {kind: at-least, n: 2.5}
+    seed: "7"
+  - id: float/passes-when-no-value-fails
+    generator: {gen: float, min: 0, max: 100}
+    fails-when: {kind: never}
+    seed: "7"
+
+  - id: boolean/shrinks-to-true-when-only-true-fails
+    generator: {gen: boolean}
+    fails-when: {kind: equals, value: {type: bool, value: true}}
+    seed: "7"
+  - id: boolean/passes-when-no-value-fails
+    generator: {gen: boolean}
+    fails-when: {kind: never}
+    seed: "7"
+
+  - id: just/fails-on-the-simplest-case
+    generator: {gen: just, value: {type: int, value: 5}}
+    fails-when: {kind: at-least, n: 5}
+    seed: "7"
+  - id: just/passes-after-one-case
+    generator: {gen: just, value: {type: int, value: 5}}
+    fails-when: {kind: never}
+    seed: "7"
+
+  - id: sampled-from/shrinks-to-the-first-failing-value
+    generator:
+      gen: sampled-from
+      values: [{type: int, value: 10}, {type: int, value: 20}, {type: int, value: 30}, {type: int, value: 40}]
+    fails-when: {kind: at-least, n: 25}
+    seed: "7"
+  - id: sampled-from/passes-when-no-value-fails
+    generator:
+      gen: sampled-from
+      values: [{type: int, value: 10}, {type: int, value: 20}, {type: int, value: 30}, {type: int, value: 40}]
+    fails-when: {kind: never}
+    seed: "7"
+
+  - id: one-of/shrinks-to-the-simplest-failing-value-of-the-second-generator
+    generator:
+      gen: one-of
+      of: [{gen: integer, min: 0, max: 9}, {gen: integer, min: 100, max: 200}]
+    fails-when: {kind: at-least, n: 150}
+    seed: "7"
+  - id: one-of/passes-when-no-value-fails
+    generator:
+      gen: one-of
+      of: [{gen: integer, min: 0, max: 9}, {gen: integer, min: 100, max: 200}]
+    fails-when: {kind: never}
+    seed: "7"
+
+  - id: optional/shrinks-a-present-value
+    generator: {gen: optional, of: {gen: integer, min: 0, max: 100}}
+    fails-when: {kind: at-least, n: 7}
+    seed: "7"
+  - id: optional/passes-when-no-value-fails
+    generator: {gen: optional, of: {gen: integer, min: 0, max: 100}}
+    fails-when: {kind: never}
+    seed: "7"
+
+  - id: list/shrinks-an-unsorted-list-to-two-elements
+    generator: {gen: list, of: {gen: integer, min: 0, max: 100}}
+    fails-when: {kind: not-sorted}
+    seed: "7"
+  - id: list/shrinks-a-large-sum-to-one-element
+    generator: {gen: list, of: {gen: integer, min: 0, max: 100}}
+    fails-when: {kind: sum-above, n: 10}
+    seed: "7"
+  - id: list/stops-shrinking-when-the-budget-is-spent
+    generator: {gen: list, of: {gen: integer, min: 0, max: 100}}
+    fails-when: {kind: sum-above, n: 150}
+    seed: "7"
+    budget: 5
+  - id: list/passes-when-no-value-fails
+    generator: {gen: list, of: {gen: integer, min: 0, max: 100}}
+    fails-when: {kind: never}
+    seed: "7"
+
+  - id: dict/shrinks-to-two-entries-of-targets
+    generator:
+      gen: dict
+      keys: {gen: integer, min: 0, max: 9}
+      values: {gen: integer, min: 0, max: 9}
+    fails-when: {kind: length-at-least, n: 2}
+    seed: "7"
+  - id: dict/passes-when-no-value-fails
+    generator:
+      gen: dict
+      keys: {gen: integer, min: 0, max: 9}
+      values: {gen: integer, min: 0, max: 9}
+    fails-when: {kind: never}
+    seed: "7"
+
+  - id: string/shrinks-to-the-shortest-string-of-the-simplest-character
+    generator: {gen: string}
+    fails-when: {kind: length-at-least, n: 3}
+    seed: "7"
+  - id: string/passes-when-no-value-fails
+    generator: {gen: string}
+    fails-when: {kind: never}
+    seed: "7"
+
+  - id: bytes/shrinks-to-the-byte-that-fails
+    generator: {gen: bytes}
+    fails-when: {kind: contains, value: {type: bytes, value: "ff"}}
+    seed: "7"
+  - id: bytes/passes-when-no-value-fails
+    generator: {gen: bytes}
+    fails-when: {kind: never}
+    seed: "7"
+
+  - id: duration/shrinks-to-the-lower-boundary-of-the-failing-range
+    generator: {gen: duration, min: 0, max: 60000000000}
+    fails-when: {kind: at-least, n: 1000000}
+    seed: "7"
+  - id: duration/passes-when-no-value-fails
+    generator: {gen: duration, min: 0, max: 60000000000}
+    fails-when: {kind: never}
+    seed: "7"
+
+  - id: permutation/shrinks-to-one-swap-at-the-end
+    generator:
+      gen: permutation
+      values: [{type: int, value: 1}, {type: int, value: 2}, {type: int, value: 3}, {type: int, value: 4}]
+    fails-when: {kind: not-sorted}
+    seed: "7"
+  - id: permutation/passes-when-no-value-fails
+    generator:
+      gen: permutation
+      values: [{type: int, value: 1}, {type: int, value: 2}, {type: int, value: 3}, {type: int, value: 4}]
+    fails-when: {kind: never}
+    seed: "7"
+
+  - id: string-matching/shrinks-to-the-simplest-matching-string
+    generator: {gen: string-matching, pattern: "[a-z]+[0-9]"}
+    fails-when: {kind: length-at-least, n: 4}
+    seed: "7"
+  - id: string-matching/passes-when-no-value-fails
+    generator: {gen: string-matching, pattern: "[a-z]+[0-9]"}
+    fails-when: {kind: never}
+    seed: "7"
+
+  - id: recursive/shrinks-each-child-to-the-simplest-leaf
+    generator:
+      gen: recursive
+      base: {gen: integer, min: 0, max: 9}
+      extend: {gen: list, of: {gen: self}, max_size: 3}
+    fails-when: {kind: length-at-least, n: 3}
+    seed: "7"
+  - id: recursive/stops-at-two-equal-children
+    generator:
+      gen: recursive
+      base: {gen: integer, min: 0, max: 9}
+      extend: {gen: list, of: {gen: self}, max_size: 3}
+    fails-when: {kind: has-duplicate}
+    seed: "7"
+  - id: recursive/passes-when-no-value-fails
+    generator:
+      gen: recursive
+      base: {gen: integer, min: 0, max: 9}
+      extend: {gen: list, of: {gen: self}, max_size: 3}
+    fails-when: {kind: never}
+    seed: "7"
+
+  - id: filter/shrinks-to-the-simplest-kept-value-that-fails
+    generator: {gen: filter, of: {gen: integer, min: 0, max: 1000}, keep: {kind: divisible-by, n: 2}}
+    fails-when: {kind: at-least, n: 501}
+    seed: "7"
+  - id: filter/passes-when-no-value-fails
+    generator: {gen: filter, of: {gen: integer, min: 0, max: 1000}, keep: {kind: divisible-by, n: 2}}
+    fails-when: {kind: never}
+    seed: "7"

@@ -12,13 +12,26 @@ A value is an object with a `type` key.
 | `int` | `value` | `int` |
 | `float` | `value` | `float64` |
 | `string` | `value` | `string` |
+| `bytes` | `value`, in lowercase hexadecimal | `[]byte` |
 | `list` | `of`, `value` | `[]T` |
+| `list` | `items`, a list of typed literals | `[]any` |
 | `map` | `key`, `of`, `value` | `map[K]V` |
+| `map` | `entries`, a list of key and value literal pairs | `map[K]V` |
 
 `of` and `key` name a scalar type: `bool`, `int`, `float`, `string`.
 
+A `list` states `of` and `value` when its elements share one scalar
+type, and `items` otherwise, such as for a list of lists or of byte
+strings. A `map` with `key`, `of` and `value` has string keys, because
+the keys of a JSON object are strings. A `map` with `entries` has keys
+of any type, listed in the order the map produced them.
+
 A `list` whose `value` is `[]` is an empty list, and does not equal
-`null`. The `equal/null-list-vs-empty-list` case pins that.
+`null`. The `equal/null-against-empty-list` case pins that.
+
+An `int` within ±(2^53 − 1) is a JSON number. A larger one is a decimal
+string, such as `"18446744073709551615"`, because a JavaScript reader
+rounds a larger JSON number.
 
 JSON has no NaN or infinity. A `float` accepts the strings `NaN`,
 `Inf` and `-Inf` in place of a number.
