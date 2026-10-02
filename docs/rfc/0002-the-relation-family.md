@@ -4,7 +4,7 @@ title: The relation family
 author: Roy Klopper <roy.klopper@stealthscale.io>
 status: Draft
 created: 2026-08-30
-updated: 2026-09-01
+updated: 2026-10-02
 discussion: none
 supersedes: none
 superseded-by: none
@@ -228,8 +228,9 @@ and a standard that names them takes on the job of saying what the corpus
 must contain.
 
 The relations that need a recorded history, a controlled clock or
-concurrent callers are not proposed here. They need machinery the
-standard does not have.
+concurrent callers are not proposed here. The standard's clock is the
+controlled clock they need. The history and the concurrency driver are
+proposed as the observation seams.
 
 ## References
 
