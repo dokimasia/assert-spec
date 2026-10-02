@@ -16,7 +16,8 @@ contains:
   first or last, and RESERVED_PAIRS are refused.
 - A group, ``(...)`` or ``(?:...)``, and alternation with ``|``.
 - The quantifiers ``*``, ``+``, ``?``, ``{m}``, ``{m,}`` and ``{m,n}``, with
-  counts of at most MAX_COUNT, and never two in a row.
+  counts of at most MAX_COUNT and without a leading zero, and never two in
+  a row.
 - ``^`` as the first character of the pattern and ``$`` as its last.
 
 Each node decodes from the case in a fixed way. An alternation of two or
@@ -308,13 +309,20 @@ class _Parser:
         return Sizes(low, high)
 
     def _count(self) -> int:
-        """Parse the digits of a count, at most MAX_COUNT."""
+        """Parse the digits of a count, at most MAX_COUNT.
+
+        RE2 reads a count with a leading zero, such as {007}, as literal
+        text, so a count of two or more digits does not start with 0.
+        """
         start = self._at
         while self._peek().isdigit() and self._peek().isascii():
             self._at += 1
         if start == self._at:
             raise self._fail("a count has no digits")
-        count = int(self._text[start : self._at])
+        digits = self._text[start : self._at]
+        if len(digits) > 1 and digits[0] == "0":
+            raise self._fail(f"the count {digits} has a leading zero")
+        count = int(digits)
         if count > MAX_COUNT:
             raise self._fail(f"the count {count} is above {MAX_COUNT}")
         return count

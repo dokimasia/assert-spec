@@ -502,9 +502,10 @@ expression engines of every target language read the same way:
   set operations.
 - A group is `(...)` or `(?:...)`, and `|` separates alternatives.
 - The quantifiers are `*`, `+`, `?`, `{m}`, `{m,}` and `{m,n}`. A count
-  is at most 1,000, the limit RE2 sets. A quantifier may not follow
-  another quantifier. Lazy quantifiers such as `+?` are outside the
-  subset for that reason.
+  is at most 1,000, the limit RE2 sets. A count of two or more digits
+  does not start with `0`, because RE2 reads `x{007}` as literal text. A
+  quantifier may not follow another quantifier. Lazy quantifiers such as
+  `+?` are outside the subset for that reason.
 - `^` may be the first character of the pattern and `$` its last.
 
 Each implementation parses the subset itself, because two engines that

@@ -61,6 +61,8 @@ REFUSED = {
     "a quantifier with nothing to repeat": "*a",
     "a count that runs backwards": "a{2,1}",
     "a count above the limit": f"a{{{COUNT_LIMIT + 1}}}",
+    "a count with a leading zero": "a{01}",
+    "a maximum with a leading zero": "a{1,02}",
     "a count without a minimum": "a{,3}",
     "a count without digits": "a{x}",
     "an unclosed count": "a{1",
