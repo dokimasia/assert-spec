@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@2.1.0",
+  "extends": "spec://assertions@2.2.0",
   "language": "typescript",
   "diverge": [
     {
@@ -12,6 +12,12 @@
       "id": "max-allocs",
       "stance": "blocked",
       "why": "V8 exposes no allocation count, for the reason the bench-max-allocs entry gives, so there is no count per call to hold to a ceiling.",
+      "remedy": "The counter in V8's API that bench-max-allocs needs."
+    },
+    {
+      "id": "prop-max-allocs",
+      "stance": "blocked",
+      "why": "The form runs max-allocs on each input, and max-allocs is absent for the reason its entry gives.",
       "remedy": "The counter in V8's API that bench-max-allocs needs."
     },
     {

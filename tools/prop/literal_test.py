@@ -7,7 +7,7 @@ import unittest
 from typing import Any, final
 
 from .literal import SAFE_INTEGER, LiteralError, decode, encode
-from .value import Pairs, canonical
+from .value import NO_PAYLOAD, Pairs, Record, Variant, canonical
 
 #: The definition's limit on a JSON integer, pinned rather than read.
 PINNED_SAFE = 2**53 - 1
@@ -66,6 +66,29 @@ class DecodeTest(unittest.TestCase):
         legacy = {"type": "map", "key": "string", "of": "int", "value": {"a": 1}}
         self.assertEqual(decode(legacy), Pairs((("a", 1),)))
 
+    def test_a_record_decodes_its_fields_in_order(self) -> None:
+        """Fields of different types, in declaration order."""
+        literal = {
+            "type": "record",
+            "fields": [
+                ["id", {"type": "int", "value": 7}],
+                ["note", {"type": "null"}],
+            ],
+        }
+        self.assertEqual(decode(literal), Record((("id", 7), ("note", None))))
+
+    def test_a_variant_decodes_with_or_without_a_payload(self) -> None:
+        """No payload key, and a null payload, are two values."""
+        bare = decode({"type": "variant", "name": "pending"})
+        self.assertEqual(bare, Variant("pending"))
+        assert isinstance(bare, Variant)
+        self.assertIs(bare.payload, NO_PAYLOAD)
+        absent = decode(
+            {"type": "variant", "name": "note", "payload": {"type": "null"}}
+        )
+        self.assertEqual(absent, Variant("note", None))
+        self.assertNotEqual(canonical(bare), canonical(Variant("pending", None)))
+
     def test_an_absent_list_or_map_of_a_stated_type_decodes_to_none(self) -> None:
         """A null value in the of form states an absent container."""
         self.assertIsNone(decode({"type": "list", "of": "int", "value": None}))
@@ -93,6 +116,18 @@ class DecodeTest(unittest.TestCase):
             {"type": "map", "key": "int", "of": "int", "value": {}},
             {"type": "map", "entries": [[{"type": "null"}]]},
             {"type": "set", "value": []},
+            {"type": "record", "fields": {"id": {"type": "int", "value": 1}}},
+            {"type": "record", "fields": [["id"]]},
+            {"type": "record", "fields": [["", {"type": "null"}]]},
+            {"type": "record", "fields": [[1, {"type": "null"}]]},
+            {
+                "type": "record",
+                "fields": [["id", {"type": "null"}], ["id", {"type": "null"}]],
+            },
+            {"type": "record", "fields": [["id", {"type": "int"}]]},
+            {"type": "variant"},
+            {"type": "variant", "name": ""},
+            {"type": "variant", "name": "x", "payload": 1},
         ]
         for literal in malformed:
             with self.assertRaises(LiteralError, msg=str(literal)):
@@ -149,6 +184,20 @@ class EncodeTest(unittest.TestCase):
             },
         )
 
+    def test_records_and_variants_take_their_forms(self) -> None:
+        """Fields in order, and a payload only when the variant has one."""
+        self.assertEqual(
+            encode(Record((("id", 1),))),
+            {"type": "record", "fields": [["id", {"type": "int", "value": 1}]]},
+        )
+        self.assertEqual(
+            encode(Variant("pending")), {"type": "variant", "name": "pending"}
+        )
+        self.assertEqual(
+            encode(Variant("note", None)),
+            {"type": "variant", "name": "note", "payload": {"type": "null"}},
+        )
+
     def test_every_value_round_trips(self) -> None:
         """decode(encode(v)) equals v, signed zero and NaN included."""
         values: list[object] = [
@@ -162,6 +211,8 @@ class EncodeTest(unittest.TestCase):
             [],
             [[], [1.5]],
             Pairs(((None, [b"x"]),)),
+            Record((("a", [Record(())]), ("b", Variant("v", Variant("w"))))),
+            [Variant("x"), Variant("x", None)],
         ]
         for value in values:
             self.assertEqual(canonical(decode(encode(value))), canonical(value), value)

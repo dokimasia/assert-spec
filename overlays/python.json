@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@2.1.0",
+  "extends": "spec://assertions@2.2.0",
   "language": "python",
   "diverge": [
     {
@@ -12,6 +12,12 @@
       "id": "max-allocs",
       "stance": "blocked",
       "why": "CPython counts no allocations, for the reason the bench-max-allocs entry gives: every primitive reports the memory alive at one moment, so a call that allocates and frees reads the same as a call that allocates nothing.",
+      "remedy": "The cumulative allocation counter that bench-max-allocs needs."
+    },
+    {
+      "id": "prop-max-allocs",
+      "stance": "blocked",
+      "why": "The form runs max-allocs on each input, and max-allocs is absent for the reason its entry gives.",
       "remedy": "The cumulative allocation counter that bench-max-allocs needs."
     }
   ],

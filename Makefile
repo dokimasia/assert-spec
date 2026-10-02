@@ -1,7 +1,7 @@
 # Everything runs through uv, which fetches its own Python. A clone and
 # `make check` is the whole setup; nothing here needs a system Python,
 # a yq binary or a global pip install.
-.PHONY: help install render stale validate forms test fmt lint lint-md check
+.PHONY: help install render stale validate forms test fmt lint lint-md check zones
 
 help: ## Show this help
 	@grep -hE '^[a-z-]+:.*?##' $(MAKEFILE_LIST) | sort | \
@@ -15,6 +15,10 @@ render: ## Render the JSON an implementation reads from the YAML people edit
 	@uv run python tools/manifest.py
 
 manifest: ## Rebuild the digest of everything an implementation vendors
+	@uv run python tools/manifest.py
+
+zones: ## Recompute spec/zones.json from the pinned tzdata release; needs the network, zic and zdump
+	@uv run python tools/zones.py
 	@uv run python tools/manifest.py
 
 stale: ## Fail when the rendered JSON does not match the YAML

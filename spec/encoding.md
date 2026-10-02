@@ -17,6 +17,8 @@ A value is an object with a `type` key.
 | `list` | `items`, a list of typed literals | `[]any` |
 | `map` | `key`, `of`, `value` | `map[K]V` |
 | `map` | `entries`, a list of key and value literal pairs | `map[K]V` |
+| `record` | `fields`, a list of name and value literal pairs | The value `prop.OfShape` decodes |
+| `variant` | `name`, and `payload` when the variant has one | The value `prop.OfShape` decodes |
 
 `of` and `key` name a scalar type: `bool`, `int`, `float`, `string`.
 
@@ -45,6 +47,16 @@ JSON has no NaN or infinity. A `float` accepts the strings `NaN`,
 
 Both rules apply to the elements of a `value` list and to the values of
 a `value` map, as they apply to a scalar on its own.
+
+A `record` states its fields in declaration order, and names each field
+once. Two records are equal when their fields are equal, in order.
+Field order decides which choices a field consumes, so a `map`, whose
+entries compare in any order, cannot state a record.
+
+A `variant` is one variant of an enum. It states its `name`, and its
+`payload` literal when the variant has a payload. A variant without a
+payload states no `payload` key. A variant whose payload is optional
+and absent states a `null` payload, so the two differ.
 
 ## Options
 

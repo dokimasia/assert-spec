@@ -58,17 +58,18 @@ class Sizes:
         return draw.average_length(self.min_size, self.max_size)
 
 
-def more(case: Case, count: int, sizes: Sizes) -> bool:
+def more(case: Case, count: int, sizes: Sizes, *, stopped: bool = False) -> bool:
     """Return the case's decision whether a collection of count elements grows.
 
     The decision is an integer choice that decides structure, with the
-    bounds draw.flag_bounds states. The edge phase gives a collection one
-    element: its edge is 1 at count 0 and 0 after.
+    bounds draw.flag_bounds states. A stopped collection decides as one at
+    its maximum would: the bounds admit only 0. The edge phase gives a
+    collection one element: its edge is 1 at count 0 and 0 after.
     """
     lo, hi, average = sizes.min_size, sizes.max_size, sizes.average
     request = Request(
-        draw.flag_bounds(count, lo, hi),
-        lambda source: draw.flag(source, count, lo, hi, average),
+        draw.flag_bounds(count, lo, count if stopped else hi),
+        lambda source: draw.flag(source, count, lo, count if stopped else hi, average),
         edge=1 if count == 0 else 0,
     )
     return case.choose(request) == 1
@@ -79,6 +80,7 @@ def collect[T](
     sizes: Sizes,
     label: str,
     decode: Callable[[], tuple[T, object]],
+    stop: Callable[[], bool] | None = None,
 ) -> list[T]:
     """Decode a collection: per element a continue flag, then the element.
 
@@ -86,6 +88,10 @@ def collect[T](
     when the collection allows duplicates. An element whose key repeats an
     earlier key is discarded, and the next flag is decided for the same
     count. After MAX_DISCARDS discards in a row, the collection stops.
+
+    stop, when given, is asked before each flag that the minimum size does
+    not force. When it is true, the flag admits only 0, so the collection
+    takes no further element.
 
     Raises:
         Rejected: the collection stopped below its minimum size.
@@ -95,7 +101,8 @@ def collect[T](
     discards = 0
     while True:
         start = len(case.choices)
-        if not more(case, len(items), sizes):
+        stopped = stop is not None and len(items) >= sizes.min_size and stop()
+        if not more(case, len(items), sizes, stopped=stopped):
             return items
         with case.span(label, start):
             item, key = decode()

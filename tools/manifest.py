@@ -24,6 +24,7 @@ VENDORED = (
     "VERSION",
     "spec/assertions.json",
     "spec/naming.json",
+    "spec/zones.json",
     # The sync scripts are vendored with the definition and held to the
     # same digests, so that every implementation runs the same copy.
     "tools/spec-sync.sh",

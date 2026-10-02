@@ -1,0 +1,299 @@
+# Shapes: the values a seed produces from a shape. Each case states a shape
+# file, a seed and a number of cases, and pins each case's choices and
+# value, as generation vectors pin a generator's. A value is stated in the
+# form its shape decodes to, and the shape gives it its meaning: a set's
+# elements are a list in the order they were generated. Every shape has
+# two vectors. The seeds are 100 apart, because case i of seed s draws
+# from the source of seed s + i. `make render` writes the outputs.
+kind: shapes
+cases:
+  - id: bool/one-coin-each
+    shape: {shape: bool}
+    seed: "100"
+    count: 3
+  - id: bool/a-second-seed
+    shape: {shape: bool}
+    seed: "200"
+    count: 3
+
+  - id: int/a-signed-byte
+    shape: {shape: int, width: 8, signed: true}
+    seed: "300"
+    count: 3
+  - id: int/two-halves-of-a-128-bit-int
+    shape: {shape: int, width: 128, signed: true}
+    seed: "400"
+    count: 3
+
+  - id: float/a-finite-double
+    shape: {shape: float, width: 64}
+    seed: "500"
+    count: 3
+  - id: float/a-single-with-nan-and-the-infinities
+    shape: {shape: float, width: 32, allow_nan: true, allow_infinity: true}
+    seed: "600"
+    count: 3
+
+  - id: char/the-default-alphabet
+    shape: {shape: char}
+    seed: "700"
+    count: 3
+  - id: char/a-stated-alphabet
+    shape: {shape: char, alphabet: "xyz"}
+    seed: "800"
+    count: 3
+
+  - id: string/the-default-alphabet
+    shape: {shape: string, max_size: 5}
+    seed: "900"
+    count: 3
+  - id: string/a-pattern
+    shape: {shape: string, pattern: "[A-Z]{3}-[0-9]{2}"}
+    seed: "1000"
+    count: 3
+
+  - id: bytes/up-to-four
+    shape: {shape: bytes, max_size: 4}
+    seed: "1100"
+    count: 3
+  - id: bytes/exactly-two
+    shape: {shape: bytes, min_size: 2, max_size: 2}
+    seed: "1200"
+    count: 3
+
+  - id: list/up-to-four-bytes
+    shape: {shape: list, of: {shape: int, width: 8, signed: false}, max_size: 4}
+    seed: "1300"
+    count: 3
+  - id: list/at-least-two-bools
+    shape: {shape: list, of: {shape: bool}, min_size: 2, max_size: 4}
+    seed: "1400"
+    count: 3
+
+  - id: fixed-list/three-bytes
+    shape: {shape: fixed-list, of: {shape: int, width: 8, signed: false}, size: 3}
+    seed: "1500"
+    count: 3
+  - id: fixed-list/none
+    shape: {shape: fixed-list, of: {shape: bool}, size: 0}
+    seed: "1600"
+    count: 3
+
+  - id: set/signed-bytes
+    shape: {shape: set, of: {shape: int, width: 8, signed: true}, max_size: 4}
+    seed: "1700"
+    count: 3
+  - id: set/strings
+    shape: {shape: set, of: {shape: string, max_size: 2}, max_size: 3}
+    seed: "1800"
+    count: 3
+
+  - id: map/string-keys
+    shape: {shape: map, key: {shape: string, max_size: 2}, of: {shape: bool}, max_size: 3}
+    seed: "1900"
+    count: 3
+  - id: map/byte-keys-to-lists
+    shape:
+      shape: map
+      key: {shape: int, width: 8, signed: false}
+      of: {shape: list, of: {shape: bool}, max_size: 2}
+      max_size: 2
+    seed: "2000"
+    count: 3
+
+  - id: optional/a-byte
+    shape: {shape: optional, of: {shape: int, width: 8, signed: false}}
+    seed: "2100"
+    count: 3
+  - id: optional/a-string
+    shape: {shape: optional, of: {shape: string, max_size: 3}}
+    seed: "2200"
+    count: 3
+
+  - id: record/an-order
+    shape:
+      shape: record
+      fields:
+        - [id, {shape: int, width: 32, signed: false}]
+        - - lines
+          - shape: list
+            of:
+              shape: record
+              fields:
+                - [sku, {shape: string, max_size: 4}]
+                - [qty, {shape: int, width: 16, signed: true, min: 1, max: 99}]
+            max_size: 2
+        - [note, {shape: optional, of: {shape: string, max_size: 4}}]
+    seed: "2300"
+    count: 3
+  - id: record/a-pair
+    shape: {shape: record, fields: [[left, {shape: bool}], [right, {shape: char}]]}
+    seed: "2400"
+    count: 3
+
+  - id: enum/a-payment-state
+    shape:
+      shape: enum
+      variants:
+        - [pending, null]
+        - [paid, {shape: record, fields: [[amount, {shape: int, width: 64, signed: true}]]}]
+        - [refunded, {shape: string, max_size: 3}]
+    seed: "2500"
+    count: 3
+  - id: enum/variants-without-payloads
+    shape: {shape: enum, variants: [[north, null], [east, null], [south, null], [west, null]]}
+    seed: "2600"
+    count: 3
+
+  - id: literal/statuses
+    shape:
+      shape: literal
+      values:
+        - {type: string, value: pending}
+        - {type: string, value: paid}
+        - {type: string, value: shipped}
+    seed: "2700"
+    count: 3
+  - id: literal/values-of-three-types
+    shape:
+      shape: literal
+      values: [{type: int, value: 7}, {type: string, value: seven}, {type: "null"}]
+    seed: "2800"
+    count: 3
+
+  - id: ref/a-tree
+    shape:
+      shape: ref
+      name: tree
+      definitions:
+        tree:
+          shape: record
+          fields:
+            - [value, {shape: int, width: 8, signed: false}]
+            - [children, {shape: list, of: {shape: ref, name: tree}, max_size: 2}]
+    seed: "2900"
+    count: 3
+  - id: ref/a-linked-list
+    shape:
+      shape: ref
+      name: node
+      definitions:
+        node:
+          shape: record
+          fields:
+            - [value, {shape: bool}]
+            - [next, {shape: optional, of: {shape: ref, name: node}}]
+    seed: "3000"
+    count: 3
+
+  - id: uuid/sixteen-bytes
+    shape: {shape: uuid}
+    seed: "3100"
+    count: 3
+  - id: uuid/a-second-seed
+    shape: {shape: uuid}
+    seed: "3200"
+    count: 3
+
+  - id: ip-address/either-version
+    shape: {shape: ip-address}
+    seed: "3300"
+    count: 3
+  - id: ip-address/version-6
+    shape: {shape: ip-address, version: 6}
+    seed: "3400"
+    count: 3
+
+  - id: decimal/money
+    shape: {shape: decimal, scale: 2, min: "0.00", max: "100.00"}
+    seed: "3500"
+    count: 3
+  - id: decimal/unbounded-at-scale-4
+    shape: {shape: decimal, scale: 4}
+    seed: "3600"
+    count: 3
+
+  - id: instant/nanoseconds
+    shape: {shape: instant, unit: ns}
+    seed: "3700"
+    count: 3
+  - id: instant/milliseconds-in-2020
+    shape: {shape: instant, unit: ms, min: "2020-01-01T00:00:00Z", max: "2020-12-31T23:59:59.999Z"}
+    seed: "3800"
+    count: 3
+
+  - id: date/the-years-1-to-9999
+    shape: {shape: date}
+    seed: "3900"
+    count: 3
+  - id: date/one-year
+    shape: {shape: date, min: "2024-01-01", max: "2024-12-31"}
+    seed: "4000"
+    count: 3
+
+  - id: time-of-day/microseconds
+    shape: {shape: time-of-day, unit: us}
+    seed: "4100"
+    count: 3
+  - id: time-of-day/seconds-after-noon
+    shape: {shape: time-of-day, unit: s, min: "12:00:00"}
+    seed: "4200"
+    count: 3
+
+  - id: local-date-time/seconds
+    shape: {shape: local-date-time, unit: s}
+    seed: "4300"
+    count: 3
+  - id: local-date-time/milliseconds-on-one-day
+    shape:
+      shape: local-date-time
+      unit: ms
+      min: "2024-02-29T00:00:00"
+      max: "2024-02-29T23:59:59.999"
+    seed: "4400"
+    count: 3
+
+  - id: duration/nanoseconds
+    shape: {shape: duration, unit: ns}
+    seed: "4500"
+    count: 3
+  - id: duration/non-negative-seconds
+    shape: {shape: duration, unit: s, min: 0}
+    seed: "4600"
+    count: 3
+
+  - id: offset/eighteen-hours-either-way
+    shape: {shape: offset}
+    seed: "4700"
+    count: 3
+  - id: offset/one-hour-either-way
+    shape: {shape: offset, min: -3600, max: 3600}
+    seed: "4800"
+    count: 3
+
+  - id: zone/the-zone-list
+    shape: {shape: zone}
+    seed: "4900"
+    count: 3
+  - id: zone/a-second-seed
+    shape: {shape: zone}
+    seed: "5000"
+    count: 3
+
+  - id: zoned-date-time/nanoseconds
+    shape: {shape: zoned-date-time, unit: ns}
+    seed: "5100"
+    count: 8
+  - id: zoned-date-time/seconds
+    shape: {shape: zoned-date-time, unit: s}
+    seed: "5200"
+    count: 8
+
+  - id: wall-time/seconds
+    shape: {shape: wall-time, unit: s}
+    seed: "5300"
+    count: 8
+  - id: wall-time/milliseconds
+    shape: {shape: wall-time, unit: ms}
+    seed: "5400"
+    count: 8

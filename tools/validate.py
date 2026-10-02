@@ -11,10 +11,11 @@ reference, which needs nothing else, so a bare Python runs it.
 
 from __future__ import annotations
 
+import calendar
 import json
 import re
 import sys
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -23,6 +24,7 @@ from prop import literal
 from prop.coverage import Verdict
 from prop.generator import IDS
 from prop.runner import Kind
+from prop.shape import SHAPES
 from prop.store import Verdict as StoreVerdict
 from prop.vectors import KINDS
 
@@ -44,6 +46,8 @@ FORMS: dict[str, tuple[frozenset[str], ...]] = {
     "bytes": (frozenset({"value"}),),
     "list": (frozenset({"of", "value"}), frozenset({"items"})),
     "map": (frozenset({"key", "of", "value"}), frozenset({"entries"})),
+    "record": (frozenset({"fields"}),),
+    "variant": (frozenset({"name"}), frozenset({"name", "payload"})),
 }
 
 #: JSON has no NaN or infinity, so a float states them by these names.
@@ -63,6 +67,32 @@ GENERATOR_KINDS = frozenset({"decoding", "generation", "shrinking"})
 
 #: The outcomes a shrinking vector of each generator must include.
 SHRUNK_BOTH_WAYS = (Kind.COUNTEREXAMPLE.value, Kind.PASSED.value)
+
+#: The shape vectors each shape has.
+SHAPE_VECTORS = 2
+
+#: What the fixture types cover between them: every shape a native type
+#: reads as, and every row of the constraint table.
+FIXTURE_COVERS = (SHAPES - {"wall-time"}) | frozenset(
+    {
+        "min-max",
+        "sizes",
+        "pattern",
+        "alphabet",
+        "nan-and-infinity",
+        "unit",
+        "scale",
+        "version",
+    }
+)
+
+#: The ends the draws vectors reach between them: every draw matched, the
+#: entries ran out first, a label differed, and a value no choices produce.
+DRAWS_ENDS = ("matched", "ran-out", "label", "value")
+
+#: The form that no vector runs, because no case can state an allocation
+#: count.
+UNSTATED_FORMS = frozenset({"prop-max-allocs"})
 
 
 class Problems:
@@ -251,6 +281,154 @@ def check_naming(
                 f"package {package!r}"
                 if package
                 else f"{name!r} is qualified, but the assertion names no package",
+            )
+
+
+#: The start of a property form's id, and the assertion whose run every
+#: form is.
+FORM_PREFIX = "prop-"
+FOR_ALL = "prop-for-all"
+
+
+def _form_rule(spec: Any, problems: Problems) -> dict[str, tuple[str, list[Any]]]:
+    """Return each assertion the forms rule lists, with its kind and what it generates.
+
+    A form over a function generates input. A relation's form generates
+    the arguments the rule states for it. An assertion listed twice is a
+    problem, and its first listing counts.
+    """
+    rule = spec.get("forms")
+    where = "spec/assertions.json: forms"
+    if not problems.unless(isinstance(rule, dict), where, "is not a rule"):
+        return {}
+    functions = rule.get("functions")
+    relations = rule.get("relations")
+    if not problems.unless(
+        isinstance(functions, list) and isinstance(relations, dict),
+        where,
+        "needs a list of functions and a map of relations",
+    ):
+        return {}
+    stated: list[tuple[Any, str, Any]] = [(f, "function", ["input"]) for f in functions]
+    stated += [(r, "relation", g) for r, g in relations.items()]
+    listed: dict[str, tuple[str, list[Any]]] = {}
+    for of, kind, generates in stated:
+        if not problems.unless(of not in listed, where, f"lists {of!r} twice"):
+            continue
+        problems.unless(
+            isinstance(generates, list) and bool(generates),
+            where,
+            f"states that the form of {of!r} generates {generates!r}, not arguments",
+        )
+        listed[str(of)] = (kind, generates if isinstance(generates, list) else [])
+    return listed
+
+
+def check_forms(spec: Any, naming: Any, problems: Problems) -> None:
+    """Check every property form against the rules the two tables state.
+
+    The assertion table's rule lists the assertions that have a property
+    form, and the naming table's rule qualifies each form's name.
+    Rendering adds an entry and a name for each form, and this check reads
+    them back against the rules:
+
+    - Each listed assertion is defined, is not itself a form, and is not
+      prop-for-all, and its form's entry exists. Every entry with a form
+      is one the rule lists.
+    - A form's package is prop, its detail fields are prop-for-all's, and
+      its relaxations are its assertion's.
+    - A form over a function generates input and keeps its assertion's
+      arity, because the function takes the place of the value. A
+      relation's form generates the arguments the rule states, and its
+      arity is less by their number.
+    - A form's name in each qualified language is the qualifier followed
+      by its assertion's name, unless the naming rule states an exception
+      for that language.
+    """
+    listed = _form_rule(spec, problems)
+    _check_form_entries(spec.get("assertions", {}), listed, problems)
+    _check_form_names(naming, listed, problems)
+
+
+def _check_form_entries(
+    defined: Any, listed: dict[str, tuple[str, list[Any]]], problems: Problems
+) -> None:
+    """Check each listed form's entry, and that every entry with a form is listed."""
+    for_all = defined.get(FOR_ALL, {})
+    for of, (kind, generates) in sorted(listed.items()):
+        where = f"spec/assertions.json: {FORM_PREFIX}{of}"
+        base = defined.get(of)
+        if not problems.unless(
+            isinstance(base, dict) and "form" not in base and of != FOR_ALL,
+            where,
+            f"is the form of {of!r}, which is no assertion that can have a form",
+        ):
+            continue
+        entry = defined.get(FORM_PREFIX + of)
+        if not problems.unless(
+            isinstance(entry, dict), where, "is not defined, and the rule lists it"
+        ):
+            continue
+        removed = len(generates) if kind == "relation" else 0
+        arity = base.get("arity")
+        wanted = {
+            "arity": arity - removed if isinstance(arity, int) else None,
+            "package": "prop",
+            "detail_fields": for_all.get("detail_fields"),
+            "relaxations": base.get("relaxations") or [],
+            "form": {"of": of, "kind": kind, "generates": generates},
+        }
+        for key, want in wanted.items():
+            got = entry.get(key)
+            if key == "relaxations":
+                got = got or []
+            problems.unless(
+                got == want, where, f"states {key} {got!r}; the rule gives {want!r}"
+            )
+
+    for aid, entry in sorted(defined.items()):
+        form = entry.get("form") if isinstance(entry, dict) else None
+        if form is None:
+            continue
+        runs = form.get("of") if isinstance(form, dict) else None
+        problems.unless(
+            runs in listed and aid == f"{FORM_PREFIX}{runs}",
+            f"spec/assertions.json: {aid}",
+            "is a form that the rule does not list",
+        )
+
+
+def _check_form_names(
+    naming: Any, listed: dict[str, tuple[str, list[Any]]], problems: Problems
+) -> None:
+    """Check each listed form's names against the naming table's rule."""
+    rule = naming.get("forms")
+    if not problems.unless(
+        isinstance(rule, dict) and isinstance(rule.get("qualifiers"), dict),
+        "spec/naming.json: forms",
+        "states no qualifiers",
+    ):
+        return
+    qualifiers = rule["qualifiers"]
+    exceptions = rule.get("exceptions", {})
+    for of, per_language in sorted(exceptions.items()):
+        where = f"spec/naming.json: forms.exceptions.{of}"
+        problems.unless(of in listed, where, f"names a form of {of!r}, which has none")
+        for language in sorted(set(per_language) - set(qualifiers)):
+            problems.at(where, f"names {language}, which the rule does not qualify")
+
+    names = naming.get("names", {})
+    for of in sorted(listed):
+        stated = names.get(FORM_PREFIX + of, {})
+        for language, qualifier in sorted(qualifiers.items()):
+            want = exceptions.get(of, {}).get(language)
+            if want is None:
+                want = f"{qualifier}{names.get(of, {}).get(language)}"
+            got = stated.get(language)
+            problems.unless(
+                got == want,
+                f"spec/naming.json: {FORM_PREFIX}{of}.{language}",
+                f"is {got!r}; the rule gives {want!r}",
             )
 
 
@@ -504,19 +682,152 @@ def literals(node: Any, path: str = "") -> Iterator[tuple[str, Any]]:
             yield from literals(child, f"{path}[{index}]")
 
 
+@dataclass(frozen=True)
+class FormVocabulary:
+    """What a form vector may name.
+
+    runs maps each form's id to the assertion it runs, detail maps each
+    assertion to the detail fields it declares, and subjects is the
+    definition's subject kinds.
+    """
+
+    runs: dict[str, str]
+    detail: dict[str, set[str]]
+    subjects: set[str]
+
+    @property
+    def stated(self) -> frozenset[str]:
+        """Return the forms that vectors run."""
+        return frozenset(self.runs) - UNSTATED_FORMS
+
+
+def form_runs(spec: Any) -> dict[str, str]:
+    """Return the assertion each form runs, by the form's id."""
+    return {
+        aid: str(body["form"].get("of"))
+        for aid, body in spec.get("assertions", {}).items()
+        if isinstance(body, dict) and isinstance(body.get("form"), dict)
+    }
+
+
+def _prefixes(kind: str, forms: FormVocabulary) -> frozenset[str]:
+    """Return what the ids of one kind's vectors may begin with."""
+    if kind in GENERATOR_KINDS:
+        return IDS
+    if kind == "shapes":
+        return SHAPES
+    if kind == "inverse":
+        return SHAPES | IDS
+    if kind == "forms":
+        return forms.stated
+    return frozenset({kind})
+
+
+def _named(kind: str) -> str:
+    """Return what the ids of one kind's vectors name."""
+    if kind in GENERATOR_KINDS:
+        return "generator"
+    if kind == "shapes":
+        return "shape"
+    if kind == "inverse":
+        return "shape or generator"
+    if kind == "forms":
+        return "form a vector runs"
+    return f"{kind} vector"
+
+
+def _reached(kind: str, case: dict[str, Any]) -> str:
+    """Return what one vector reaches: an outcome, a verdict, an error or a cover.
+
+    An inverse vector reaches the kind of what it runs backwards, a shape
+    or a generator. A draws vector reaches its error's reason, or a match
+    of every draw, or a match whose entries run out first.
+    """
+    if kind == "inverse":
+        return "shape" if "shape" in case else "generator"
+    if kind == "fixtures":
+        return str(case.get("covers"))
+    if kind == "draws":
+        error = case.get("error")
+        if isinstance(error, dict):
+            return str(error.get("reason"))
+        short = len(case.get("entries", [])) < len(case.get("draws", []))
+        return "ran-out" if short else "matched"
+    detail = case.get("detail")
+    if isinstance(detail, dict):
+        return str(detail.get("outcome"))
+    return str(case.get("outcome") or case.get("verdict"))
+
+
+def _check_form_vector(
+    case: dict[str, Any],
+    prefix: str,
+    forms: FormVocabulary,
+    where: str,
+    problems: Problems,
+) -> None:
+    """Check a form vector's form, its subjects and its failure.
+
+    The vector runs the form that its id names, and names subject kinds of
+    the definition. A failure is the record of the form's assertion, and
+    states only detail fields that the assertion declares.
+    """
+    form = case.get("form")
+    problems.unless(
+        form == prefix, where, f"runs {form!r}, and its id names {prefix!r}"
+    )
+    subjects = case.get("subjects")
+    if not isinstance(subjects, list):
+        problems.at(where, "subjects is not a list")
+        subjects = []
+    for kind in subjects:
+        problems.unless(
+            isinstance(kind, str) and kind in forms.subjects,
+            where,
+            f"names subject kind {kind!r}, which the definition does not state",
+        )
+    detail = case.get("detail")
+    failure = detail.get("failure") if isinstance(detail, dict) else None
+    if not isinstance(failure, dict):
+        return
+    assertion = forms.runs.get(prefix)
+    problems.unless(
+        failure.get("assertion") == assertion,
+        where,
+        f"fails with the record of {failure.get('assertion')!r}, and "
+        f"{prefix} runs {assertion!r}",
+    )
+    stated = failure.get("detail")
+    for name in sorted(stated) if isinstance(stated, dict) else []:
+        problems.unless(
+            name in forms.detail.get(str(assertion), set()),
+            where,
+            f"states detail {name!r}, which {assertion} does not declare",
+        )
+
+
 def check_vector_cases(
-    kind: str, cases: list[Any], where: str, problems: Problems
+    kind: str,
+    cases: list[Any],
+    where: str,
+    forms: FormVocabulary,
+    problems: Problems,
 ) -> None:
     """Check one kind's vectors: their ids, their literals and what they cover.
 
     Every generator has decoding, generation and shrinking vectors, and a
     shrinking vector that fails and one that passes. The behaviour
     vectors end in every outcome, and the coverage and store vectors
-    reach every verdict of their kind.
+    reach every verdict of their kind. Every shape has two shape vectors,
+    every shape and every generator runs backwards in an inverse vector,
+    the fixture types cover every shape a type reads as and every row of
+    the constraint table, and the draws vectors reach every end. Every
+    form but those in UNSTATED_FORMS has a vector that fails and one that
+    passes.
     """
-    prefixes = IDS if kind in GENERATOR_KINDS else frozenset({kind})
+    prefixes = _prefixes(kind, forms)
     seen: set[str] = set()
-    found: dict[str, set[str]] = {}
+    found: dict[str, list[str]] = {}
     for case in cases:
         if not problems.unless(
             isinstance(case, dict), where, "a case is not an object"
@@ -534,50 +845,89 @@ def check_vector_cases(
         problems.unless(
             prefix in prefixes,
             where,
-            f"id {cid!r} begins with {prefix!r}, which names no "
-            + ("generator" if kind in GENERATOR_KINDS else f"{kind} vector"),
+            f"id {cid!r} begins with {prefix!r}, which names no {_named(kind)}",
         )
         for path, value in literals(case):
             check_literal(value, f"{where} [{cid}] {path}", problems)
-        detail = case.get("detail")
-        reached = case.get("outcome") or case.get("verdict")
-        if isinstance(detail, dict):
-            reached = detail.get("outcome")
-        found.setdefault(prefix, set()).add(str(reached))
+        if kind == "forms":
+            _check_form_vector(case, prefix, forms, f"{where} [{cid}]", problems)
+        found.setdefault(prefix, []).append(_reached(kind, case))
+    _check_vector_coverage(kind, found, forms, where, problems)
 
+
+def _both_ways(
+    names: Iterable[str],
+    found: dict[str, list[str]],
+    what: str,
+    where: str,
+    problems: Problems,
+) -> None:
+    """Check that each name has a vector that fails and one that passes."""
+    for name in sorted(names):
+        for outcome in SHRUNK_BOTH_WAYS:
+            problems.unless(
+                outcome in found.get(name, []),
+                where,
+                f"has no {name} vector whose outcome is {outcome!r}; {what} "
+                "both ways or the corpus proves nothing",
+            )
+
+
+def _check_vector_coverage(
+    kind: str,
+    found: dict[str, list[str]],
+    forms: FormVocabulary,
+    where: str,
+    problems: Problems,
+) -> None:
+    """Check that one kind's vectors cover what that kind must cover."""
     if kind in GENERATOR_KINDS:
         for gen in sorted(IDS - set(found)):
             problems.at(where, f"has no vector for generator {gen!r}")
     if kind == "shrinking":
-        for gen in sorted(IDS & set(found)):
-            for outcome in SHRUNK_BOTH_WAYS:
-                problems.unless(
-                    outcome in found[gen],
-                    where,
-                    f"has no {gen} vector whose outcome is {outcome!r}; a "
-                    "generator is shrunk both ways or the corpus proves nothing",
-                )
+        _both_ways(IDS & set(found), found, "a generator is shrunk", where, problems)
+    if kind == "forms":
+        _both_ways(forms.stated, found, "a form is run", where, problems)
+    if kind == "shapes":
+        for shape in sorted(SHAPES):
+            problems.unless(
+                len(found.get(shape, [])) >= SHAPE_VECTORS,
+                where,
+                f"has fewer than {SHAPE_VECTORS} vectors for shape {shape!r}",
+            )
+    if kind == "inverse":
+        for shape in sorted(SHAPES):
+            problems.unless(
+                "shape" in found.get(shape, []), where, f"runs no shape {shape!r} back"
+            )
+        for gen in sorted(IDS):
+            problems.unless(
+                "generator" in found.get(gen, []),
+                where,
+                f"runs no generator {gen!r} back",
+            )
     ends = {
         "behaviour": [k.value for k in Kind],
         "coverage": [v.value for v in Verdict],
         "store": [v.value for v in StoreVerdict],
+        "draws": list(DRAWS_ENDS),
+        "fixtures": sorted(FIXTURE_COVERS),
     }
+    what = "fixture that covers" if kind == "fixtures" else "vector that ends in"
     for end in ends.get(kind, []):
-        problems.unless(
-            end in found.get(kind, set()),
-            where,
-            f"has no vector that ends in {end!r}",
-        )
+        problems.unless(end in found.get(kind, []), where, f"has no {what} {end!r}")
 
 
-def check_vectors(problems: Problems) -> int:
+def check_vectors(forms: FormVocabulary, problems: Problems) -> int:
     """Check the property engine's vector files, and return the number of vectors.
 
     The outputs of each vector are the executable reference's. `make
     render` writes them from the YAML inputs, and the stale check fails
     when the reference computes other outputs. This check covers what the
     renderer copies from the YAML: each file's kind, the ids, the typed
-    literals, and that the vectors cover the vocabulary.
+    literals, the forms and subjects that form vectors name, and that the
+    vectors cover the vocabulary. It also reads each form vector's failure
+    against the definition.
     """
     folder = ROOT / "corpus" / "prop"
     files = {path.stem: path for path in sorted(folder.glob("*.json"))}
@@ -604,7 +954,7 @@ def check_vectors(problems: Problems) -> int:
         ):
             continue
         total += len(cases)
-        check_vector_cases(str(kind), cases, where, problems)
+        check_vector_cases(str(kind), cases, where, forms, problems)
     return total
 
 
@@ -676,6 +1026,107 @@ def check_relaxations(spec: Any, naming: Any, problems: Problems) -> Relaxations
         named=by_language,
         implementing=frozenset(implementing),
     )
+
+
+#: The largest offset from UTC a zone may state: 18 hours, in seconds.
+MAX_OFFSET = 64800
+
+#: A change of the zone table: its instant and the offsets before and after.
+CHANGE_PARTS = 3
+
+
+def check_zones(path: Path, problems: Problems) -> int:
+    """Check the zone list and its offset changes, and return the number of changes.
+
+    The list names each zone once, and starts with UTC, which has no
+    change. Each change states the first second of a new offset, in
+    seconds since the epoch, the offset before it and the offset after
+    it, in seconds east of UTC.
+    """
+    where = str(path.relative_to(ROOT))
+    document = _load(path, problems)
+    if document is None:
+        return 0
+    release = document.get("release")
+    problems.unless(
+        isinstance(release, str) and bool(release), where, "names no tzdata release"
+    )
+    first, until = document.get("from"), document.get("until")
+    if not problems.unless(
+        isinstance(first, int) and isinstance(until, int) and first < until,
+        where,
+        f"states the years {first!r} to {until!r}",
+    ):
+        return 0
+    zones = document.get("zones")
+    if not problems.unless(
+        isinstance(zones, list) and bool(zones), where, "lists no zones"
+    ):
+        return 0
+    names = [zone.get("name") if isinstance(zone, dict) else None for zone in zones]
+    problems.unless(
+        names[0] == "UTC",
+        where,
+        f"lists {names[0]!r} first, and the list starts with UTC",
+    )
+    problems.unless(len(set(names)) == len(names), where, "lists a zone twice")
+    bounds = (
+        calendar.timegm((first, 1, 1, 0, 0, 0)),
+        calendar.timegm((until, 1, 1, 0, 0, 0)),
+    )
+    return sum(_check_zone(zone, bounds, where, problems) for zone in zones)
+
+
+def _check_zone(
+    zone: Any, bounds: tuple[int, int], where: str, problems: Problems
+) -> int:
+    """Check one zone's changes, and return how many it states.
+
+    The changes are in time order inside the table's years, each changes
+    the offset by no more than MAX_OFFSET either side, and each starts
+    from the offset the change before it left.
+    """
+    name = zone.get("name") if isinstance(zone, dict) else None
+    changes = zone.get("changes") if isinstance(zone, dict) else None
+    here = f"{where}: {name}"
+    if not problems.unless(
+        isinstance(name, str) and isinstance(changes, list), here, "states no changes"
+    ):
+        return 0
+    assert isinstance(changes, list)
+    problems.unless(name != "UTC" or not changes, here, "changes, and UTC has none")
+    last: tuple[int, int] | None = None
+    for index, change in enumerate(changes):
+        if not problems.unless(
+            isinstance(change, list)
+            and len(change) == CHANGE_PARTS
+            and all(isinstance(p, int) and not isinstance(p, bool) for p in change),
+            here,
+            f"change {index} is {change!r}, not an instant and two offsets",
+        ):
+            continue
+        at, before, after = change
+        problems.unless(
+            bounds[0] <= at < bounds[1], here, f"change {index} is outside the years"
+        )
+        problems.unless(
+            all(-MAX_OFFSET <= o <= MAX_OFFSET for o in (before, after)),
+            here,
+            f"change {index} states an offset beyond 18 hours",
+        )
+        problems.unless(before != after, here, f"change {index} keeps its offset")
+        if last is not None:
+            problems.unless(
+                at > last[0], here, f"change {index} is not after the change before it"
+            )
+            problems.unless(
+                before == last[1],
+                here,
+                f"change {index} starts from {before}, and the change before it "
+                f"left {last[1]}",
+            )
+        last = (at, after)
+    return len(changes)
 
 
 SURFACE_SECTIONS = ("types", "members", "helpers")
@@ -976,13 +1427,18 @@ def main() -> int:
     assertions = check_assertions(spec, problems)
     relaxations = check_relaxations(spec, naming, problems)
     check_naming(naming, spec, set(assertions), problems)
+    check_forms(spec, naming, problems)
     accepted = {
         aid: set(body.get("relaxations", []) or [])
         for aid, body in spec.get("assertions", {}).items()
         if isinstance(body, dict)
     }
-    cases = check_corpus(assertions, check_subjects(spec, problems), accepted, problems)
-    vectors = check_vectors(problems)
+    subjects = check_subjects(spec, problems)
+    cases = check_corpus(assertions, subjects, accepted, problems)
+    vectors = check_vectors(
+        FormVocabulary(form_runs(spec), assertions, subjects), problems
+    )
+    changes = check_zones(ROOT / "spec" / "zones.json", problems)
     check_surface(naming, set(naming.get("languages", [])), problems)
     check_overlays(
         set(assertions),
@@ -1000,7 +1456,8 @@ def main() -> int:
     if status == 0:
         print(
             f"spec {version}: {len(assertions)} assertions, "
-            f"{cases} corpus cases, {vectors} vectors, all consistent"
+            f"{cases} corpus cases, {vectors} vectors, "
+            f"{changes} offset changes, all consistent"
         )
     return status
 

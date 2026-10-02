@@ -16,7 +16,7 @@ LANG=${2:-}
 REF=${SPEC_REF:-main}
 RAW="https://raw.githubusercontent.com/dokimasia/assert-spec/$REF"
 
-FILES="VERSION spec/assertions.json spec/naming.json spec/manifest.json"
+FILES="VERSION spec/assertions.json spec/naming.json spec/zones.json spec/manifest.json"
 
 fetch() {
     # $1 repository-relative path, $2 the destination file

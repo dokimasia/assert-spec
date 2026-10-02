@@ -3,7 +3,7 @@
 # A qualified name names a member of the subpackage the assertion table
 # gives it. The separator is the language's own: a dot in Go, Java,
 # Kotlin, Python and TypeScript, two colons in Rust.
-version: "2.1.0"
+version: "2.2.0"
 
 languages: [go, java, kotlin, php, python, rust, typescript]
 
@@ -1034,3 +1034,87 @@ surface:
       typescript: "prop.fuzz"
       java: "Prop.fuzz"
       kotlin: "Prop.fuzz"
+    "prop.of":
+      go: "prop.Of"
+      python: "prop.of"
+      rust: "prop::of"
+      typescript: "prop.of"
+      java: "Prop.of"
+      kotlin: "Prop.of"
+    "prop.register":
+      go: "prop.Register"
+      python: "prop.register"
+      rust: "prop::register"
+      typescript: "prop.register"
+      java: "Prop.register"
+      kotlin: "Prop.register"
+    "prop.register-values":
+      go: "prop.RegisterValues"
+      python: "prop.register_values"
+      rust: "prop::register_values"
+      typescript: "prop.registerValues"
+      java: "Prop.registerValues"
+      kotlin: "Prop.registerValues"
+    "prop.register-variants":
+      go: "prop.RegisterVariants"
+      python: "prop.register_variants"
+      rust: "prop::register_variants"
+      typescript: "prop.registerVariants"
+      java: "Prop.registerVariants"
+      kotlin: "Prop.registerVariants"
+    "prop.using":
+      go: "prop.Using"
+      python: "prop.using"
+      rust: "prop::using"
+      typescript: "prop.using"
+      java: "Prop.using"
+      kotlin: "Prop.using"
+    "prop.example":
+      go: "prop.Example"
+      python: "prop.example"
+      rust: "prop::example"
+      typescript: "prop.example"
+      java: "Prop.example"
+      kotlin: "Prop.example"
+    "prop.draws":
+      go: "prop.Draws"
+      python: "prop.draws"
+      rust: "prop::draws"
+      typescript: "prop.draws"
+      java: "Prop.draws"
+      kotlin: "Prop.draws"
+    "prop.shape-of":
+      go: "prop.ShapeOf"
+      python: "prop.shape_of"
+      rust: "prop::shape_of"
+      typescript: "prop.shapeOf"
+      java: "Prop.shapeOf"
+      kotlin: "Prop.shapeOf"
+    "prop.of-shape":
+      go: "prop.OfShape"
+      python: "prop.of_shape"
+      rust: "prop::of_shape"
+      typescript: "prop.ofShape"
+      java: "Prop.ofShape"
+      kotlin: "Prop.ofShape"
+
+# The property form of an assertion takes the assertion's name in the prop
+# package. Rendering adds one name for each form that the assertion table
+# states, under the form's id: the language's qualifier below, followed by
+# the assertion's name.
+#
+# Go's prop package already declares prop.Permutation, the generator of
+# permutations, and a Go package cannot declare one name twice. Go names
+# the form of permutation IsPermutation, as the other languages name the
+# assertion itself.
+forms:
+  qualifiers:
+    go: "prop."
+    python: "prop."
+    rust: "prop::"
+    typescript: "prop."
+    java: "Prop."
+    kotlin: "Prop."
+  exceptions:
+    "permutation":
+      go: "prop.IsPermutation"

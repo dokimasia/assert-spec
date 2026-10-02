@@ -425,6 +425,389 @@
             ],
             "summary": "After a failure is induced, 32 readings each report a failure. index is the position of the first reading that does not, and got what it returned.\n"
         },
+        "prop-accumulates": {
+            "arity": 3,
+            "detail_fields": [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage"
+            ],
+            "form": {
+                "generates": [
+                    "input"
+                ],
+                "kind": "relation",
+                "of": "accumulates"
+            },
+            "package": "prop",
+            "summary": "The property form of accumulates. Each case of a run generates the input, and accumulates runs on it as prop-for-all runs a body.\n"
+        },
+        "prop-associative": {
+            "arity": 2,
+            "detail_fields": [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage"
+            ],
+            "form": {
+                "generates": [
+                    "a",
+                    "b",
+                    "c"
+                ],
+                "kind": "relation",
+                "of": "associative"
+            },
+            "package": "prop",
+            "relaxations": [
+                "equate-empty",
+                "equate-nans"
+            ],
+            "summary": "The property form of associative. Each case of a run generates a, b and c, and associative runs on them as prop-for-all runs a body.\n"
+        },
+        "prop-close-to": {
+            "arity": 4,
+            "detail_fields": [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage"
+            ],
+            "form": {
+                "generates": [
+                    "input"
+                ],
+                "kind": "function",
+                "of": "close-to"
+            },
+            "package": "prop",
+            "summary": "The property form of close-to. Each case of a run generates the input, and close-to runs on it as prop-for-all runs a body.\n"
+        },
+        "prop-commutative": {
+            "arity": 2,
+            "detail_fields": [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage"
+            ],
+            "form": {
+                "generates": [
+                    "a",
+                    "b"
+                ],
+                "kind": "relation",
+                "of": "commutative"
+            },
+            "package": "prop",
+            "relaxations": [
+                "equate-empty",
+                "equate-nans"
+            ],
+            "summary": "The property form of commutative. Each case of a run generates a and b, and commutative runs on them as prop-for-all runs a body.\n"
+        },
+        "prop-contains": {
+            "arity": 3,
+            "detail_fields": [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage"
+            ],
+            "form": {
+                "generates": [
+                    "input"
+                ],
+                "kind": "function",
+                "of": "contains"
+            },
+            "package": "prop",
+            "relaxations": [
+                "equate-empty",
+                "equate-nans"
+            ],
+            "summary": "The property form of contains. Each case of a run generates the input, and contains runs on it as prop-for-all runs a body.\n"
+        },
+        "prop-contains-in-order": {
+            "arity": 3,
+            "detail_fields": [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage"
+            ],
+            "form": {
+                "generates": [
+                    "input"
+                ],
+                "kind": "function",
+                "of": "contains-in-order"
+            },
+            "package": "prop",
+            "summary": "The property form of contains-in-order. Each case of a run generates the input, and contains-in-order runs on it as prop-for-all runs a body.\n"
+        },
+        "prop-deterministic": {
+            "arity": 2,
+            "detail_fields": [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage"
+            ],
+            "form": {
+                "generates": [
+                    "input"
+                ],
+                "kind": "relation",
+                "of": "deterministic"
+            },
+            "package": "prop",
+            "relaxations": [
+                "equate-empty",
+                "equate-nans"
+            ],
+            "summary": "The property form of deterministic. Each case of a run generates the input, and deterministic runs on it as prop-for-all runs a body.\n"
+        },
+        "prop-empty": {
+            "arity": 2,
+            "detail_fields": [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage"
+            ],
+            "form": {
+                "generates": [
+                    "input"
+                ],
+                "kind": "function",
+                "of": "empty"
+            },
+            "package": "prop",
+            "summary": "The property form of empty. Each case of a run generates the input, and empty runs on it as prop-for-all runs a body.\n"
+        },
+        "prop-equal": {
+            "arity": 3,
+            "detail_fields": [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage"
+            ],
+            "form": {
+                "generates": [
+                    "input"
+                ],
+                "kind": "function",
+                "of": "equal"
+            },
+            "package": "prop",
+            "relaxations": [
+                "equate-empty",
+                "equate-nans"
+            ],
+            "summary": "The property form of equal. Each case of a run generates the input, and equal runs on it as prop-for-all runs a body.\n"
+        },
+        "prop-err-absent": {
+            "arity": 2,
+            "detail_fields": [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage"
+            ],
+            "form": {
+                "generates": [
+                    "input"
+                ],
+                "kind": "function",
+                "of": "err-absent"
+            },
+            "package": "prop",
+            "summary": "The property form of err-absent. Each case of a run generates the input, and err-absent runs on it as prop-for-all runs a body.\n"
+        },
+        "prop-err-as": {
+            "arity": 3,
+            "detail_fields": [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage"
+            ],
+            "form": {
+                "generates": [
+                    "input"
+                ],
+                "kind": "function",
+                "of": "err-as"
+            },
+            "package": "prop",
+            "summary": "The property form of err-as. Each case of a run generates the input, and err-as runs on it as prop-for-all runs a body.\n"
+        },
+        "prop-err-is": {
+            "arity": 3,
+            "detail_fields": [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage"
+            ],
+            "form": {
+                "generates": [
+                    "input"
+                ],
+                "kind": "function",
+                "of": "err-is"
+            },
+            "package": "prop",
+            "summary": "The property form of err-is. Each case of a run generates the input, and err-is runs on it as prop-for-all runs a body.\n"
+        },
+        "prop-err-is-not": {
+            "arity": 3,
+            "detail_fields": [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage"
+            ],
+            "form": {
+                "generates": [
+                    "input"
+                ],
+                "kind": "function",
+                "of": "err-is-not"
+            },
+            "package": "prop",
+            "summary": "The property form of err-is-not. Each case of a run generates the input, and err-is-not runs on it as prop-for-all runs a body.\n"
+        },
+        "prop-err-present": {
+            "arity": 2,
+            "detail_fields": [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage"
+            ],
+            "form": {
+                "generates": [
+                    "input"
+                ],
+                "kind": "function",
+                "of": "err-present"
+            },
+            "package": "prop",
+            "summary": "The property form of err-present. Each case of a run generates the input, and err-present runs on it as prop-for-all runs a body.\n"
+        },
+        "prop-false": {
+            "arity": 2,
+            "detail_fields": [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage"
+            ],
+            "form": {
+                "generates": [
+                    "input"
+                ],
+                "kind": "function",
+                "of": "false"
+            },
+            "package": "prop",
+            "summary": "The property form of false. Each case of a run generates the input, and false runs on it as prop-for-all runs a body.\n"
+        },
         "prop-for-all": {
             "arity": 2,
             "detail_fields": [
@@ -441,6 +824,586 @@
             ],
             "package": "prop",
             "summary": "A body passes for every input a run generates. A run replays the stored failures, tries the simplest input and the boundary inputs, then generates inputs it has not tested until it has run the stated number of cases or tested every input. A fixed sequence of passes shrinks a failing case towards the smallest case that fails the same way.\n"
+        },
+        "prop-has-prefix": {
+            "arity": 3,
+            "detail_fields": [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage"
+            ],
+            "form": {
+                "generates": [
+                    "input"
+                ],
+                "kind": "function",
+                "of": "has-prefix"
+            },
+            "package": "prop",
+            "summary": "The property form of has-prefix. Each case of a run generates the input, and has-prefix runs on it as prop-for-all runs a body.\n"
+        },
+        "prop-has-suffix": {
+            "arity": 3,
+            "detail_fields": [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage"
+            ],
+            "form": {
+                "generates": [
+                    "input"
+                ],
+                "kind": "function",
+                "of": "has-suffix"
+            },
+            "package": "prop",
+            "summary": "The property form of has-suffix. Each case of a run generates the input, and has-suffix runs on it as prop-for-all runs a body.\n"
+        },
+        "prop-honours-cancellation": {
+            "arity": 2,
+            "detail_fields": [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage"
+            ],
+            "form": {
+                "generates": [
+                    "input"
+                ],
+                "kind": "function",
+                "of": "honours-cancellation"
+            },
+            "package": "prop",
+            "summary": "The property form of honours-cancellation. Each case of a run generates the input, and honours-cancellation runs on it as prop-for-all runs a body.\n"
+        },
+        "prop-honours-deadline": {
+            "arity": 2,
+            "detail_fields": [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage"
+            ],
+            "form": {
+                "generates": [
+                    "input"
+                ],
+                "kind": "function",
+                "of": "honours-deadline"
+            },
+            "package": "prop",
+            "summary": "The property form of honours-deadline. Each case of a run generates the input, and honours-deadline runs on it as prop-for-all runs a body.\n"
+        },
+        "prop-idempotent": {
+            "arity": 3,
+            "detail_fields": [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage"
+            ],
+            "form": {
+                "generates": [
+                    "input"
+                ],
+                "kind": "relation",
+                "of": "idempotent"
+            },
+            "package": "prop",
+            "relaxations": [
+                "equate-empty",
+                "equate-nans"
+            ],
+            "summary": "The property form of idempotent. Each case of a run generates the input, and idempotent runs on it as prop-for-all runs a body.\n"
+        },
+        "prop-in-range": {
+            "arity": 4,
+            "detail_fields": [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage"
+            ],
+            "form": {
+                "generates": [
+                    "input"
+                ],
+                "kind": "function",
+                "of": "in-range"
+            },
+            "package": "prop",
+            "summary": "The property form of in-range. Each case of a run generates the input, and in-range runs on it as prop-for-all runs a body.\n"
+        },
+        "prop-length": {
+            "arity": 3,
+            "detail_fields": [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage"
+            ],
+            "form": {
+                "generates": [
+                    "input"
+                ],
+                "kind": "function",
+                "of": "length"
+            },
+            "package": "prop",
+            "summary": "The property form of length. Each case of a run generates the input, and length runs on it as prop-for-all runs a body.\n"
+        },
+        "prop-matches": {
+            "arity": 3,
+            "detail_fields": [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage"
+            ],
+            "form": {
+                "generates": [
+                    "input"
+                ],
+                "kind": "function",
+                "of": "matches"
+            },
+            "package": "prop",
+            "summary": "The property form of matches. Each case of a run generates the input, and matches runs on it as prop-for-all runs a body.\n"
+        },
+        "prop-max-allocs": {
+            "arity": 3,
+            "detail_fields": [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage"
+            ],
+            "form": {
+                "generates": [
+                    "input"
+                ],
+                "kind": "function",
+                "of": "max-allocs"
+            },
+            "package": "prop",
+            "summary": "The property form of max-allocs. Each case of a run generates the input, and max-allocs runs on it as prop-for-all runs a body.\n"
+        },
+        "prop-nil": {
+            "arity": 2,
+            "detail_fields": [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage"
+            ],
+            "form": {
+                "generates": [
+                    "input"
+                ],
+                "kind": "function",
+                "of": "nil"
+            },
+            "package": "prop",
+            "summary": "The property form of nil. Each case of a run generates the input, and nil runs on it as prop-for-all runs a body.\n"
+        },
+        "prop-nil-context-safe": {
+            "arity": 2,
+            "detail_fields": [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage"
+            ],
+            "form": {
+                "generates": [
+                    "input"
+                ],
+                "kind": "function",
+                "of": "nil-context-safe"
+            },
+            "package": "prop",
+            "summary": "The property form of nil-context-safe. Each case of a run generates the input, and nil-context-safe runs on it as prop-for-all runs a body.\n"
+        },
+        "prop-not-contains": {
+            "arity": 3,
+            "detail_fields": [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage"
+            ],
+            "form": {
+                "generates": [
+                    "input"
+                ],
+                "kind": "function",
+                "of": "not-contains"
+            },
+            "package": "prop",
+            "relaxations": [
+                "equate-empty",
+                "equate-nans"
+            ],
+            "summary": "The property form of not-contains. Each case of a run generates the input, and not-contains runs on it as prop-for-all runs a body.\n"
+        },
+        "prop-not-empty": {
+            "arity": 2,
+            "detail_fields": [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage"
+            ],
+            "form": {
+                "generates": [
+                    "input"
+                ],
+                "kind": "function",
+                "of": "not-empty"
+            },
+            "package": "prop",
+            "summary": "The property form of not-empty. Each case of a run generates the input, and not-empty runs on it as prop-for-all runs a body.\n"
+        },
+        "prop-not-equal": {
+            "arity": 3,
+            "detail_fields": [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage"
+            ],
+            "form": {
+                "generates": [
+                    "input"
+                ],
+                "kind": "function",
+                "of": "not-equal"
+            },
+            "package": "prop",
+            "relaxations": [
+                "equate-empty",
+                "equate-nans"
+            ],
+            "summary": "The property form of not-equal. Each case of a run generates the input, and not-equal runs on it as prop-for-all runs a body.\n"
+        },
+        "prop-not-nil": {
+            "arity": 2,
+            "detail_fields": [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage"
+            ],
+            "form": {
+                "generates": [
+                    "input"
+                ],
+                "kind": "function",
+                "of": "not-nil"
+            },
+            "package": "prop",
+            "summary": "The property form of not-nil. Each case of a run generates the input, and not-nil runs on it as prop-for-all runs a body.\n"
+        },
+        "prop-not-pure": {
+            "arity": 3,
+            "detail_fields": [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage"
+            ],
+            "form": {
+                "generates": [
+                    "input"
+                ],
+                "kind": "function",
+                "of": "not-pure"
+            },
+            "package": "prop",
+            "relaxations": [
+                "equate-empty",
+                "equate-nans"
+            ],
+            "summary": "The property form of not-pure. Each case of a run generates the input, and not-pure runs on it as prop-for-all runs a body.\n"
+        },
+        "prop-not-throws": {
+            "arity": 2,
+            "detail_fields": [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage"
+            ],
+            "form": {
+                "generates": [
+                    "input"
+                ],
+                "kind": "function",
+                "of": "not-throws"
+            },
+            "package": "prop",
+            "summary": "The property form of not-throws. Each case of a run generates the input, and not-throws runs on it as prop-for-all runs a body.\n"
+        },
+        "prop-pairwise": {
+            "arity": 3,
+            "detail_fields": [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage"
+            ],
+            "form": {
+                "generates": [
+                    "input"
+                ],
+                "kind": "function",
+                "of": "pairwise"
+            },
+            "package": "prop",
+            "summary": "The property form of pairwise. Each case of a run generates the input, and pairwise runs on it as prop-for-all runs a body.\n"
+        },
+        "prop-permutation": {
+            "arity": 3,
+            "detail_fields": [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage"
+            ],
+            "form": {
+                "generates": [
+                    "input"
+                ],
+                "kind": "function",
+                "of": "permutation"
+            },
+            "package": "prop",
+            "relaxations": [
+                "equate-empty",
+                "equate-nans"
+            ],
+            "summary": "The property form of permutation. Each case of a run generates the input, and permutation runs on it as prop-for-all runs a body.\n"
+        },
+        "prop-pure": {
+            "arity": 3,
+            "detail_fields": [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage"
+            ],
+            "form": {
+                "generates": [
+                    "input"
+                ],
+                "kind": "function",
+                "of": "pure"
+            },
+            "package": "prop",
+            "relaxations": [
+                "equate-empty",
+                "equate-nans"
+            ],
+            "summary": "The property form of pure. Each case of a run generates the input, and pure runs on it as prop-for-all runs a body.\n"
+        },
+        "prop-round-trip": {
+            "arity": 3,
+            "detail_fields": [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage"
+            ],
+            "form": {
+                "generates": [
+                    "input"
+                ],
+                "kind": "relation",
+                "of": "round-trip"
+            },
+            "package": "prop",
+            "relaxations": [
+                "equate-empty",
+                "equate-nans"
+            ],
+            "summary": "The property form of round-trip. Each case of a run generates the input, and round-trip runs on it as prop-for-all runs a body.\n"
+        },
+        "prop-throws": {
+            "arity": 2,
+            "detail_fields": [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage"
+            ],
+            "form": {
+                "generates": [
+                    "input"
+                ],
+                "kind": "function",
+                "of": "throws"
+            },
+            "package": "prop",
+            "summary": "The property form of throws. Each case of a run generates the input, and throws runs on it as prop-for-all runs a body.\n"
+        },
+        "prop-true": {
+            "arity": 2,
+            "detail_fields": [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage"
+            ],
+            "form": {
+                "generates": [
+                    "input"
+                ],
+                "kind": "function",
+                "of": "true"
+            },
+            "package": "prop",
+            "summary": "The property form of true. Each case of a run generates the input, and true runs on it as prop-for-all runs a body.\n"
         },
         "pure": {
             "arity": 3,
@@ -502,6 +1465,65 @@
             "summary": "The condition holds. The failure carries the caller's message alone.\n"
         }
     },
+    "forms": {
+        "functions": [
+            "equal",
+            "not-equal",
+            "true",
+            "false",
+            "nil",
+            "not-nil",
+            "length",
+            "empty",
+            "not-empty",
+            "contains",
+            "not-contains",
+            "contains-in-order",
+            "permutation",
+            "has-prefix",
+            "has-suffix",
+            "matches",
+            "close-to",
+            "in-range",
+            "pairwise",
+            "err-absent",
+            "err-present",
+            "err-is",
+            "err-is-not",
+            "err-as",
+            "throws",
+            "not-throws",
+            "pure",
+            "not-pure",
+            "nil-context-safe",
+            "honours-cancellation",
+            "honours-deadline",
+            "max-allocs"
+        ],
+        "relations": {
+            "accumulates": [
+                "input"
+            ],
+            "associative": [
+                "a",
+                "b",
+                "c"
+            ],
+            "commutative": [
+                "a",
+                "b"
+            ],
+            "deterministic": [
+                "input"
+            ],
+            "idempotent": [
+                "input"
+            ],
+            "round-trip": [
+                "input"
+            ]
+        }
+    },
     "relaxations": {
         "equate-empty": {
             "summary": "An absent container equals an empty one of the same type. Without it a null map and an empty map are different values, which is what the standard states by default.\n"
@@ -517,20 +1539,35 @@
         "adds": {
             "summary": "Combines two integers by adding them. Its inputs are 2, 3 and 5, as a, b and c.\n"
         },
+        "ascending": {
+            "summary": "A predicate over two integers, true when the first is not greater than the second.\n"
+        },
         "counts-calls": {
             "summary": "Returns the number of times it has been called, starting at 1, whatever its input. Its input is 1.\n"
         },
         "dereferences-handle": {
             "summary": "Reads a handle without checking it is there, so a missing one crashes it.\n"
         },
+        "drops-the-first": {
+            "summary": "Returns its list without the first element. An empty list stays empty.\n"
+        },
         "drops-the-sign": {
             "summary": "Renders the absolute value of an integer as decimal text, and parses decimal text back into the integer. Its input is -42.\n"
+        },
+        "fails-on-negative": {
+            "summary": "Returns a failure of its own for a negative integer input, and success otherwise.\n"
         },
         "fails-otherwise": {
             "summary": "Returns a failure of its own, unrelated to any handle it was given. As the subject of total, its domain is 1, 2 and 3.\n"
         },
+        "identity": {
+            "summary": "Returns its input.\n"
+        },
         "ignores-handle": {
             "summary": "Answers success without reading the handle at all.\n"
+        },
+        "is-non-negative": {
+            "summary": "Returns whether its integer input is 0 or more.\n"
         },
         "leaves-state-alone": {
             "summary": "Reads the observed state and changes nothing.\n"
@@ -538,8 +1575,14 @@
         "never-settles": {
             "summary": "Reports a failure on every attempt. As the subject of poisoned, inducing changes nothing, and every reading reports the failure.\n"
         },
+        "prepends-zero": {
+            "summary": "Returns its list of integers with 0 before the first element.\n"
+        },
         "raises": {
             "summary": "Raises rather than answering.\n"
+        },
+        "raises-on-negative": {
+            "summary": "Raises for a negative integer input, and returns otherwise.\n"
         },
         "reads-handle": {
             "summary": "Reads the cancellation handle and answers the reason it gives, or success when the handle is absent or still running.\n"
@@ -552,6 +1595,9 @@
         },
         "repeats-an-element": {
             "summary": "Yields 1, 2, 2 and 3.\n"
+        },
+        "returns-null": {
+            "summary": "Returns null, whatever its input.\n"
         },
         "returns-ok": {
             "summary": "Does the work and returns success, whatever it was handed. As the subject of a member, it returns its input, 1, and its domain is 1, 2 and 3.\n"
@@ -568,15 +1614,21 @@
         "settles-after": {
             "summary": "Reports a failure twice and succeeds on the third attempt. As the subject of poisoned, inducing changes nothing, and the third reading succeeds.\n"
         },
+        "sorts": {
+            "summary": "Returns its list of integers in ascending order.\n"
+        },
         "subtracts": {
             "summary": "Combines two integers by subtracting the second from the first. Its inputs are 2, 3 and 5, as a, b and c.\n"
         },
         "wraps-around": {
             "summary": "A counter that starts at 0, rises by one per advance and returns to 0 after 3. It advances 5 steps.\n"
         },
+        "wraps-in-a-and-b": {
+            "summary": "Returns its text with a before it and b after it.\n"
+        },
         "yields-in-order": {
             "summary": "Yields the integers 1 to 5 in order, on every iteration.\n"
         }
     },
-    "version": "2.1.0"
+    "version": "2.2.0"
 }

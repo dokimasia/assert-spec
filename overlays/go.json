@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@2.1.0",
+  "extends": "spec://assertions@2.2.0",
   "language": "go",
   "diverge": [],
   "limits": [
@@ -17,6 +17,16 @@
       "id": "bench-max-bytes",
       "what": "Checks the ceiling in an ordinary build. In the builds the max-allocs entry names, the contract publishes the bytes and does not check the ceiling.",
       "why": "Those builds allocate differently from the one that ships, as the max-allocs entry states, so the bytes from such a build do not describe the code."
+    },
+    {
+      "id": "prop-max-allocs",
+      "what": "Checks the ceiling for each generated input in an ordinary build. In the builds the max-allocs entry names, it calls the callable for each input and checks no ceiling.",
+      "why": "The form runs max-allocs on each input, and those builds allocate differently from the one that ships, as the max-allocs entry states."
+    },
+    {
+      "id": "prop.of",
+      "what": "Reads int and uint as 64-bit integers on a 64-bit platform and as 32-bit integers on a 32-bit platform, so one test generates other values on each. ShapeOf writes the width the platform reads.",
+      "why": "The width of a Go int and uint is the platform's word, and a shape states the width of the type it reads."
     }
   ],
   "surface": [

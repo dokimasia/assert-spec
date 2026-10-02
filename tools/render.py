@@ -6,7 +6,9 @@ language parses JSON with its standard library, and several have no YAML
 parser there, so the JSON is the published form.
 
 The tables are sorted and indented by four, so a diff shows only the keys
-an editor changed.
+an editor changed. Rendering adds an entry to each table for every
+property form, by the rule the tables state. The rule stays in the
+published tables, so the validator can check each entry against it.
 
 The property engine's vectors are authored as inputs only, in
 corpus/prop/<kind>.yaml. Each rendered case is its inputs followed by the
@@ -18,8 +20,10 @@ from __future__ import annotations
 
 import json
 import sys
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Final
 
 import yaml
 
@@ -33,9 +37,36 @@ TABLES = ("assertions", "naming")
 #: Where the property engine's vectors are authored and rendered.
 VECTORS = ROOT / "corpus" / "prop"
 
+#: The assertion whose run every property form is, and the start of each
+#: form's id.
+FOR_ALL: Final = "prop-for-all"
+FORM_PREFIX: Final = "prop-"
+
+#: The package of every property form.
+FORM_PACKAGE: Final = "prop"
+
+#: The kinds of form, and the argument a form over a function generates.
+FUNCTION: Final = "function"
+RELATION: Final = "relation"
+INPUT: Final = "input"
+
 
 class RenderError(ValueError):
-    """A vector file whose inputs cannot be rendered."""
+    """A table or a vector file whose content cannot be rendered."""
+
+
+@dataclass(frozen=True)
+class Form:
+    """One property form: the assertion it runs, its kind and what it generates."""
+
+    of: str
+    kind: str
+    generates: tuple[str, ...]
+
+    @property
+    def id(self) -> str:
+        """Return the form's id: the prefix and the assertion's id."""
+        return FORM_PREFIX + self.of
 
 
 def write(target: Path, rendered: str) -> bool:
@@ -46,10 +77,134 @@ def write(target: Path, rendered: str) -> bool:
     return True
 
 
-def render(name: str) -> bool:
+def forms(spec: Mapping[str, Any]) -> list[Form]:
+    """Return the forms the assertion table's rule states, functions first.
+
+    Raises:
+        RenderError: the rule lists no functions or states no relations, or
+            a relation generates no argument.
+    """
+    rule = spec.get("forms")
+    if not isinstance(rule, Mapping):
+        raise RenderError("spec/assertions.yaml states no rule for the forms")
+    functions = rule.get("functions")
+    relations = rule.get("relations")
+    if not isinstance(functions, list) or not isinstance(relations, Mapping):
+        raise RenderError("the rule for the forms needs functions and relations")
+    out = [Form(str(of), FUNCTION, (INPUT,)) for of in functions]
+    for of, generates in relations.items():
+        if not isinstance(generates, list) or not generates:
+            raise RenderError(f"the form of {of} generates no argument")
+        out.append(Form(str(of), RELATION, tuple(str(g) for g in generates)))
+    return out
+
+
+def series(labels: Sequence[str]) -> str:
+    """Return labels as an English series: "a and b", "a, b and c"."""
+    if len(labels) == 1:
+        return labels[0]
+    return ", ".join(labels[:-1]) + " and " + labels[-1]
+
+
+def summary(form: Form) -> str:
+    """Return the summary of a form's entry."""
+    if form.generates == (INPUT,):
+        generated, pronoun = "the input", "it"
+    else:
+        generated, pronoun = series(form.generates), "them"
+    return (
+        f"The property form of {form.of}. Each case of a run generates "
+        f"{generated}, and {form.of} runs on {pronoun} as {FOR_ALL} runs a body.\n"
+    )
+
+
+def form_entry(form: Form, assertions: Mapping[str, Any]) -> dict[str, Any]:
+    """Return the assertion entry of one form.
+
+    The arity of a form over a function is its assertion's, because the
+    function takes the place of the value. A relation's form generates
+    arguments the relation takes, so its arity is less by their number.
+
+    Raises:
+        RenderError: the form's assertion is not defined.
+    """
+    found = assertions.get(form.of)
+    if not isinstance(found, Mapping):
+        raise RenderError(f"the form of {form.of} runs an assertion nobody defined")
+    runs_as = assertions.get(FOR_ALL)
+    if not isinstance(runs_as, Mapping):
+        raise RenderError(f"the forms run as {FOR_ALL}, which is not defined")
+    base: Mapping[str, Any] = found
+    for_all: Mapping[str, Any] = runs_as
+    removed = len(form.generates) if form.kind == RELATION else 0
+    entry: dict[str, Any] = {
+        "arity": int(base["arity"]) - removed,
+        "package": FORM_PACKAGE,
+        "summary": summary(form),
+        "detail_fields": list(for_all["detail_fields"]),
+        "form": {"of": form.of, "kind": form.kind, "generates": list(form.generates)},
+    }
+    if base.get("relaxations"):
+        entry["relaxations"] = list(base["relaxations"])
+    return entry
+
+
+def form_names(
+    form: Form, names: Mapping[str, Any], rule: Mapping[str, Any]
+) -> dict[str, str]:
+    """Return a form's name in each language that the naming rule qualifies.
+
+    A name is the language's qualifier followed by the assertion's name,
+    unless the rule states an exception for the form's assertion.
+
+    Raises:
+        RenderError: the assertion has no name in a qualified language.
+    """
+    exceptions = rule.get("exceptions", {}).get(form.of, {})
+    out: dict[str, str] = {}
+    for language, qualifier in rule["qualifiers"].items():
+        if language in exceptions:
+            out[language] = str(exceptions[language])
+            continue
+        name = names.get(form.of, {}).get(language)
+        if name is None:
+            raise RenderError(f"{form.of} has no {language} name to qualify")
+        out[language] = f"{qualifier}{name}"
+    return out
+
+
+def published(
+    spec: dict[str, Any], naming: dict[str, Any]
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    """Return both tables with an entry and a name for every form.
+
+    Raises:
+        RenderError: a form's id is already an authored entry, or the rule
+            cannot be read.
+    """
+    rule = naming.get("forms")
+    if not isinstance(rule, Mapping) or not isinstance(rule.get("qualifiers"), Mapping):
+        raise RenderError("spec/naming.yaml states no qualifiers for the forms")
+    assertions, names = spec["assertions"], naming["names"]
+    for form in forms(spec):
+        if form.id in assertions or form.id in names:
+            raise RenderError(f"{form.id} is authored; the rule renders it")
+        assertions[form.id] = form_entry(form, assertions)
+        names[form.id] = form_names(form, names, rule)
+    return spec, naming
+
+
+def load(name: str) -> dict[str, Any]:
+    """Return one table as its YAML states it."""
+    document: dict[str, Any] = yaml.safe_load(
+        (ROOT / "spec" / f"{name}.yaml").read_text()
+    )
+    return document
+
+
+def render(name: str, document: Mapping[str, Any]) -> bool:
     """Render one table, and return whether the file on disk changed."""
-    source = ROOT / "spec" / f"{name}.yaml"
-    rendered = json.dumps(yaml.safe_load(source.read_text()), indent=4, sort_keys=True)
+    rendered = json.dumps(document, indent=4, sort_keys=True)
     return write(ROOT / "spec" / f"{name}.json", rendered + "\n")
 
 
@@ -97,8 +252,9 @@ def render_vectors(kind: str) -> bool:
 
 def main() -> int:
     """Render every table and every kind of vector, and print which files changed."""
-    for name in TABLES:
-        changed = render(name)
+    spec, naming = published(load("assertions"), load("naming"))
+    for name, document in zip(TABLES, (spec, naming), strict=True):
+        changed = render(name, document)
         print(f"spec/{name}.json: {'rendered' if changed else 'unchanged'}")
     for kind in KINDS:
         changed = render_vectors(kind)

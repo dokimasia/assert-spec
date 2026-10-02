@@ -35,6 +35,7 @@ spec/assertions.json   the same, rendered                 read by libraries
 spec/naming.json       the same, rendered                 read by libraries
 spec/conformance.md    what converges and what does not
 spec/manifest.json     a digest of everything an implementation vendors
+spec/zones.json        the zone list and its offset changes, from tzdata
 spec/encoding.md       how a corpus case states a value
 spec/overlays.md       how a language declares it cannot comply
 corpus/*.json          the cases, one file per assertion they cover
@@ -46,7 +47,7 @@ tools/validate.py      the rules, checked
 tools/prop/            the property engine's executable reference
 tools/spec-sync.sh     how an implementation vendors the definition
 tools/spec-check.sh    how an implementation checks its copy
-VERSION                2.1.0
+VERSION                2.2.0
 ```
 
 People edit the YAML. `make render` produces the JSON, which is
@@ -90,6 +91,10 @@ cancellation and deadlines, retrying, goroutine and task leaks,
 allocations, relations between runs of a subject, recorded output,
 performance ceilings, and properties over generated inputs.
 
+38 of them also have a property form, which runs the assertion on every
+input that a property generates. Rendering adds the forms to the `prop`
+package by one rule, so the assertion table states 95 entries.
+
 An assertion earns its place by answering two questions. Does it state
 something that must be true, and fail when it is not? Does it mean the
 same thing in every target language? Anything that fails the second is a
@@ -124,14 +129,18 @@ arguments. The other 21 name a behaviour instead, because what they
 take is a callable and no encoding states one. The remaining 18 take an
 error value, a predicate, a callable that no subject describes, a golden
 file, a benchmark measurement or a property's body, and none of those is
-data either. The property engine itself is data in and data out, so 204
+data either. The property engine itself is data in and data out, so 413
 vectors under `corpus/prop/` pin its decoding, generation, shrinking,
-coverage test, fuzz bridge, replay token, run detail and store.
+coverage test, fuzz bridge, replay token, run detail and store. They
+also pin the values each shape generates, the choices that produce a
+value, the shape each fixture type reads as, and a passing and a failing
+run of every property form but `prop-max-allocs`.
 
 **The completeness gate** checks membership. Every assertion must be
 present under the name the naming table gives it, with the arity the
 definition states as far as the language can read it. The gate covers
-the 18 assertions that the corpus cannot state. The standard checks a
+the 18 assertions that the corpus cannot state, and `prop-max-allocs`,
+whose allocation count no vector can state. The standard checks a
 library's meaning where meaning can be stated, and its membership
 everywhere else.
 
@@ -232,37 +241,40 @@ differently.
 
 | Language | Repository | Assertions |
 |---|---|---|
-| Go | [assert-go](https://github.com/dokimasia/assert-go) | 57 of 57 |
-| Java | [assert-java](https://github.com/dokimasia/assert-java) | 55 of 57 |
-| Kotlin | [assert-java](https://github.com/dokimasia/assert-java) | 55 of 57 |
-| Python | [assert-python](https://github.com/dokimasia/assert-python) | 55 of 57 |
-| Rust | [assert-rust](https://github.com/dokimasia/assert-rust) | 57 of 57 |
-| TypeScript | [assert-typescript](https://github.com/dokimasia/assert-typescript) | 54 of 57 |
+| Go | [assert-go](https://github.com/dokimasia/assert-go) | 95 of 95 |
+| Java | [assert-java](https://github.com/dokimasia/assert-java) | 92 of 95 |
+| Kotlin | [assert-java](https://github.com/dokimasia/assert-java) | 92 of 95 |
+| Python | [assert-python](https://github.com/dokimasia/assert-python) | 92 of 95 |
+| Rust | [assert-rust](https://github.com/dokimasia/assert-rust) | 95 of 95 |
+| TypeScript | [assert-typescript](https://github.com/dokimasia/assert-typescript) | 91 of 95 |
 
 Each count is what the language's overlay declares against version
-2.1.0. An implementation that has not synced to it yet has a drift issue
+2.2.0. An implementation that has not synced to it yet has a drift issue
 open until it does.
 
 Java and Kotlin ship from one repository and are named identically, so
 a test reads the same in both. Neither states a ceiling on allocation
-count, in a test or a benchmark, because the JVM reports bytes allocated
-per thread and no count of allocations. Python states neither, because
-CPython reports the memory alive at one moment and no running count.
-TypeScript states none of the three allocation ceilings, because V8
-answers only as a heap-usage delta that moves with whether the collector
-ran. Each gap is in that language's overlay with the measurement behind
-it.
+count in a test, a property or a benchmark. The JVM reports bytes
+allocated per thread and no count of allocations. Python states none of
+the three, because CPython reports the memory alive at one moment and no
+running count. TypeScript states none of the four
+allocation ceilings, because V8 reports allocation only as a heap-usage
+delta that moves with whether the collector ran. Each gap is in that
+language's overlay with the measurement behind it.
 
-Go and Rust state all fifty-seven and declare nothing absent. Go checks no
+Go and Rust state all ninety-five and declare nothing absent. Go checks no
 allocation ceiling in a build with the race detector, msan or asan, or
 in one whose `-gcflags` turn off optimisation or inlining, because those
-builds allocate differently from the one that ships. In Rust four are
-partial: the three allocation ceilings need a counting allocator
-installed as the test binary's global allocator, and no-task-leaks sees
-tasks on a runtime but not a thread, because nothing in Rust's standard
-library enumerates threads. Rust also declines both relaxations, since
-its types keep an absent container and an empty one apart and its own
-equality already says NaN is unequal to itself.
+builds allocate differently from the one that ships. Go also reads an
+`int` at the platform's width, which is 32 bits on a 32-bit platform. A
+property over an `int` generates other values there. In Rust five are
+partial: the four
+allocation ceilings need a counting allocator installed as the test
+binary's global allocator, and no-task-leaks sees tasks on a runtime but
+not a thread, because nothing in Rust's standard library enumerates
+threads. Rust also declines both relaxations, since its types keep an
+absent container and an empty one apart and its own equality already
+says NaN is unequal to itself.
 
 PHP is declared as a target language and the naming table carries no
 names for it yet, so adding it starts by filling that column.

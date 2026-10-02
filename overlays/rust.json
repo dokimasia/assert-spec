@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@2.1.0",
+  "extends": "spec://assertions@2.2.0",
   "language": "rust",
   "diverge": [],
   "relaxations": [
@@ -22,6 +22,11 @@
       "id": "max-allocs",
       "what": "Counts the calling thread's allocations exactly, once CountingAllocator is installed as the test binary's global allocator, so a test on another thread does not change the count. Without the allocator the assertion reports that nothing counted rather than passing.",
       "why": "The allocator that counts for bench-max-allocs counts for this assertion too, and a library cannot install a global allocator on a caller's behalf."
+    },
+    {
+      "id": "prop-max-allocs",
+      "what": "Counts the calling thread's allocations for each generated input exactly, once CountingAllocator is installed as the test binary's global allocator. Without the allocator the form reports that nothing counted rather than passing.",
+      "why": "The form runs max-allocs on each input, so it counts through the allocator that max-allocs counts through."
     },
     {
       "id": "bench-max-bytes",

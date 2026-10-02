@@ -1,0 +1,457 @@
+# Forms: each property form, run from a seed over a shape. A case names
+# the form, the kinds of the subjects that its assertion takes, and the
+# values that the assertion takes beside them. The subjects come in the
+# order the assertion takes them. The values are typed literals in the
+# order a corpus case of the assertion states them, without the value
+# that a function of the input replaces. A subject takes the generated
+# arguments in place of the input or the operands that its summary
+# states. err-is and err-as take the subject's own failure as their
+# sentinel and its type as their type.
+#
+# The form generates its arguments from the shape, under the labels of
+# the forms rule. Each case pins the detail of the run, as a behaviour
+# vector does. A failing run's failure is the assertion's record of the
+# minimal case: its assertion, and the detail fields that a typed literal
+# can state and that no earlier case decides. The runner passes the form a
+# message, and both records state it as their contract.
+#
+# Every form has a passing case and a failing case, except prop-max-allocs:
+# no case can state an allocation count. `make render` writes the outputs,
+# and refuses a case whose run depends on what earlier cases leave in a
+# subject.
+kind: forms
+
+# The shapes the cases generate from.
+shapes:
+  int: &int {shape: int, width: 32, signed: true, min: -1000, max: 1000}
+  natural: &natural {shape: int, width: 32, signed: true, min: 0, max: 1000}
+  negative: &negative {shape: int, width: 32, signed: true, min: -1000, max: -1}
+  ints: &ints {shape: list, of: *int}
+  positives: &positives {shape: list, of: {shape: int, width: 32, signed: true, min: 1, max: 1000}}
+  text: &text {shape: string}
+
+cases:
+  - id: prop-equal/passes-when-both-functions-return-the-input
+    form: prop-equal
+    subjects: [identity, identity]
+    shape: *ints
+    seed: "7"
+  - id: prop-equal/fails-when-a-sort-reorders-the-input
+    form: prop-equal
+    subjects: [sorts, identity]
+    shape: *ints
+    seed: "7"
+
+  - id: prop-not-equal/passes-when-a-zero-is-prepended
+    form: prop-not-equal
+    subjects: [prepends-zero, identity]
+    shape: *ints
+    seed: "7"
+  - id: prop-not-equal/fails-when-both-functions-return-the-input
+    form: prop-not-equal
+    subjects: [identity, identity]
+    shape: *int
+    seed: "7"
+
+  - id: prop-true/passes-for-non-negative-inputs
+    form: prop-true
+    subjects: [is-non-negative]
+    shape: *natural
+    seed: "7"
+  - id: prop-true/fails-for-a-negative-input
+    form: prop-true
+    subjects: [is-non-negative]
+    shape: *int
+    seed: "7"
+
+  - id: prop-false/passes-for-negative-inputs
+    form: prop-false
+    subjects: [is-non-negative]
+    shape: *negative
+    seed: "7"
+  - id: prop-false/fails-for-a-non-negative-input
+    form: prop-false
+    subjects: [is-non-negative]
+    shape: *int
+    seed: "7"
+
+  - id: prop-nil/passes-when-the-function-returns-null
+    form: prop-nil
+    subjects: [returns-null]
+    shape: *int
+    seed: "7"
+  - id: prop-nil/fails-when-the-function-returns-the-input
+    form: prop-nil
+    subjects: [identity]
+    shape: *int
+    seed: "7"
+
+  - id: prop-not-nil/passes-when-the-function-returns-the-input
+    form: prop-not-nil
+    subjects: [identity]
+    shape: *int
+    seed: "7"
+  - id: prop-not-nil/fails-when-the-function-returns-null
+    form: prop-not-nil
+    subjects: [returns-null]
+    shape: *int
+    seed: "7"
+
+  - id: prop-length/passes-for-lists-of-three
+    form: prop-length
+    subjects: [identity]
+    args: [{type: int, value: 3}]
+    shape: {shape: fixed-list, of: *int, size: 3}
+    seed: "7"
+  - id: prop-length/fails-for-a-list-of-another-length
+    form: prop-length
+    subjects: [identity]
+    args: [{type: int, value: 3}]
+    shape: *ints
+    seed: "7"
+
+  - id: prop-empty/passes-when-the-first-of-at-most-one-element-is-dropped
+    form: prop-empty
+    subjects: [drops-the-first]
+    shape: {shape: list, of: *int, max_size: 1}
+    seed: "7"
+  - id: prop-empty/fails-for-a-list-with-an-element
+    form: prop-empty
+    subjects: [identity]
+    shape: *ints
+    seed: "7"
+
+  - id: prop-not-empty/passes-when-a-zero-is-prepended
+    form: prop-not-empty
+    subjects: [prepends-zero]
+    shape: *ints
+    seed: "7"
+  - id: prop-not-empty/fails-for-the-empty-list
+    form: prop-not-empty
+    subjects: [identity]
+    shape: *ints
+    seed: "7"
+
+  - id: prop-contains/passes-when-a-zero-is-prepended
+    form: prop-contains
+    subjects: [prepends-zero]
+    args: [{type: int, value: 0}]
+    shape: *ints
+    seed: "7"
+  - id: prop-contains/fails-for-a-list-without-zero
+    form: prop-contains
+    subjects: [identity]
+    args: [{type: int, value: 0}]
+    shape: *ints
+    seed: "7"
+
+  - id: prop-not-contains/passes-for-lists-of-positive-integers
+    form: prop-not-contains
+    subjects: [identity]
+    args: [{type: int, value: 0}]
+    shape: *positives
+    seed: "7"
+  - id: prop-not-contains/fails-for-a-list-with-zero
+    form: prop-not-contains
+    subjects: [identity]
+    args: [{type: int, value: 0}]
+    shape: *ints
+    seed: "7"
+
+  - id: prop-contains-in-order/passes-when-the-text-is-wrapped-in-a-and-b
+    form: prop-contains-in-order
+    subjects: [wraps-in-a-and-b]
+    args: [{type: list, of: string, value: [a, b]}]
+    shape: *text
+    seed: "7"
+  - id: prop-contains-in-order/fails-for-text-without-a
+    form: prop-contains-in-order
+    subjects: [identity]
+    args: [{type: list, of: string, value: [a, b]}]
+    shape: *text
+    seed: "7"
+
+  - id: prop-permutation/passes-when-a-sort-reorders-the-input
+    form: prop-permutation
+    subjects: [sorts, identity]
+    shape: *ints
+    seed: "7"
+  - id: prop-permutation/fails-when-the-first-element-is-dropped
+    form: prop-permutation
+    subjects: [drops-the-first, identity]
+    shape: *ints
+    seed: "7"
+
+  - id: prop-has-prefix/passes-when-the-text-is-wrapped-in-a-and-b
+    form: prop-has-prefix
+    subjects: [wraps-in-a-and-b]
+    args: [{type: string, value: a}]
+    shape: *text
+    seed: "7"
+  - id: prop-has-prefix/fails-for-text-that-does-not-start-with-a
+    form: prop-has-prefix
+    subjects: [identity]
+    args: [{type: string, value: a}]
+    shape: *text
+    seed: "7"
+
+  - id: prop-has-suffix/passes-when-the-text-is-wrapped-in-a-and-b
+    form: prop-has-suffix
+    subjects: [wraps-in-a-and-b]
+    args: [{type: string, value: b}]
+    shape: *text
+    seed: "7"
+  - id: prop-has-suffix/fails-for-text-that-does-not-end-with-b
+    form: prop-has-suffix
+    subjects: [identity]
+    args: [{type: string, value: b}]
+    shape: *text
+    seed: "7"
+
+  - id: prop-matches/passes-when-the-text-is-wrapped-in-a-and-b
+    form: prop-matches
+    subjects: [wraps-in-a-and-b]
+    args: [{type: string, value: "^a"}]
+    shape: *text
+    seed: "7"
+  - id: prop-matches/fails-for-text-that-does-not-start-with-a
+    form: prop-matches
+    subjects: [identity]
+    args: [{type: string, value: "^a"}]
+    shape: *text
+    seed: "7"
+
+  - id: prop-close-to/passes-within-a-tolerance-of-the-whole-range
+    form: prop-close-to
+    subjects: [identity]
+    args: [{type: float, value: 0}, {type: float, value: 1000}]
+    shape: *int
+    seed: "7"
+  - id: prop-close-to/fails-beyond-a-tolerance-of-one-half
+    form: prop-close-to
+    subjects: [identity]
+    args: [{type: float, value: 0}, {type: float, value: 0.5}]
+    shape: *int
+    seed: "7"
+
+  - id: prop-in-range/passes-for-non-negative-inputs
+    form: prop-in-range
+    subjects: [identity]
+    args: [{type: float, value: 0}, {type: float, value: 1000}]
+    shape: *natural
+    seed: "7"
+  - id: prop-in-range/fails-for-a-negative-input
+    form: prop-in-range
+    subjects: [identity]
+    args: [{type: float, value: 0}, {type: float, value: 1000}]
+    shape: *int
+    seed: "7"
+
+  - id: prop-pairwise/passes-when-a-sort-orders-the-input
+    form: prop-pairwise
+    subjects: [sorts, ascending]
+    shape: *ints
+    seed: "7"
+  - id: prop-pairwise/fails-for-a-list-out-of-order
+    form: prop-pairwise
+    subjects: [identity, ascending]
+    shape: *ints
+    seed: "7"
+
+  - id: prop-err-absent/passes-when-the-call-succeeds
+    form: prop-err-absent
+    subjects: [returns-ok]
+    shape: *int
+    seed: "7"
+  - id: prop-err-absent/fails-when-a-negative-input-fails-the-call
+    form: prop-err-absent
+    subjects: [fails-on-negative]
+    shape: *int
+    seed: "7"
+
+  - id: prop-err-present/passes-when-the-call-fails
+    form: prop-err-present
+    subjects: [fails-otherwise]
+    shape: *int
+    seed: "7"
+  - id: prop-err-present/fails-when-a-non-negative-input-succeeds
+    form: prop-err-present
+    subjects: [fails-on-negative]
+    shape: *int
+    seed: "7"
+
+  - id: prop-err-is/passes-when-the-call-fails-with-its-own-failure
+    form: prop-err-is
+    subjects: [fails-otherwise]
+    shape: *int
+    seed: "7"
+  - id: prop-err-is/fails-when-a-non-negative-input-succeeds
+    form: prop-err-is
+    subjects: [fails-on-negative]
+    shape: *int
+    seed: "7"
+
+  - id: prop-err-is-not/passes-when-the-call-succeeds
+    form: prop-err-is-not
+    subjects: [returns-ok]
+    shape: *int
+    seed: "7"
+  - id: prop-err-is-not/fails-when-a-negative-input-fails-the-call
+    form: prop-err-is-not
+    subjects: [fails-on-negative]
+    shape: *int
+    seed: "7"
+
+  - id: prop-err-as/passes-when-the-call-fails-with-its-own-failure
+    form: prop-err-as
+    subjects: [fails-otherwise]
+    shape: *int
+    seed: "7"
+  - id: prop-err-as/fails-when-a-non-negative-input-succeeds
+    form: prop-err-as
+    subjects: [fails-on-negative]
+    shape: *int
+    seed: "7"
+
+  - id: prop-throws/passes-when-the-call-raises
+    form: prop-throws
+    subjects: [raises]
+    shape: *int
+    seed: "7"
+  - id: prop-throws/fails-when-a-non-negative-input-returns
+    form: prop-throws
+    subjects: [raises-on-negative]
+    shape: *int
+    seed: "7"
+
+  - id: prop-not-throws/passes-when-the-call-returns
+    form: prop-not-throws
+    subjects: [returns-ok]
+    shape: *int
+    seed: "7"
+  - id: prop-not-throws/fails-when-a-negative-input-raises
+    form: prop-not-throws
+    subjects: [raises-on-negative]
+    shape: *int
+    seed: "7"
+
+  - id: prop-pure/passes-when-the-call-changes-nothing
+    form: prop-pure
+    subjects: [leaves-state-alone]
+    shape: *int
+    seed: "7"
+  - id: prop-pure/fails-when-the-call-changes-the-state
+    form: prop-pure
+    subjects: [accumulates]
+    shape: *int
+    seed: "7"
+
+  - id: prop-not-pure/passes-when-the-call-changes-the-state
+    form: prop-not-pure
+    subjects: [accumulates]
+    shape: *int
+    seed: "7"
+  - id: prop-not-pure/fails-when-the-call-changes-nothing
+    form: prop-not-pure
+    subjects: [leaves-state-alone]
+    shape: *int
+    seed: "7"
+
+  - id: prop-nil-context-safe/passes-when-the-call-declines-the-handle
+    form: prop-nil-context-safe
+    subjects: [returns-ok]
+    shape: *int
+    seed: "7"
+  - id: prop-nil-context-safe/fails-when-an-absent-handle-crashes-the-call
+    form: prop-nil-context-safe
+    subjects: [dereferences-handle]
+    shape: *int
+    seed: "7"
+
+  - id: prop-honours-cancellation/passes-when-the-call-reads-the-handle
+    form: prop-honours-cancellation
+    subjects: [reads-handle]
+    shape: *int
+    seed: "7"
+  - id: prop-honours-cancellation/fails-when-the-call-ignores-the-handle
+    form: prop-honours-cancellation
+    subjects: [ignores-handle]
+    shape: *int
+    seed: "7"
+
+  - id: prop-honours-deadline/passes-when-the-call-reads-the-handle
+    form: prop-honours-deadline
+    subjects: [reads-handle]
+    shape: *int
+    seed: "7"
+  - id: prop-honours-deadline/fails-when-the-call-ignores-the-handle
+    form: prop-honours-deadline
+    subjects: [ignores-handle]
+    shape: *int
+    seed: "7"
+
+  - id: prop-idempotent/passes-when-the-call-sets-a-value
+    form: prop-idempotent
+    subjects: [sets-value]
+    shape: *int
+    seed: "7"
+  - id: prop-idempotent/fails-when-the-call-accumulates
+    form: prop-idempotent
+    subjects: [accumulates]
+    shape: *int
+    seed: "7"
+
+  - id: prop-accumulates/passes-when-the-call-accumulates
+    form: prop-accumulates
+    subjects: [accumulates]
+    shape: *int
+    seed: "7"
+  - id: prop-accumulates/fails-when-the-call-changes-nothing
+    form: prop-accumulates
+    subjects: [leaves-state-alone]
+    shape: *int
+    seed: "7"
+
+  - id: prop-deterministic/passes-when-the-call-returns-its-input
+    form: prop-deterministic
+    subjects: [returns-ok]
+    shape: *int
+    seed: "7"
+  - id: prop-deterministic/fails-when-the-call-counts-its-calls
+    form: prop-deterministic
+    subjects: [counts-calls]
+    shape: *int
+    seed: "7"
+
+  - id: prop-commutative/passes-for-addition
+    form: prop-commutative
+    subjects: [adds]
+    shape: *int
+    seed: "7"
+  - id: prop-commutative/fails-for-subtraction
+    form: prop-commutative
+    subjects: [subtracts]
+    shape: *int
+    seed: "7"
+
+  - id: prop-associative/passes-for-addition
+    form: prop-associative
+    subjects: [adds]
+    shape: *int
+    seed: "7"
+  - id: prop-associative/fails-for-subtraction
+    form: prop-associative
+    subjects: [subtracts]
+    shape: *int
+    seed: "7"
+
+  - id: prop-round-trip/passes-for-a-decimal-rendering
+    form: prop-round-trip
+    subjects: [renders-decimal]
+    shape: *int
+    seed: "7"
+  - id: prop-round-trip/fails-for-a-rendering-that-drops-the-sign
+    form: prop-round-trip
+    subjects: [drops-the-sign]
+    shape: *int
+    seed: "7"

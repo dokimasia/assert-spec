@@ -17,15 +17,20 @@ value into its one canonical literal:
   and ``of`` form, with a ``value`` of null. It decodes to None, which is
   the only absent value Python has. encode() never writes this form,
   because no generator decodes an absent container.
+- record: ``fields``, a list of name and value literal pairs in
+  declaration order, with no name twice.
+- variant: ``name``, and ``payload``, a literal, when the variant has
+  one. A variant without a payload states no ``payload`` key, and one
+  whose optional payload is absent states a null payload.
 """
 
 from __future__ import annotations
 
 import math
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from typing import Any, Final
 
-from .value import Pairs
+from .value import NO_PAYLOAD, Pairs, Record, Variant
 
 #: The largest integer magnitude a JSON number states exactly in every
 #: target language.
@@ -54,14 +59,8 @@ def decode(literal: object) -> object:
     if not isinstance(literal, Mapping):
         raise LiteralError(f"prop: {literal!r} is not a typed literal")
     kind = literal.get("type")
-    if kind == "null":
-        return None
-    if kind == "bytes":
-        return _bytes(literal.get("value"))
-    if kind == "list":
-        return _list(literal)
-    if kind == "map":
-        return _map(literal)
+    if isinstance(kind, str) and kind in _DECODERS:
+        return _DECODERS[kind](literal)
     return scalar(kind, literal.get("value"))
 
 
@@ -172,6 +171,38 @@ def _map(literal: Mapping[str, Any]) -> Pairs | None:
     return Pairs(tuple((k, scalar(literal.get("of"), v)) for k, v in values.items()))
 
 
+def _record(fields: object) -> Record:
+    """Return a record stated by its name and value pairs.
+
+    Raises:
+        LiteralError: fields is not a list of pairs of a non-empty name and
+            a literal, or names a field twice.
+    """
+    if not isinstance(fields, list) or not all(
+        isinstance(f, list) and len(f) == _ENTRY and isinstance(f[0], str) and f[0]
+        for f in fields
+    ):
+        raise LiteralError(f"prop: fields is {fields!r}, not name and value pairs")
+    names = [f[0] for f in fields]
+    if len(set(names)) != len(names):
+        raise LiteralError(f"prop: the record {names!r} names a field twice")
+    return Record(tuple((str(name), decode(value)) for name, value in fields))
+
+
+def _variant(literal: Mapping[str, Any]) -> Variant:
+    """Return a variant stated by its name, and its payload when it has one.
+
+    Raises:
+        LiteralError: the name is not a non-empty string.
+    """
+    name = literal.get("name")
+    if not isinstance(name, str) or not name:
+        raise LiteralError(f"prop: {literal!r} names no variant")
+    if "payload" in literal:
+        return Variant(name, decode(literal["payload"]))
+    return Variant(name)
+
+
 def encode(value: object) -> dict[str, Any]:
     """Return the canonical typed literal of a decoded value.
 
@@ -182,24 +213,45 @@ def encode(value: object) -> dict[str, Any]:
         return {"type": "null"}
     if isinstance(value, bytes):
         return {"type": "bytes", "value": value.hex()}
-    if isinstance(value, list):
-        kinds = {_scalar_kind(item) for item in value}
-        if value and len(kinds) == 1 and None not in kinds:
-            kind = kinds.pop()
-            assert kind is not None
-            return {
-                "type": "list",
-                "of": kind,
-                "value": [plain(item) for item in value],
-            }
-        return {"type": "list", "items": [encode(item) for item in value]}
-    if isinstance(value, Pairs):
-        entries = [[encode(k), encode(v)] for k, v in value.items]
-        return {"type": "map", "entries": entries}
+    composite = _composite(value)
+    if composite is not None:
+        return composite
     kind = _scalar_kind(value)
     if kind is None:
         raise TypeError(f"prop: {value!r} is not a decoded value")
     return {"type": kind, "value": plain(value)}
+
+
+def _composite(value: object) -> dict[str, Any] | None:
+    """Return the literal of a list, a map, a record or a variant, or None.
+
+    Raises:
+        TypeError: an element is not a value a generator decodes.
+    """
+    if isinstance(value, list):
+        return _list_literal(value)
+    if isinstance(value, Pairs):
+        entries = [[encode(k), encode(v)] for k, v in value.items]
+        return {"type": "map", "entries": entries}
+    if isinstance(value, Record):
+        fields = [[name, encode(v)] for name, v in value.fields]
+        return {"type": "record", "fields": fields}
+    if isinstance(value, Variant):
+        literal: dict[str, Any] = {"type": "variant", "name": value.name}
+        if value.payload is not NO_PAYLOAD:
+            literal["payload"] = encode(value.payload)
+        return literal
+    return None
+
+
+def _list_literal(value: list[object]) -> dict[str, Any]:
+    """Return a list's literal: the of form for one scalar type, else items."""
+    kinds = {_scalar_kind(item) for item in value}
+    if value and len(kinds) == 1 and None not in kinds:
+        kind = kinds.pop()
+        assert kind is not None
+        return {"type": "list", "of": kind, "value": [plain(item) for item in value]}
+    return {"type": "list", "items": [encode(item) for item in value]}
 
 
 def _scalar_kind(value: object) -> str | None:
@@ -230,3 +282,14 @@ def plain(value: object) -> object:
     ):
         return str(value)
     return value
+
+
+#: The decoder of each type that is not a scalar, keyed by the type.
+_DECODERS: Final[dict[str, Callable[[Mapping[str, Any]], object]]] = {
+    "null": lambda _: None,
+    "bytes": lambda literal: _bytes(literal.get("value")),
+    "list": _list,
+    "map": _map,
+    "record": lambda literal: _record(literal.get("fields")),
+    "variant": _variant,
+}

@@ -21,7 +21,7 @@ from typing import Any, Final
 from . import coverage, literal, replay, store
 from .body import build_body
 from .bridge import Bridging
-from .case import Case, Generating, Rejected, Replaying
+from .case import Case, Generating, Generator, Rejected, Replaying
 from .choice import (
     Bounds,
     Choice,
@@ -30,8 +30,12 @@ from .choice import (
     SequenceBounds,
 )
 from .execution import Divergence, Execution
+from .forms import FormError, run_form
 from .generator import build
+from .inverse import CannotInvert, invert
 from .runner import Kind, Outcome, Requirement, Settings, run
+from .shape import ShapeError
+from .shape import read as read_shape
 from .shrink import DEFAULT_BUDGET, Explained
 from .source import case_source
 
@@ -115,9 +119,8 @@ def decoding(case: Mapping[str, Any]) -> Vector:
     return _decoded(replayed, partial(generator.decode, replayed))
 
 
-def generation(case: Mapping[str, Any]) -> Vector:
-    """Decode a generator from the first cases of a seed."""
-    generator = build(case["generator"])
+def _generated(generator: Generator, case: Mapping[str, Any]) -> Vector:
+    """Return the choices and the value of each of the first cases of a seed."""
     seed = _seed(case)
     cases: list[Vector] = []
     for index in range(int(case["count"])):
@@ -125,6 +128,102 @@ def generation(case: Mapping[str, Any]) -> Vector:
         decoded = _decoded(generated, partial(generator.decode, generated))
         cases.append({"choices": decoded.pop("recorded"), **decoded})
     return {"cases": cases}
+
+
+def generation(case: Mapping[str, Any]) -> Vector:
+    """Decode a generator from the first cases of a seed."""
+    return _generated(build(case["generator"]), case)
+
+
+def _shape(written: object) -> Generator:
+    """Return the generator of a shape a vector states.
+
+    Raises:
+        VectorError: the shape does not read.
+    """
+    try:
+        return read_shape(written)
+    except ShapeError as bad:
+        raise VectorError(str(bad)) from bad
+
+
+def shapes(case: Mapping[str, Any]) -> Vector:
+    """Decode a shape from the first cases of a seed."""
+    return _generated(_shape(case["shape"]), case)
+
+
+def inverse(case: Mapping[str, Any]) -> Vector:
+    """Run a shape or a generator backwards from a value.
+
+    Raises:
+        VectorError: the vector states both a shape and a generator, or
+            neither.
+    """
+    if ("shape" in case) == ("generator" in case):
+        raise VectorError("prop: an inverse vector states a shape or a generator")
+    generator = _shape(case["shape"]) if "shape" in case else build(case["generator"])
+    try:
+        choices = invert(generator, literal.decode(case["value"]))
+    except CannotInvert:
+        return {"choices": None, "error": True}
+    return {"choices": [choice_literal(c) for c in choices], "error": False}
+
+
+def fixture(case: Mapping[str, Any]) -> Vector:
+    """Check a fixture type's vector, which states its shape and computes nothing.
+
+    Raises:
+        VectorError: the shape does not read, or the vector names no
+            fixture, describes none, or covers nothing.
+    """
+    _shape(case["shape"])
+    for key in ("fixture", "summary", "covers"):
+        if not str(case.get(key, "")).strip():
+            raise VectorError(f"prop: a fixture vector states no {key}")
+    return {}
+
+
+def draws(case: Mapping[str, Any]) -> Vector:
+    """Compute the choices of a case whose draws decode to stated entries.
+
+    Each draw takes the entry at its position. A draw whose label differs
+    from its entry's, or whose generator cannot produce the entry's value,
+    is an error that names the draw's label. A draw past the last entry
+    takes its target, and an entry past the last draw is not read.
+    """
+    body = [(str(d["label"]), build(d["generator"])) for d in case["draws"]]
+    entries = case["entries"]
+    choices: list[Choice] = []
+    for (label, generator), entry in zip(body, entries, strict=False):
+        if entry["label"] != label:
+            return {
+                "choices": None,
+                "values": None,
+                "error": _draw_error(label, "label"),
+            }
+        try:
+            choices.extend(invert(generator, literal.decode(entry["value"])))
+        except CannotInvert:
+            return {
+                "choices": None,
+                "values": None,
+                "error": _draw_error(label, "value"),
+            }
+    replayed = Case(Replaying(choices))
+    values = [
+        {"label": label, "value": literal.encode(replayed.draw(generator, label))}
+        for label, generator in body
+    ]
+    return {
+        "choices": [choice_literal(c) for c in choices],
+        "values": values,
+        "error": None,
+    }
+
+
+def _draw_error(label: str, reason: str) -> Vector:
+    """Return the error of a draws vector: the draw's label and the reason."""
+    return {"label": label, "reason": reason}
 
 
 def shrinking(case: Mapping[str, Any]) -> Vector:
@@ -217,6 +316,42 @@ def behaviour(case: Mapping[str, Any]) -> Vector:
     """Run a body under settings, and return the detail of the run."""
     body = build_body(case["body"])
     return {"detail": detail(run(body, _settings(case.get("settings", {}))))}
+
+
+def form_run(case: Mapping[str, Any]) -> Vector:
+    """Run a property form, and return the detail of the run.
+
+    The form runs twice: once with its subjects kept across cases, and
+    once with subjects built anew for each case. A failing run's failure
+    is the record of the minimal case.
+
+    Raises:
+        VectorError: the form does not run, or the two runs differ because
+            the run depends on what earlier cases leave in a subject.
+    """
+    generator = _shape(case["shape"])
+    settings = Settings(_seed(case))
+    kept = _form_detail(case, generator, settings, fresh=False)
+    fresh = _form_detail(case, generator, settings, fresh=True)
+    if kept != fresh:
+        raise VectorError(
+            f"prop: {case.get('id')!r} depends on what earlier cases leave in a subject"
+        )
+    return {"detail": kept}
+
+
+def _form_detail(
+    case: Mapping[str, Any], generator: Generator, settings: Settings, *, fresh: bool
+) -> Vector:
+    """Return the detail of one run of a form, its failure the minimal record.
+
+    A run has a minimal record exactly when its detail states a failure.
+    """
+    try:
+        outcome, record = run_form(case, generator, settings, fresh=fresh)
+    except FormError as bad:
+        raise VectorError(str(bad)) from bad
+    return {**detail(outcome), "failure": record}
 
 
 def _settings(written: Mapping[str, Any]) -> Settings:
@@ -360,6 +495,11 @@ KINDS: Final[dict[str, Callable[[Mapping[str, Any]], Vector]]] = {
     "token": token,
     "behaviour": behaviour,
     "store": store_entry,
+    "shapes": shapes,
+    "inverse": inverse,
+    "fixtures": fixture,
+    "draws": draws,
+    "forms": form_run,
 }
 
 

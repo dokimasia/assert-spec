@@ -222,6 +222,144 @@ class ComputeTest(unittest.TestCase):
         self.assertEqual(got["detail"]["outcome"], "counterexample")
         self.assertEqual(got["detail"]["choices"], "prop1:AAc")
 
+    def test_a_shape_vector_states_each_cases_choices_and_value(self) -> None:
+        """Three cases of a bool shape, each from its own source."""
+        got = compute("shapes", {"shape": {"shape": "bool"}, "seed": "7", "count": 3})
+        self.assertEqual(len(got["cases"]), 3)
+        for case in got["cases"]:
+            self.assertEqual(len(case["choices"]), 1)
+            self.assertEqual(case["value"]["type"], "bool")
+
+    def test_an_inverse_vector_states_the_choices_or_an_error(self) -> None:
+        """A value of the shape, and one outside a generator's bounds."""
+        shape = {"shape": "int", "width": 8, "signed": False}
+        self.assertEqual(
+            compute("inverse", {"shape": shape, "value": {"type": "int", "value": 9}}),
+            {"choices": [9], "error": False},
+        )
+        digit = {"gen": "integer", "min": 0, "max": 9}
+        self.assertEqual(
+            compute(
+                "inverse", {"generator": digit, "value": {"type": "int", "value": 12}}
+            ),
+            {"choices": None, "error": True},
+        )
+
+    def test_an_inverse_vector_states_a_shape_or_a_generator(self) -> None:
+        """Both, or neither, names nothing to run backwards."""
+        value = {"type": "int", "value": 1}
+        both = {
+            "shape": {"shape": "bool"},
+            "generator": {"gen": "boolean"},
+            "value": value,
+        }
+        for case in (both, {"value": value}):
+            with self.assertRaisesRegex(VectorError, "a shape or a generator"):
+                compute("inverse", case)
+
+    def test_a_shape_that_does_not_read_raises(self) -> None:
+        """The reader's failure, as a vector error."""
+        with self.assertRaisesRegex(VectorError, "no shape"):
+            compute("shapes", {"shape": {"shape": "widget"}, "seed": "1", "count": 1})
+
+    def test_a_fixture_vector_computes_nothing(self) -> None:
+        """A fixture states its shape, its name, its summary and what it covers."""
+        fixture = {
+            "fixture": "flag",
+            "summary": "A record of one boolean field.",
+            "covers": "bool",
+            "shape": {"shape": "record", "fields": [["enabled", {"shape": "bool"}]]},
+        }
+        self.assertEqual(compute("fixtures", fixture), {})
+        with self.assertRaisesRegex(VectorError, "states no summary"):
+            compute("fixtures", {**fixture, "summary": " "})
+        with self.assertRaisesRegex(VectorError, "which is no shape"):
+            compute("fixtures", {**fixture, "shape": {"shape": "widget"}})
+
+    def test_a_draws_vector_matches_runs_out_or_names_the_draw(self) -> None:
+        """Each end: matched, ran out, a label that differs, a value out of bounds."""
+        draws = [
+            {"label": "count", "generator": {"gen": "integer", "min": 0, "max": 9}},
+            {"label": "flag", "generator": {"gen": "boolean"}},
+        ]
+        four = {"label": "count", "value": {"type": "int", "value": 4}}
+        matched = compute(
+            "draws",
+            {
+                "draws": draws,
+                "entries": [
+                    four,
+                    {"label": "flag", "value": {"type": "bool", "value": True}},
+                ],
+            },
+        )
+        self.assertEqual((matched["choices"], matched["error"]), ([4, 1], None))
+        short = compute("draws", {"draws": draws, "entries": [four]})
+        self.assertEqual(
+            short["values"][1],
+            {"label": "flag", "value": {"type": "bool", "value": False}},
+        )
+        mislabelled = compute(
+            "draws", {"draws": draws, "entries": [{**four, "label": "flag"}]}
+        )
+        self.assertEqual(mislabelled["error"], {"label": "count", "reason": "label"})
+        large = {"label": "count", "value": {"type": "int", "value": 12}}
+        bounded = compute("draws", {"draws": draws, "entries": [large]})
+        self.assertEqual(bounded["error"], {"label": "count", "reason": "value"})
+
+    def test_a_form_vector_states_the_record_of_the_minimal_case(self) -> None:
+        """The minimal input of true over -9 to 9 is -1, and 0 passes."""
+        case = {
+            "form": "prop-true",
+            "subjects": ["is-non-negative"],
+            "shape": {"shape": "int", "width": 8, "signed": True, "min": -9, "max": 9},
+            "seed": "7",
+        }
+        detail = compute("forms", case)["detail"]
+        self.assertEqual(detail["outcome"], "counterexample")
+        self.assertEqual(detail["failure"], {"assertion": "true", "detail": {}})
+        self.assertEqual(
+            detail["counterexample"],
+            [
+                {
+                    "label": "input",
+                    "value": {"type": "int", "value": -1},
+                    "any-value-fails": False,
+                    "nearest-passing": {"type": "int", "value": 0},
+                }
+            ],
+        )
+
+    def test_a_passing_form_vector_states_no_failure(self) -> None:
+        """Every input from 0 to 9 is non-negative."""
+        case = {
+            "form": "prop-true",
+            "subjects": ["is-non-negative"],
+            "shape": {"shape": "int", "width": 8, "signed": True, "min": 0, "max": 9},
+            "seed": "7",
+        }
+        detail = compute("forms", case)["detail"]
+        self.assertEqual((detail["outcome"], detail["cases"]), ("passed", 10))
+        self.assertIsNone(detail["failure"])
+
+    def test_a_form_vector_whose_run_depends_on_earlier_cases_raises(self) -> None:
+        """A cell that one case sets to 1 is not changed by the next that sets 1."""
+        case = {
+            "id": "prop-pure/sets-a-bit",
+            "form": "prop-pure",
+            "subjects": ["sets-value"],
+            "shape": {"shape": "int", "width": 8, "signed": False, "max": 1},
+            "seed": "7",
+        }
+        with self.assertRaisesRegex(VectorError, "depends on what earlier cases leave"):
+            compute("forms", case)
+
+    def test_a_form_vector_that_names_no_form_raises(self) -> None:
+        """The form's error, as a vector error."""
+        case = {"form": "prop-invented", "shape": {"shape": "bool"}, "seed": "7"}
+        with self.assertRaisesRegex(VectorError, "is no form of the definition"):
+            compute("forms", case)
+
     def test_an_unknown_kind_or_missing_input_raises(self) -> None:
         """No such kind; a decoding vector without choices."""
         with self.assertRaises(VectorError):

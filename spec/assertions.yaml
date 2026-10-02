@@ -16,7 +16,7 @@
 # assertion carries exactly these. got is what the assertion observed
 # and want is what it required, so an assertion whose failure holds
 # neither states no fields and reports the caller's message alone.
-version: "2.1.0"
+version: "2.2.0"
 
 # What a caller may relax, for one call.
 #
@@ -43,6 +43,9 @@ relaxations:
 # from a small fixed set, so a case names the behaviour and each
 # implementation builds it natively. A kind an implementation cannot
 # build is a declared skip, the same as any other case.
+#
+# A property form hands a subject the generated arguments in place of the
+# input or the operands that the subject's summary states.
 subjects:
   "returns-ok":
     summary: >
@@ -130,6 +133,41 @@ subjects:
     summary: >
       A resource whose calls succeed before and after it closes. Its closed
       sentinel is a failure that no call returns.
+
+  # The functions and callables that only the property forms take.
+  "identity":
+    summary: >
+      Returns its input.
+  "is-non-negative":
+    summary: >
+      Returns whether its integer input is 0 or more.
+  "returns-null":
+    summary: >
+      Returns null, whatever its input.
+  "drops-the-first":
+    summary: >
+      Returns its list without the first element. An empty list stays
+      empty.
+  "prepends-zero":
+    summary: >
+      Returns its list of integers with 0 before the first element.
+  "sorts":
+    summary: >
+      Returns its list of integers in ascending order.
+  "wraps-in-a-and-b":
+    summary: >
+      Returns its text with a before it and b after it.
+  "ascending":
+    summary: >
+      A predicate over two integers, true when the first is not greater
+      than the second.
+  "fails-on-negative":
+    summary: >
+      Returns a failure of its own for a negative integer input, and
+      success otherwise.
+  "raises-on-negative":
+    summary: >
+      Raises for a negative integer input, and returns otherwise.
 
 assertions:
   "equal":
@@ -553,3 +591,63 @@ assertions:
       shrinks a failing case towards the smallest case that fails the
       same way.
     detail_fields: [outcome, cases, rejected, seed, counterexample, failure, choices, others, divergence, coverage]
+
+# The property form of an assertion runs it on every case of a run, as
+# prop-for-all runs a body. Rendering adds one entry for each form,
+# "prop-" and the assertion's id, by this rule:
+#
+# - The package is prop, and the detail fields are those of prop-for-all.
+#   failure is the assertion's record of the minimal case.
+# - The relaxations are the assertion's.
+# - A form over a function takes a function of the generated input where
+#   the assertion takes the value it examines, and a callable that also
+#   takes the input where the assertion takes a callable. Its arity is
+#   the assertion's, and it generates one argument, input.
+# - The form of a relation generates the arguments that the relation
+#   takes. Its arity is the relation's less those arguments.
+#
+# The other 19 assertions have no form: they retry over time, measure
+# time, scope a block, compare a file or a measurement, drive a check, are
+# prop-for-all itself, or read state without taking an input. total has
+# none either, because generating its domain is the form of err-absent.
+forms:
+  functions:
+    - "equal"
+    - "not-equal"
+    - "true"
+    - "false"
+    - "nil"
+    - "not-nil"
+    - "length"
+    - "empty"
+    - "not-empty"
+    - "contains"
+    - "not-contains"
+    - "contains-in-order"
+    - "permutation"
+    - "has-prefix"
+    - "has-suffix"
+    - "matches"
+    - "close-to"
+    - "in-range"
+    - "pairwise"
+    - "err-absent"
+    - "err-present"
+    - "err-is"
+    - "err-is-not"
+    - "err-as"
+    - "throws"
+    - "not-throws"
+    - "pure"
+    - "not-pure"
+    - "nil-context-safe"
+    - "honours-cancellation"
+    - "honours-deadline"
+    - "max-allocs"
+  relations:
+    "idempotent": ["input"]
+    "accumulates": ["input"]
+    "deterministic": ["input"]
+    "round-trip": ["input"]
+    "commutative": ["a", "b"]
+    "associative": ["a", "b", "c"]

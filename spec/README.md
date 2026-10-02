@@ -14,6 +14,14 @@ Re-render after editing:
 make render
 ```
 
+Rendering adds an entry to `assertions.json` and a row to `naming.json`
+for each property form, by the rule that each table states in its
+`forms` section. Nobody edits a form's entry by hand.
+
+`zones.json` states the zone list and every offset change of its zones
+from 1900 to 2100, computed from one tzdata release. `make zones`
+recomputes it, and needs the network, `zic` and `zdump`.
+
 ## Quoting
 
 Every id and every name is quoted. YAML reads an unquoted `true`,
@@ -40,7 +48,10 @@ The engine behind `prop-for-all` is data in and data out, so the vectors
 under `corpus/prop/` pin the decoding of every generator, the generation
 from a seed, the shrinking, the coverage test, the fuzz bridge, the
 replay token, the detail of a run, and the store's entries, file names
-and verdicts. People write each vector's inputs
-in `corpus/prop/<kind>.yaml`. `make render` computes the outputs with
-the executable reference in `tools/prop/` and writes the JSON beside
-them.
+and verdicts. They also pin the values each shape generates, the
+choices that produce a value, the shape each fixture type reads as, the
+case that known draws state, and a passing and a failing run of each
+property form. `prop-max-allocs` has no vector, because no case can state
+an allocation count. People write each vector's inputs in
+`corpus/prop/<kind>.yaml`. `make render` computes the outputs with the
+executable reference in `tools/prop/` and writes the JSON beside them.

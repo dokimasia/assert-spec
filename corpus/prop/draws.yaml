@@ -1,0 +1,35 @@
+# Draws: the case that a property's known draws state. Each case states a
+# body's draws, a label and a generator each in the order the body makes
+# them, and the entries of a Draws option, a label and a typed literal each.
+# Each draw takes the entry at its position and runs its generator
+# backwards. The vector pins the choices and the value each draw decodes
+# to, or the error, which names the draw's label and the reason: a label
+# that differs from the entry's, or a value the generator cannot produce.
+# A draw past the last entry takes its target. `make render` writes the
+# outputs.
+kind: draws
+cases:
+  - id: draws/every-draw-matches-its-entry
+    draws:
+      - {label: count, generator: {gen: integer, min: 0, max: 9}}
+      - {label: name, generator: {gen: string, max_size: 3}}
+    entries:
+      - {label: count, value: {type: int, value: 4}}
+      - {label: name, value: {type: string, value: ab}}
+  - id: draws/a-draw-past-the-entries-takes-its-target
+    draws:
+      - {label: count, generator: {gen: integer, min: 0, max: 9}}
+      - {label: name, generator: {gen: string, min_size: 1, max_size: 3}}
+    entries:
+      - {label: count, value: {type: int, value: 4}}
+  - id: draws/a-label-that-differs-fails-at-that-draw
+    draws:
+      - {label: count, generator: {gen: integer, min: 0, max: 9}}
+      - {label: name, generator: {gen: string, max_size: 3}}
+    entries:
+      - {label: name, value: {type: string, value: ab}}
+  - id: draws/a-value-out-of-bounds-fails-at-that-draw
+    draws:
+      - {label: count, generator: {gen: integer, min: 0, max: 9}}
+    entries:
+      - {label: count, value: {type: int, value: 12}}

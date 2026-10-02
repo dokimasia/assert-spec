@@ -29,10 +29,15 @@ ROOT = Path(__file__).resolve().parent.parent
 COPIED = ("spec", "corpus", "overlays", "VERSION", "tools")
 
 
-def _edit(path: Path, change: Callable[[Any], Any]) -> None:
-    """Read JSON, apply change to it, and write it back."""
+def _edit(path: Path, change: Callable[[Any], object]) -> None:
+    """Read JSON, let change edit it in place, and write it back.
+
+    The return value of change is ignored, so an edit written as a lambda
+    over dict.pop removes the key and nothing else.
+    """
     document = json.loads(path.read_text())
-    path.write_text(json.dumps(change(document) or document, indent=2))
+    change(document)
+    path.write_text(json.dumps(document, indent=2))
 
 
 @final
@@ -478,6 +483,25 @@ class Validator(unittest.TestCase):
             lambda d: d["cases"][0].update(value={"type": "bytes", "value": "FF"}),
         )
         self.assert_caught("is not lowercase hexadecimal")
+
+    def test_a_record_that_names_a_field_twice_is_caught(self) -> None:
+        """A record's field names are distinct, so each field is reachable."""
+
+        def repeat(document: Any) -> None:
+            field = ["id", {"type": "int", "value": 1}]
+            document["cases"][0]["value"] = {"type": "record", "fields": [field, field]}
+
+        _edit(self.tree / "corpus" / "prop" / "decoding.json", repeat)
+        self.assert_caught("names a field twice")
+
+    def test_a_variant_with_a_key_it_does_not_take_is_caught(self) -> None:
+        """A variant states a name and an optional payload, and nothing else."""
+
+        def widen(document: Any) -> None:
+            document["cases"][0]["value"] = {"type": "variant", "name": "x", "of": "y"}
+
+        _edit(self.tree / "corpus" / "prop" / "decoding.json", widen)
+        self.assert_caught("states 'of', which type 'variant' does not take")
 
     def test_a_malformed_literal_inside_items_is_caught(self) -> None:
         """Each of a list's items is checked as a literal."""
@@ -969,6 +993,342 @@ class Validator(unittest.TestCase):
             lambda d: d["diverge"].append("max-allocs"),
         )
         self.assert_caught("divergence 'max-allocs' is not an object")
+
+    def _vectors(self, kind: str, keep: Callable[[Any], bool]) -> None:
+        """Keep only the vectors of one kind that keep accepts."""
+        _edit(
+            self.tree / "corpus" / "prop" / f"{kind}.json",
+            lambda d: d.update(cases=[c for c in d["cases"] if keep(c)]),
+        )
+
+    def test_a_shape_with_one_vector_is_caught(self) -> None:
+        """Every shape has two shape vectors."""
+        self._vectors("shapes", lambda c: c["id"] != "bool/one-coin-each")
+        self.assert_caught("has fewer than 2 vectors for shape 'bool'")
+
+    def test_a_shape_vector_named_for_no_shape_is_caught(self) -> None:
+        """A shape vector's id begins with the shape it decodes."""
+        _edit(
+            self.tree / "corpus" / "prop" / "shapes.json",
+            lambda d: d["cases"][0].update(id="boolean/renamed"),
+        )
+        self.assert_caught("begins with 'boolean', which names no shape")
+
+    def test_a_shape_that_no_inverse_runs_back_is_caught(self) -> None:
+        """Every shape runs backwards in a vector."""
+        self._vectors("inverse", lambda c: not c["id"].startswith("bool/"))
+        self.assert_caught("runs no shape 'bool' back")
+
+    def test_a_generator_that_no_inverse_runs_back_is_caught(self) -> None:
+        """Every generator runs backwards in a vector."""
+        self._vectors("inverse", lambda c: not c["id"].startswith("integer/"))
+        self.assert_caught("runs no generator 'integer' back")
+
+    def test_a_constraint_without_a_fixture_is_caught(self) -> None:
+        """The fixtures cover every row of the constraint table."""
+        self._vectors("fixtures", lambda c: c.get("covers") != "scale")
+        self.assert_caught("has no fixture that covers 'scale'")
+
+    def test_a_draws_end_without_a_vector_is_caught(self) -> None:
+        """A label that differs from its entry has a vector."""
+
+        def other_ends(case: Any) -> bool:
+            error: dict[str, Any] = case.get("error") or {}
+            return error.get("reason") != "label"
+
+        self._vectors("draws", other_ends)
+        self.assert_caught("has no vector that ends in 'label'")
+
+    def _forms(self, change: Callable[[Any], object]) -> None:
+        """Edit the form vectors of the scratch tree."""
+        _edit(self.tree / "corpus" / "prop" / "forms.json", change)
+
+    def test_a_form_without_a_failing_vector_is_caught(self) -> None:
+        """Each form has a vector that fails and one that passes."""
+        failing = "prop-equal/fails-when-a-sort-reorders-the-input"
+        self._vectors("forms", lambda c: c["id"] != failing)
+        self.assert_caught("has no prop-equal vector whose outcome is 'counterexample'")
+
+    def test_a_vector_of_a_form_no_case_can_state_is_caught(self) -> None:
+        """No case can state an allocation count, so max-allocs has no vector."""
+        self._forms(
+            lambda d: d["cases"][0].update(
+                id="prop-max-allocs/allocates", form="prop-max-allocs"
+            )
+        )
+        self.assert_caught(
+            "begins with 'prop-max-allocs', which names no form a vector runs"
+        )
+
+    def test_a_form_vector_that_runs_another_form_is_caught(self) -> None:
+        """A form vector runs the form its id names."""
+        self._forms(lambda d: d["cases"][0].update(form="prop-nil"))
+        self.assert_caught("runs 'prop-nil', and its id names 'prop-equal'")
+
+    def test_a_form_vector_with_an_unknown_subject_is_caught(self) -> None:
+        """A form vector names subject kinds of the definition's vocabulary."""
+        self._forms(lambda d: d["cases"][0].update(subjects=["identity", "sleeps"]))
+        self.assert_caught("names subject kind 'sleeps', which the definition does not")
+
+    def test_form_vector_subjects_that_are_not_a_list_are_caught(self) -> None:
+        """The subjects are a list, in the order the assertion takes them."""
+        self._forms(lambda d: d["cases"][0].update(subjects="identity"))
+        self.assert_caught("subjects is not a list")
+
+    def test_a_form_that_fails_with_another_assertions_record_is_caught(self) -> None:
+        """A form's failure is the record of the assertion it runs."""
+        self._forms(
+            lambda d: d["cases"][1]["detail"]["failure"].update(assertion="nil")
+        )
+        self.assert_caught(
+            "fails with the record of 'nil', and prop-equal runs 'equal'"
+        )
+
+    def test_a_form_failure_with_an_undeclared_detail_field_is_caught(self) -> None:
+        """A failure states only the detail fields its assertion declares."""
+        self._forms(
+            lambda d: d["cases"][1]["detail"]["failure"]["detail"].update(
+                bogus={"type": "int", "value": 1}
+            )
+        )
+        self.assert_caught("states detail 'bogus', which equal does not declare")
+
+    def _zones(self, change: Callable[[Any], object]) -> None:
+        """Edit the zone table of the scratch tree."""
+        _edit(self.tree / "spec" / "zones.json", change)
+
+    def test_a_zone_list_that_does_not_start_with_utc_is_caught(self) -> None:
+        """The first zone is the simplest, and UTC has no change."""
+        self._zones(lambda d: d["zones"].reverse())
+        self.assert_caught("lists 'Antarctica/Troll' first")
+
+    def test_a_zone_listed_twice_is_caught(self) -> None:
+        """A zone listed twice is sampled twice as often."""
+        self._zones(lambda d: d["zones"].append(d["zones"][1]))
+        self.assert_caught("spec/zones.json: lists a zone twice")
+
+    def test_utc_with_a_change_is_caught(self) -> None:
+        """UTC has no offset and no change."""
+        self._zones(lambda d: d["zones"][0]["changes"].append([0, 0, 3600]))
+        self.assert_caught("UTC: changes, and UTC has none")
+
+    def test_changes_out_of_order_are_caught(self) -> None:
+        """A zone's changes are in time order."""
+        self._zones(lambda d: d["zones"][1]["changes"].reverse())
+        self.assert_caught("is not after the change before it")
+
+    def test_a_change_that_keeps_its_offset_is_caught(self) -> None:
+        """A transition of the abbreviation alone is no offset change."""
+
+        def flat(document: Any) -> None:
+            change = document["zones"][1]["changes"][0]
+            change[2] = change[1]
+
+        self._zones(flat)
+        self.assert_caught("Europe/Amsterdam: change 0 keeps its offset")
+
+    def test_a_change_that_does_not_connect_is_caught(self) -> None:
+        """Each change starts from the offset the change before it left."""
+        self._zones(lambda d: d["zones"][1]["changes"][1].__setitem__(1, 1234))
+        self.assert_caught("change 1 starts from 1234")
+
+    def test_an_offset_beyond_18_hours_is_caught(self) -> None:
+        """No zone is more than 18 hours from UTC."""
+        self._zones(lambda d: d["zones"][1]["changes"][0].__setitem__(1, -64801))
+        self.assert_caught("change 0 states an offset beyond 18 hours")
+
+    def test_a_change_outside_the_years_is_caught(self) -> None:
+        """The table covers its stated years and no more."""
+        self._zones(lambda d: d["zones"][1]["changes"][0].__setitem__(0, -(2**40)))
+        self.assert_caught("Europe/Amsterdam: change 0 is outside the years")
+
+    def test_a_change_that_is_not_three_integers_is_caught(self) -> None:
+        """A change is an instant and two offsets."""
+        self._zones(lambda d: d["zones"][1]["changes"].append([1, 2]))
+        self.assert_caught("is [1, 2], not an instant and two offsets")
+
+    def test_a_zone_without_changes_is_caught(self) -> None:
+        """Every zone states its changes, UTC's empty list included."""
+        self._zones(lambda d: d["zones"][1].pop("changes"))
+        self.assert_caught("Europe/Amsterdam: states no changes")
+
+    def test_a_table_without_a_release_is_caught(self) -> None:
+        """The table names the tzdata release it was computed from."""
+        self._zones(lambda d: d.update(release=""))
+        self.assert_caught("spec/zones.json: names no tzdata release")
+
+    def test_a_table_whose_years_run_backwards_is_caught(self) -> None:
+        """The table's first year is before its last."""
+        self._zones(lambda d: d.update({"from": 2100, "until": 1900}))
+        self.assert_caught("states the years 2100 to 1900")
+
+    def test_an_unreadable_zone_table_is_reported_not_raised(self) -> None:
+        """A broken table is a finding, not a traceback."""
+        (self.tree / "spec" / "zones.json").write_text("{not json")
+        self.assert_caught("spec/zones.json: cannot be read")
+
+    def test_a_table_without_zones_is_caught(self) -> None:
+        """The zone shape samples from a list that is not empty."""
+        self._zones(lambda d: d.update(zones=[]))
+        self.assert_caught("spec/zones.json: lists no zones")
+
+    def test_a_relation_form_that_keeps_a_generated_argument_is_caught(self) -> None:
+        """A relation's form loses the arguments it generates from its arity."""
+        _edit(
+            self.tree / "spec" / "assertions.json",
+            lambda d: d["assertions"]["prop-commutative"].update(arity=4),
+        )
+        self.assert_caught("prop-commutative: states arity 4; the rule gives 2")
+
+    def test_a_form_over_a_function_that_loses_an_argument_is_caught(self) -> None:
+        """The function takes the place of the value, so the arity stays."""
+        _edit(
+            self.tree / "spec" / "assertions.json",
+            lambda d: d["assertions"]["prop-equal"].update(arity=2),
+        )
+        self.assert_caught("prop-equal: states arity 2; the rule gives 3")
+
+    def test_a_form_with_its_assertions_detail_fields_is_caught(self) -> None:
+        """A form reports the detail of the run that it is."""
+        _edit(
+            self.tree / "spec" / "assertions.json",
+            lambda d: d["assertions"]["prop-equal"].update(detail_fields=["want"]),
+        )
+        self.assert_caught("prop-equal: states detail_fields ['want']")
+
+    def test_a_form_without_its_assertions_relaxations_is_caught(self) -> None:
+        """A relaxation applies to the assertion's comparison in every case."""
+
+        def drop(document: Any) -> None:
+            del document["assertions"]["prop-equal"]["relaxations"]
+
+        _edit(self.tree / "spec" / "assertions.json", drop)
+        self.assert_caught("prop-equal: states relaxations []")
+
+    def test_a_form_in_another_package_is_caught(self) -> None:
+        """Every form is in the prop package."""
+        _edit(
+            self.tree / "spec" / "assertions.json",
+            lambda d: d["assertions"]["prop-equal"].update(package="golden"),
+        )
+        self.assert_caught("prop-equal: states package 'golden'; the rule gives 'prop'")
+
+    def test_a_form_of_another_assertion_is_caught(self) -> None:
+        """A form's entry states the assertion that its id names."""
+
+        def swap(document: Any) -> None:
+            document["assertions"]["prop-equal"]["form"]["of"] = "not-equal"
+
+        _edit(self.tree / "spec" / "assertions.json", swap)
+        self.assert_caught("prop-equal: is a form that the rule does not list")
+
+    def test_a_form_that_the_rule_lists_and_nobody_defined_is_caught(self) -> None:
+        """Each listed assertion has its form's entry."""
+
+        def drop(document: Any) -> None:
+            del document["assertions"]["prop-equal"]
+
+        _edit(self.tree / "spec" / "assertions.json", drop)
+        self.assert_caught("prop-equal: is not defined, and the rule lists it")
+
+    def test_a_form_that_the_rule_does_not_list_is_caught(self) -> None:
+        """Every entry with a form is one the rule lists."""
+
+        def add(document: Any) -> None:
+            entry = json.loads(json.dumps(document["assertions"]["prop-equal"]))
+            entry["form"]["of"] = "total"
+            document["assertions"]["prop-total"] = entry
+
+        _edit(self.tree / "spec" / "assertions.json", add)
+        self.assert_caught("prop-total: is a form that the rule does not list")
+
+    def test_a_form_of_prop_for_all_is_caught(self) -> None:
+        """prop-for-all is the run that every form is, so it has no form."""
+        _edit(
+            self.tree / "spec" / "assertions.json",
+            lambda d: d["forms"]["functions"].append("prop-for-all"),
+        )
+        self.assert_caught("which is no assertion that can have a form")
+
+    def test_an_assertion_that_the_rule_lists_twice_is_caught(self) -> None:
+        """An assertion has one form."""
+        _edit(
+            self.tree / "spec" / "assertions.json",
+            lambda d: d["forms"]["relations"].update(equal=["input"]),
+        )
+        self.assert_caught("forms: lists 'equal' twice")
+
+    def test_a_relation_form_that_generates_nothing_is_caught(self) -> None:
+        """A relation's form generates the arguments the relation takes."""
+        _edit(
+            self.tree / "spec" / "assertions.json",
+            lambda d: d["forms"]["relations"].update(commutative=[]),
+        )
+        self.assert_caught("generates [], not arguments")
+
+    def test_a_forms_rule_without_relations_is_caught(self) -> None:
+        """The rule states the functions and the relations."""
+
+        def drop(document: Any) -> None:
+            del document["forms"]["relations"]
+
+        _edit(self.tree / "spec" / "assertions.json", drop)
+        self.assert_caught("needs a list of functions and a map of relations")
+
+    def test_a_definition_without_a_forms_rule_is_caught(self) -> None:
+        """The entries of the forms are read against the rule."""
+
+        def drop(document: Any) -> None:
+            del document["forms"]
+
+        _edit(self.tree / "spec" / "assertions.json", drop)
+        self.assert_caught("spec/assertions.json: forms: is not a rule")
+
+    def test_a_form_name_off_the_rule_is_caught(self) -> None:
+        """A form's name is the qualifier followed by its assertion's name."""
+        _edit(
+            self.tree / "spec" / "naming.json",
+            lambda d: d["names"]["prop-equal"].update(python="prop.eq"),
+        )
+        self.assert_caught(
+            "prop-equal.python: is 'prop.eq'; the rule gives 'prop.equal'"
+        )
+
+    def test_a_go_form_of_permutation_without_its_exception_is_caught(self) -> None:
+        """Go's prop package already declares the generator prop.Permutation."""
+        _edit(
+            self.tree / "spec" / "naming.json",
+            lambda d: d["names"]["prop-permutation"].update(go="prop.Permutation"),
+        )
+        self.assert_caught(
+            "prop-permutation.go: is 'prop.Permutation'; the rule gives "
+            "'prop.IsPermutation'"
+        )
+
+    def test_a_name_exception_for_an_assertion_without_a_form_is_caught(self) -> None:
+        """An exception renames a form that exists."""
+        _edit(
+            self.tree / "spec" / "naming.json",
+            lambda d: d["forms"]["exceptions"].update(total={"go": "prop.Total"}),
+        )
+        self.assert_caught("names a form of 'total', which has none")
+
+    def test_a_name_exception_in_an_unqualified_language_is_caught(self) -> None:
+        """An exception applies only where the rule names forms at all."""
+        _edit(
+            self.tree / "spec" / "naming.json",
+            lambda d: d["forms"]["exceptions"]["permutation"].update(cobol="X"),
+        )
+        self.assert_caught("names cobol, which the rule does not qualify")
+
+    def test_a_naming_table_without_qualifiers_is_caught(self) -> None:
+        """The names of the forms are read against the qualifiers."""
+
+        def drop(document: Any) -> None:
+            del document["forms"]["qualifiers"]
+
+        _edit(self.tree / "spec" / "naming.json", drop)
+        self.assert_caught("spec/naming.json: forms: states no qualifiers")
 
 
 if __name__ == "__main__":

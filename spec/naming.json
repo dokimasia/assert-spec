@@ -1,4 +1,19 @@
 {
+    "forms": {
+        "exceptions": {
+            "permutation": {
+                "go": "prop.IsPermutation"
+            }
+        },
+        "qualifiers": {
+            "go": "prop.",
+            "java": "Prop.",
+            "kotlin": "Prop.",
+            "python": "prop.",
+            "rust": "prop::",
+            "typescript": "prop."
+        }
+    },
     "languages": [
         "go",
         "java",
@@ -401,6 +416,126 @@
             "rust": "is_poisoned",
             "typescript": "isPoisoned"
         },
+        "prop-accumulates": {
+            "go": "prop.Accumulates",
+            "java": "Prop.accumulates",
+            "kotlin": "Prop.accumulates",
+            "python": "prop.accumulates",
+            "rust": "prop::accumulates",
+            "typescript": "prop.accumulates"
+        },
+        "prop-associative": {
+            "go": "prop.Associative",
+            "java": "Prop.isAssociative",
+            "kotlin": "Prop.isAssociative",
+            "python": "prop.is_associative",
+            "rust": "prop::is_associative",
+            "typescript": "prop.isAssociative"
+        },
+        "prop-close-to": {
+            "go": "prop.CloseTo",
+            "java": "Prop.closeTo",
+            "kotlin": "Prop.closeTo",
+            "python": "prop.close_to",
+            "rust": "prop::close_to",
+            "typescript": "prop.closeTo"
+        },
+        "prop-commutative": {
+            "go": "prop.Commutative",
+            "java": "Prop.isCommutative",
+            "kotlin": "Prop.isCommutative",
+            "python": "prop.is_commutative",
+            "rust": "prop::is_commutative",
+            "typescript": "prop.isCommutative"
+        },
+        "prop-contains": {
+            "go": "prop.Contains",
+            "java": "Prop.contains",
+            "kotlin": "Prop.contains",
+            "python": "prop.contains",
+            "rust": "prop::contains",
+            "typescript": "prop.contains"
+        },
+        "prop-contains-in-order": {
+            "go": "prop.ContainsInOrder",
+            "java": "Prop.containsInOrder",
+            "kotlin": "Prop.containsInOrder",
+            "python": "prop.contains_in_order",
+            "rust": "prop::contains_in_order",
+            "typescript": "prop.containsInOrder"
+        },
+        "prop-deterministic": {
+            "go": "prop.Deterministic",
+            "java": "Prop.isDeterministic",
+            "kotlin": "Prop.isDeterministic",
+            "python": "prop.is_deterministic",
+            "rust": "prop::is_deterministic",
+            "typescript": "prop.isDeterministic"
+        },
+        "prop-empty": {
+            "go": "prop.Empty",
+            "java": "Prop.isEmpty",
+            "kotlin": "Prop.isEmpty",
+            "python": "prop.is_empty",
+            "rust": "prop::is_empty",
+            "typescript": "prop.isEmpty"
+        },
+        "prop-equal": {
+            "go": "prop.Equal",
+            "java": "Prop.equal",
+            "kotlin": "Prop.equal",
+            "python": "prop.equal",
+            "rust": "prop::equal",
+            "typescript": "prop.equal"
+        },
+        "prop-err-absent": {
+            "go": "prop.NoError",
+            "java": "Prop.noError",
+            "kotlin": "Prop.noError",
+            "python": "prop.no_error",
+            "rust": "prop::no_error",
+            "typescript": "prop.noError"
+        },
+        "prop-err-as": {
+            "go": "prop.ErrorAs",
+            "java": "Prop.errorAs",
+            "kotlin": "Prop.errorAs",
+            "python": "prop.error_as",
+            "rust": "prop::error_as",
+            "typescript": "prop.errorAs"
+        },
+        "prop-err-is": {
+            "go": "prop.ErrorIs",
+            "java": "Prop.errorIs",
+            "kotlin": "Prop.errorIs",
+            "python": "prop.error_is",
+            "rust": "prop::error_is",
+            "typescript": "prop.errorIs"
+        },
+        "prop-err-is-not": {
+            "go": "prop.ErrorIsNot",
+            "java": "Prop.errorIsNot",
+            "kotlin": "Prop.errorIsNot",
+            "python": "prop.error_is_not",
+            "rust": "prop::error_is_not",
+            "typescript": "prop.errorIsNot"
+        },
+        "prop-err-present": {
+            "go": "prop.HasError",
+            "java": "Prop.hasError",
+            "kotlin": "Prop.hasError",
+            "python": "prop.has_error",
+            "rust": "prop::has_error",
+            "typescript": "prop.hasError"
+        },
+        "prop-false": {
+            "go": "prop.False",
+            "java": "Prop.isFalse",
+            "kotlin": "Prop.isFalse",
+            "python": "prop.is_false",
+            "rust": "prop::is_false",
+            "typescript": "prop.isFalse"
+        },
         "prop-for-all": {
             "go": "prop.ForAll",
             "java": "Prop.forAll",
@@ -408,6 +543,190 @@
             "python": "prop.for_all",
             "rust": "prop::for_all",
             "typescript": "prop.forAll"
+        },
+        "prop-has-prefix": {
+            "go": "prop.HasPrefix",
+            "java": "Prop.hasPrefix",
+            "kotlin": "Prop.hasPrefix",
+            "python": "prop.has_prefix",
+            "rust": "prop::has_prefix",
+            "typescript": "prop.hasPrefix"
+        },
+        "prop-has-suffix": {
+            "go": "prop.HasSuffix",
+            "java": "Prop.hasSuffix",
+            "kotlin": "Prop.hasSuffix",
+            "python": "prop.has_suffix",
+            "rust": "prop::has_suffix",
+            "typescript": "prop.hasSuffix"
+        },
+        "prop-honours-cancellation": {
+            "go": "prop.HonoursCancellation",
+            "java": "Prop.honoursCancellation",
+            "kotlin": "Prop.honoursCancellation",
+            "python": "prop.honours_cancellation",
+            "rust": "prop::honours_cancellation",
+            "typescript": "prop.honoursCancellation"
+        },
+        "prop-honours-deadline": {
+            "go": "prop.HonoursDeadline",
+            "java": "Prop.honoursDeadline",
+            "kotlin": "Prop.honoursDeadline",
+            "python": "prop.honours_deadline",
+            "rust": "prop::honours_deadline",
+            "typescript": "prop.honoursDeadline"
+        },
+        "prop-idempotent": {
+            "go": "prop.Idempotent",
+            "java": "Prop.isIdempotent",
+            "kotlin": "Prop.isIdempotent",
+            "python": "prop.is_idempotent",
+            "rust": "prop::is_idempotent",
+            "typescript": "prop.isIdempotent"
+        },
+        "prop-in-range": {
+            "go": "prop.InRange",
+            "java": "Prop.inRange",
+            "kotlin": "Prop.inRange",
+            "python": "prop.in_range",
+            "rust": "prop::in_range",
+            "typescript": "prop.inRange"
+        },
+        "prop-length": {
+            "go": "prop.Length",
+            "java": "Prop.length",
+            "kotlin": "Prop.length",
+            "python": "prop.length",
+            "rust": "prop::length",
+            "typescript": "prop.length"
+        },
+        "prop-matches": {
+            "go": "prop.Matches",
+            "java": "Prop.matches",
+            "kotlin": "Prop.matches",
+            "python": "prop.matches",
+            "rust": "prop::matches",
+            "typescript": "prop.matches"
+        },
+        "prop-max-allocs": {
+            "go": "prop.MaxAllocs",
+            "java": "Prop.maxAllocs",
+            "kotlin": "Prop.maxAllocs",
+            "python": "prop.max_allocs",
+            "rust": "prop::max_allocs",
+            "typescript": "prop.maxAllocs"
+        },
+        "prop-nil": {
+            "go": "prop.Nil",
+            "java": "Prop.isNull",
+            "kotlin": "Prop.isNull",
+            "python": "prop.is_none",
+            "rust": "prop::is_none",
+            "typescript": "prop.isNil"
+        },
+        "prop-nil-context-safe": {
+            "go": "prop.NilContextSafe",
+            "java": "Prop.nullHandleSafe",
+            "kotlin": "Prop.nullHandleSafe",
+            "python": "prop.none_handle_safe",
+            "rust": "prop::none_handle_safe",
+            "typescript": "prop.nullHandleSafe"
+        },
+        "prop-not-contains": {
+            "go": "prop.NotContains",
+            "java": "Prop.notContains",
+            "kotlin": "Prop.notContains",
+            "python": "prop.not_contains",
+            "rust": "prop::not_contains",
+            "typescript": "prop.notContains"
+        },
+        "prop-not-empty": {
+            "go": "prop.NotEmpty",
+            "java": "Prop.isNotEmpty",
+            "kotlin": "Prop.isNotEmpty",
+            "python": "prop.is_not_empty",
+            "rust": "prop::is_not_empty",
+            "typescript": "prop.isNotEmpty"
+        },
+        "prop-not-equal": {
+            "go": "prop.NotEqual",
+            "java": "Prop.notEqual",
+            "kotlin": "Prop.notEqual",
+            "python": "prop.not_equal",
+            "rust": "prop::not_equal",
+            "typescript": "prop.notEqual"
+        },
+        "prop-not-nil": {
+            "go": "prop.NotNil",
+            "java": "Prop.isNotNull",
+            "kotlin": "Prop.isNotNull",
+            "python": "prop.is_not_none",
+            "rust": "prop::is_some",
+            "typescript": "prop.isNotNil"
+        },
+        "prop-not-pure": {
+            "go": "prop.NotPure",
+            "java": "Prop.isNotPure",
+            "kotlin": "Prop.isNotPure",
+            "python": "prop.is_not_pure",
+            "rust": "prop::is_not_pure",
+            "typescript": "prop.isNotPure"
+        },
+        "prop-not-throws": {
+            "go": "prop.NotPanics",
+            "java": "Prop.doesNotThrow",
+            "kotlin": "Prop.doesNotThrow",
+            "python": "prop.does_not_raise",
+            "rust": "prop::does_not_panic",
+            "typescript": "prop.doesNotThrow"
+        },
+        "prop-pairwise": {
+            "go": "prop.Pairwise",
+            "java": "Prop.pairwise",
+            "kotlin": "Prop.pairwise",
+            "python": "prop.pairwise",
+            "rust": "prop::pairwise",
+            "typescript": "prop.pairwise"
+        },
+        "prop-permutation": {
+            "go": "prop.IsPermutation",
+            "java": "Prop.isPermutation",
+            "kotlin": "Prop.isPermutation",
+            "python": "prop.is_permutation",
+            "rust": "prop::is_permutation",
+            "typescript": "prop.isPermutation"
+        },
+        "prop-pure": {
+            "go": "prop.Pure",
+            "java": "Prop.isPure",
+            "kotlin": "Prop.isPure",
+            "python": "prop.is_pure",
+            "rust": "prop::is_pure",
+            "typescript": "prop.isPure"
+        },
+        "prop-round-trip": {
+            "go": "prop.RoundTrip",
+            "java": "Prop.roundTrip",
+            "kotlin": "Prop.roundTrip",
+            "python": "prop.round_trip",
+            "rust": "prop::round_trip",
+            "typescript": "prop.roundTrip"
+        },
+        "prop-throws": {
+            "go": "prop.Panics",
+            "java": "Prop.throwsException",
+            "kotlin": "Prop.throwsException",
+            "python": "prop.raises",
+            "rust": "prop::panics",
+            "typescript": "prop.throws"
+        },
+        "prop-true": {
+            "go": "prop.True",
+            "java": "Prop.isTrue",
+            "kotlin": "Prop.isTrue",
+            "python": "prop.is_true",
+            "rust": "prop::is_true",
+            "typescript": "prop.isTrue"
         },
         "pure": {
             "go": "Pure",
@@ -564,6 +883,14 @@
                 "rust": "prop::dict",
                 "typescript": "prop.dict"
             },
+            "prop.draws": {
+                "go": "prop.Draws",
+                "java": "Prop.draws",
+                "kotlin": "Prop.draws",
+                "python": "prop.draws",
+                "rust": "prop::draws",
+                "typescript": "prop.draws"
+            },
             "prop.duration": {
                 "go": "prop.Duration",
                 "java": "Prop.duration",
@@ -571,6 +898,14 @@
                 "python": "prop.duration",
                 "rust": "prop::duration",
                 "typescript": "prop.duration"
+            },
+            "prop.example": {
+                "go": "prop.Example",
+                "java": "Prop.example",
+                "kotlin": "Prop.example",
+                "python": "prop.example",
+                "rust": "prop::example",
+                "typescript": "prop.example"
             },
             "prop.explain": {
                 "go": "prop.Explain",
@@ -628,6 +963,22 @@
                 "rust": "prop::max_choices",
                 "typescript": "prop.maxChoices"
             },
+            "prop.of": {
+                "go": "prop.Of",
+                "java": "Prop.of",
+                "kotlin": "Prop.of",
+                "python": "prop.of",
+                "rust": "prop::of",
+                "typescript": "prop.of"
+            },
+            "prop.of-shape": {
+                "go": "prop.OfShape",
+                "java": "Prop.ofShape",
+                "kotlin": "Prop.ofShape",
+                "python": "prop.of_shape",
+                "rust": "prop::of_shape",
+                "typescript": "prop.ofShape"
+            },
             "prop.one-of": {
                 "go": "prop.OneOf",
                 "java": "Prop.oneOf",
@@ -660,6 +1011,30 @@
                 "rust": "prop::recursive",
                 "typescript": "prop.recursive"
             },
+            "prop.register": {
+                "go": "prop.Register",
+                "java": "Prop.register",
+                "kotlin": "Prop.register",
+                "python": "prop.register",
+                "rust": "prop::register",
+                "typescript": "prop.register"
+            },
+            "prop.register-values": {
+                "go": "prop.RegisterValues",
+                "java": "Prop.registerValues",
+                "kotlin": "Prop.registerValues",
+                "python": "prop.register_values",
+                "rust": "prop::register_values",
+                "typescript": "prop.registerValues"
+            },
+            "prop.register-variants": {
+                "go": "prop.RegisterVariants",
+                "java": "Prop.registerVariants",
+                "kotlin": "Prop.registerVariants",
+                "python": "prop.register_variants",
+                "rust": "prop::register_variants",
+                "typescript": "prop.registerVariants"
+            },
             "prop.replay": {
                 "go": "prop.Replay",
                 "java": "Prop.replay",
@@ -691,6 +1066,14 @@
                 "python": "prop.seed",
                 "rust": "prop::seed",
                 "typescript": "prop.seed"
+            },
+            "prop.shape-of": {
+                "go": "prop.ShapeOf",
+                "java": "Prop.shapeOf",
+                "kotlin": "Prop.shapeOf",
+                "python": "prop.shape_of",
+                "rust": "prop::shape_of",
+                "typescript": "prop.shapeOf"
             },
             "prop.shrink": {
                 "go": "prop.Shrink",
@@ -731,6 +1114,14 @@
                 "python": "prop.string_matching",
                 "rust": "prop::string_matching",
                 "typescript": "prop.stringMatching"
+            },
+            "prop.using": {
+                "go": "prop.Using",
+                "java": "Prop.using",
+                "kotlin": "Prop.using",
+                "python": "prop.using",
+                "rust": "prop::using",
+                "typescript": "prop.using"
             },
             "prop.workers": {
                 "go": "prop.Workers",
@@ -1123,5 +1514,5 @@
             }
         }
     },
-    "version": "2.1.0"
+    "version": "2.2.0"
 }
