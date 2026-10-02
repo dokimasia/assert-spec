@@ -17,9 +17,11 @@ from .source import Source
 SEEDS = 200
 
 #: The definition's values, pinned here rather than read from the code
-#: under test: the largest count, the characters . leaves out, and the
-#: members of \s in alphabet order.
+#: under test: the largest count and product of nested counts, the deepest
+#: nesting of groups, the characters . leaves out, and the members of \s in
+#: alphabet order.
 COUNT_LIMIT = 1000
+DEPTH_LIMIT = 100
 TERMINATORS = "\n\r" + chr(0x85) + chr(0x2028) + chr(0x2029)
 WHITESPACE = [" ", "\t", "\n", "\f", "\r"]
 
@@ -53,6 +55,18 @@ ACCEPTED = [
     f"a{{{COUNT_LIMIT}}}",
 ]
 
+#: Patterns at the limits of the subset, which parse. Their strings can
+#: exceed a case's cap on choices, so no test decodes them.
+AT_THE_LIMITS = [
+    "(?:a{10}){100}",
+    "(a{1000})*",
+    "(a{1000}){0,1}",
+    "(" * DEPTH_LIMIT + "a" + ")" * DEPTH_LIMIT,
+]
+
+#: A pattern whose groups nest one deeper than the limit.
+TOO_DEEP = "(" * (DEPTH_LIMIT + 1) + "a" + ")" * (DEPTH_LIMIT + 1)
+
 #: Patterns outside the subset, each with what puts it outside.
 REFUSED = {
     "a quantifier after a quantifier": "a**",
@@ -61,6 +75,11 @@ REFUSED = {
     "a quantifier with nothing to repeat": "*a",
     "a count that runs backwards": "a{2,1}",
     "a count above the limit": f"a{{{COUNT_LIMIT + 1}}}",
+    "nested counts that multiply past the limit": "(a{1000}){2}",
+    "three nested counts that multiply past the limit": "((a{100}){10}){2}",
+    "an open count whose lower count multiplies past the limit": "(a{500}){3,}",
+    "a count of 0, which counts as 1 in a product past the limit": "((a{1000}){0}){2}",
+    "groups nested past the limit": TOO_DEEP,
     "a count with a leading zero": "a{01}",
     "a maximum with a leading zero": "a{1,02}",
     "a count without a minimum": "a{,3}",
@@ -114,6 +133,11 @@ class ParseTest(unittest.TestCase):
     def test_every_construct_of_the_subset_parses(self) -> None:
         """One pattern per construct."""
         for text in ACCEPTED:
+            parse(text)
+
+    def test_a_pattern_at_the_limits_parses(self) -> None:
+        """Counts that multiply to the limit, and groups nested to it."""
+        for text in AT_THE_LIMITS:
             parse(text)
 
     def test_a_pattern_outside_the_subset_raises(self) -> None:

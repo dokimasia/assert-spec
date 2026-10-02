@@ -239,6 +239,185 @@
           "value": 0.30000000000000004
         }
       }
+    },
+    {
+      "id": "equal/negative-zero-equals-zero",
+      "args": [
+        {
+          "type": "float",
+          "value": -0.0
+        },
+        {
+          "type": "float",
+          "value": 0.0
+        }
+      ],
+      "expect": "pass"
+    },
+    {
+      "id": "equal/a-nan-in-a-list-is-unequal-to-itself",
+      "args": [
+        {
+          "type": "list",
+          "items": [
+            {
+              "type": "float",
+              "value": "NaN"
+            }
+          ]
+        },
+        {
+          "type": "list",
+          "items": [
+            {
+              "type": "float",
+              "value": "NaN"
+            }
+          ]
+        }
+      ],
+      "expect": "fail"
+    },
+    {
+      "id": "equal/nans-are-equal-under-equate-nans",
+      "args": [
+        {
+          "type": "float",
+          "value": "NaN"
+        },
+        {
+          "type": "float",
+          "value": "NaN"
+        }
+      ],
+      "options": [
+        "equate-nans"
+      ],
+      "expect": "pass"
+    },
+    {
+      "id": "equal/nans-in-a-list-are-equal-under-equate-nans",
+      "args": [
+        {
+          "type": "list",
+          "items": [
+            {
+              "type": "float",
+              "value": "NaN"
+            }
+          ]
+        },
+        {
+          "type": "list",
+          "items": [
+            {
+              "type": "float",
+              "value": "NaN"
+            }
+          ]
+        }
+      ],
+      "options": [
+        "equate-nans"
+      ],
+      "expect": "pass"
+    },
+    {
+      "id": "equal/an-absent-list-against-an-empty-one",
+      "args": [
+        {
+          "type": "list",
+          "of": "int",
+          "value": null
+        },
+        {
+          "type": "list",
+          "of": "int",
+          "value": []
+        }
+      ],
+      "expect": "fail",
+      "detail": {
+        "want": {
+          "type": "list",
+          "of": "int",
+          "value": []
+        },
+        "got": {
+          "type": "list",
+          "of": "int",
+          "value": null
+        }
+      }
+    },
+    {
+      "id": "equal/an-absent-list-equals-an-empty-one-under-equate-empty",
+      "args": [
+        {
+          "type": "list",
+          "of": "int",
+          "value": null
+        },
+        {
+          "type": "list",
+          "of": "int",
+          "value": []
+        }
+      ],
+      "options": [
+        "equate-empty"
+      ],
+      "expect": "pass"
+    },
+    {
+      "id": "equal/an-absent-map-equals-an-empty-one-under-equate-empty",
+      "args": [
+        {
+          "type": "map",
+          "key": "string",
+          "of": "int",
+          "value": null
+        },
+        {
+          "type": "map",
+          "key": "string",
+          "of": "int",
+          "value": {}
+        }
+      ],
+      "options": [
+        "equate-empty"
+      ],
+      "expect": "pass"
+    },
+    {
+      "id": "equal/a-nested-absent-list-equals-an-empty-one-under-equate-empty",
+      "args": [
+        {
+          "type": "list",
+          "items": [
+            {
+              "type": "list",
+              "of": "int",
+              "value": null
+            }
+          ]
+        },
+        {
+          "type": "list",
+          "items": [
+            {
+              "type": "list",
+              "of": "int",
+              "value": []
+            }
+          ]
+        }
+      ],
+      "options": [
+        "equate-empty"
+      ],
+      "expect": "pass"
     }
   ]
 }

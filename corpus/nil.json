@@ -11,6 +11,17 @@
       "expect": "pass"
     },
     {
+      "id": "nil/an-absent-list-is-null",
+      "args": [
+        {
+          "type": "list",
+          "of": "int",
+          "value": null
+        }
+      ],
+      "expect": "pass"
+    },
+    {
       "id": "nil/zero-is-not-null",
       "args": [
         {

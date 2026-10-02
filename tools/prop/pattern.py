@@ -14,10 +14,13 @@ contains:
   negated by a leading ``^``. Inside a class, ``\``, ``[``, ``]`` and a
   hyphen that forms no range are escaped. A hyphen may stand unescaped
   first or last, and RESERVED_PAIRS are refused.
-- A group, ``(...)`` or ``(?:...)``, and alternation with ``|``.
+- A group, ``(...)`` or ``(?:...)``, nested at most MAX_DEPTH deep, and
+  alternation with ``|``.
 - The quantifiers ``*``, ``+``, ``?``, ``{m}``, ``{m,}`` and ``{m,n}``, with
   counts of at most MAX_COUNT and without a leading zero, and never two in
-  a row.
+  a row. Along every chain of nested quantifiers, the counts multiply to
+  at most MAX_COUNT, each count the upper one, or the lower one when there
+  is no upper one, and a count of 0 counted as 1.
 - ``^`` as the first character of the pattern and ``$`` as its last.
 
 Each node decodes from the case in a fixed way. An alternation of two or
@@ -60,8 +63,13 @@ WORD: Final = string.digits + string.ascii_letters + "_"
 SPACE: Final = " \t\n\f\r"
 SHORTHANDS: Final = {"d": DIGITS, "w": WORD, "s": SPACE}
 
-#: The largest count a quantifier may state. RE2 refuses a larger one.
+#: The largest count a quantifier may state, and the largest product of
+#: the counts of nested quantifiers. RE2 refuses a larger one of either.
 MAX_COUNT: Final = 1000
+
+#: The deepest that groups may nest. Python's re module refuses a pattern
+#: whose groups nest 495 deep.
+MAX_DEPTH: Final = 100
 
 #: The span labels of an alternation and of a quantifier's repetitions.
 ALTERNATION: Final = "alternation"
@@ -162,6 +170,19 @@ class Repeat:
             collect(case, self.sizes, ELEMENT, element)
 
 
+def _weight(node: Node) -> int:
+    """Return the largest product of quantifier counts along a path through node."""
+    if isinstance(node, Repeat):
+        high = node.sizes.max_size
+        count = node.sizes.min_size if high is None else high
+        return max(count, 1) * _weight(node.item)
+    if isinstance(node, Sequence):
+        return max((_weight(item) for item in node.items), default=1)
+    if isinstance(node, Alternation):
+        return max(_weight(branch) for branch in node.branches)
+    return 1
+
+
 def _class_of(intervals: list[tuple[int, int]]) -> Class:
     """Return the class of the merged intervals.
 
@@ -223,6 +244,7 @@ class _Parser:
             raise PatternError(f"prop: pattern {text!r}: {bad}") from bad
         self._text = text
         self._at = 0
+        self._depth = 0
 
     def _fail(self, what: str) -> PatternError:
         """Return the error for what is wrong at the current position."""
@@ -286,7 +308,10 @@ class _Parser:
         atom = self._atom()
         if self._peek() not in _QUANTIFIERS:
             return atom
-        return Repeat(atom, self._quantifier())
+        repeat = Repeat(atom, self._quantifier())
+        if (weight := _weight(repeat)) > MAX_COUNT:
+            raise self._fail(f"nested counts multiply to {weight}, above {MAX_COUNT}")
+        return repeat
 
     def _quantifier(self) -> Sizes:
         """Parse *, +, ?, {m}, {m,} or {m,n} into the repetitions it allows."""
@@ -348,7 +373,10 @@ class _Parser:
         return Literal(char)
 
     def _group(self) -> Node:
-        """Parse a group after its (."""
+        """Parse a group after its (, at most MAX_DEPTH deep."""
+        self._depth += 1
+        if self._depth > MAX_DEPTH:
+            raise self._fail(f"groups nest deeper than {MAX_DEPTH}")
         if self._peek() == "?":
             if self._peek(1) != ":":
                 raise self._fail("only the (?: group is in the portable subset")
@@ -356,6 +384,7 @@ class _Parser:
         node = self._alternation()
         if self._next("a group is not closed") != ")":
             raise self._fail("a group is not closed by )")
+        self._depth -= 1
         return node
 
     def _class(self) -> Class:

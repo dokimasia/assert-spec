@@ -37,11 +37,16 @@ spec/conformance.md    what converges and what does not
 spec/manifest.json     a digest of everything an implementation vendors
 spec/encoding.md       how a corpus case states a value
 spec/overlays.md       how a language declares it cannot comply
-corpus/*.json          the cases, one file per assertion they reach
+corpus/*.json          the cases, one file per assertion they cover
+corpus/prop/*.yaml     the property engine's vector inputs  edited by people
+corpus/prop/*.json     the vectors with their outputs       read by libraries
 overlays/*.json        one per language, declaring divergences
-tools/render.py        YAML to JSON
+tools/render.py        YAML to JSON, and the vectors' outputs
 tools/validate.py      the rules, checked
-VERSION                1.1.0
+tools/prop/            the property engine's executable reference
+tools/spec-sync.sh     how an implementation vendors the definition
+tools/spec-check.sh    how an implementation checks its copy
+VERSION                2.0.0
 ```
 
 People edit the YAML. `make render` produces the JSON, which is
@@ -78,11 +83,12 @@ one definition.
 
 ## The set
 
-42 assertions: 35 in the root namespace, 3 for golden files, 4 for
-benchmark ceilings. They cover equality, truth, nullity, length,
-containment, text, numbers, ordering, errors, raising, cancellation and
-deadlines, retrying, goroutine and task leaks, allocations, recorded
-output, and performance ceilings.
+43 assertions: 35 in the root namespace, 3 for golden files, 4 for
+benchmark ceilings and 1 property check. They cover equality, truth,
+nullity, length, containment, text, numbers, ordering, errors, raising,
+cancellation and deadlines, retrying, goroutine and task leaks,
+allocations, recorded output, performance ceilings, and properties over
+generated inputs.
 
 An assertion earns its place by answering two questions. Does it state
 something that must be true, and fail when it is not? Does it mean the
@@ -112,17 +118,22 @@ what the failure must mention:
 }
 ```
 
-Typed literals only cross a language boundary as data, so the corpus
-reaches 25 of the 42 assertions. Seventeen of those state their
-arguments; the other eight name a behaviour instead, because what they
-take is a callable and no encoding carries one. The remaining 17 take a
-golden file, a benchmark measurement or an allocation count, and none of
-those is data either.
+Typed literals cross a language boundary only as data, so the corpus
+covers 25 of the 43 assertions. Seventeen of those state their
+arguments. The other eight name a behaviour instead, because what they
+take is a callable and no encoding states one. The remaining 18 take an
+error value, a predicate, a callable that no subject describes, a golden
+file, a benchmark measurement or a property's body, and none of those is
+data either. The property engine itself is data in and data out, so 204
+vectors under `corpus/prop/` pin its decoding, generation, shrinking,
+coverage test, fuzz bridge, replay token, run detail and store.
 
 **The completeness gate** checks membership. Every assertion must be
-present under the name the naming table gives it. That covers the 17 the
-corpus cannot reach: a library is held to the standard on meaning where
-meaning can be stated, and on membership everywhere else.
+present under the name the naming table gives it, with the arity the
+definition states as far as the language can read it. The gate covers
+the 18 assertions that the corpus cannot state. The standard checks a
+library's meaning where meaning can be stated, and its membership
+everywhere else.
 
 **An overlay** is where a language declares it cannot comply, with the
 reason. A divergence nobody wrote down is a bug; one written down is a
@@ -142,10 +153,13 @@ the rule below it should not have.
 `spec/manifest.json` carries a digest of every file an implementation
 vendors, so there is something to compare against that tracks the bytes
 rather than the meaning. Each implementation runs `spec-check` in its own
-CI. A copy that does not match the manifest beside it fails, always. A
-copy that differs from this repository fails only when that change is
-the one that touched it: falling behind is allowed and is tracked by an
-issue, and committing a copy nobody else has is not.
+CI. A copy that does not match the manifest beside it fails, always: each
+file, the overlay of the copy's language included, and the manifest's
+own digest of those files. A copy that differs from this repository
+fails only when that change is the one that touched it: falling behind
+is allowed and is tracked by an issue, and committing a copy nobody else
+has is not. A change that touches the copy also fails when this
+repository cannot be read, because the comparison did not happen.
 
 Each implementation opens that issue on itself, on a weekday schedule,
 by running the same check against this repository's main branch. It
@@ -189,16 +203,17 @@ not on the path. Every other target needs only uv.
 
 `make validate` reads the rendered JSON, not the YAML, because that is
 what implementations read. It checks that the version files agree, that
-every assertion is described, that the naming table covers every
-assertion in a declared language, that a qualified name sits in the
+every assertion is described, that every language that names one
+assertion names all of them, that a qualified name names a member of the
 package its assertion declares, that every corpus case names a defined
-assertion with a unique id and a decodable literal, and that an overlay
-extends this version and diverges only from assertions that exist. It
-reports everything it finds in one run.
+assertion with a unique id, decodable literals and options its assertion
+accepts, and that an overlay extends this version and diverges only from
+assertions that exist. It reports everything it finds in one run.
 
-`make test` breaks each rule in a scratch copy and requires the
-validator to catch it. A validator only ever run on a clean tree would
-pass just as readily with every rule deleted.
+`make test` breaks each rule of the validator in a scratch copy and
+requires the validator to report it, and breaks a vendored copy each way
+that `spec-check.sh` must refuse. A validator only ever run on a clean
+tree would pass just as readily with every rule deleted.
 
 ## Versioning
 
@@ -208,21 +223,25 @@ standard fails validation rather than passing quietly.
 
 Adding an assertion is a minor version. Changing what an existing
 assertion means, or renaming one, is a major version, because it changes
-whether an existing test still states what its author meant.
+whether an existing test still states what its author meant. Renaming a
+member of the surface table is a major version for the same reason, and
+so is a corpus case that pins an answer the implementations gave
+differently.
 
 ## Implementations
 
 | Language | Repository | Assertions |
 |---|---|---|
-| Go | [assert-go](https://github.com/dokimasia/assert-go) | 42 of 42 |
-| Java | [assert-java](https://github.com/dokimasia/assert-java) | 40 of 42 |
-| Kotlin | [assert-java](https://github.com/dokimasia/assert-java) | 40 of 42 |
-| Python | [assert-python](https://github.com/dokimasia/assert-python) | 40 of 42 |
-| Rust | [assert-rust](https://github.com/dokimasia/assert-rust) | 42 of 42 |
-| TypeScript | [assert-typescript](https://github.com/dokimasia/assert-typescript) | 39 of 42 |
+| Go | [assert-go](https://github.com/dokimasia/assert-go) | 43 of 43 |
+| Java | [assert-java](https://github.com/dokimasia/assert-java) | 41 of 43 |
+| Kotlin | [assert-java](https://github.com/dokimasia/assert-java) | 41 of 43 |
+| Python | [assert-python](https://github.com/dokimasia/assert-python) | 41 of 43 |
+| Rust | [assert-rust](https://github.com/dokimasia/assert-rust) | 43 of 43 |
+| TypeScript | [assert-typescript](https://github.com/dokimasia/assert-typescript) | 40 of 43 |
 
-Each count is against version 1.1.0. An implementation that has not
-synced to it yet has a drift issue open until it does.
+Each count is what the language's overlay declares against version
+2.0.0. An implementation that has not synced to it yet has a drift issue
+open until it does.
 
 Java and Kotlin ship from one repository and are named identically, so
 a test reads the same in both. Neither states a ceiling on allocation
@@ -234,7 +253,7 @@ answers only as a heap-usage delta that moves with whether the collector
 ran. Each gap is in that language's overlay with the measurement behind
 it.
 
-Go and Rust state all forty-two and declare nothing absent. Go checks no
+Go and Rust state all forty-three and declare nothing absent. Go checks no
 allocation ceiling in a build with the race detector, msan or asan, or
 in one whose `-gcflags` turn off optimisation or inlining, because those
 builds allocate differently from the one that ships. In Rust four are

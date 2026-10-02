@@ -28,8 +28,9 @@ from prop.vectors import KINDS
 
 ROOT = Path(__file__).resolve().parent.parent
 
-#: The scalar types a list's ``of`` and a map's ``key`` may name.
-SCALARS = {"bool", "int", "float", "string"}
+#: The scalar types a list's ``of`` and a map's ``key`` may name, as the
+#: reference's codec states them.
+SCALARS = literal.SCALARS
 
 #: The types a typed literal may state, and the forms of each: the keys a
 #: literal of the type has beside ``type``. The table in the encoding
@@ -92,12 +93,21 @@ class Problems:
 
 
 def _load(path: Path, problems: Problems) -> Any:
-    """Return a JSON file's content, or record a problem and return None."""
+    """Return a JSON file's object, or record a problem and return None.
+
+    Every file the validator reads is one JSON object, so any other
+    document is reported here rather than raised by the first check that
+    reads a key.
+    """
+    where = str(path.relative_to(ROOT))
     try:
-        return json.loads(path.read_text())
+        document = json.loads(path.read_text())
     except (OSError, json.JSONDecodeError) as err:
-        problems.at(str(path.relative_to(ROOT)), f"cannot be read: {err}")
+        problems.at(where, f"cannot be read: {err}")
         return None
+    if not problems.unless(isinstance(document, dict), where, "is not a JSON object"):
+        return None
+    return document
 
 
 def check_version(spec: Any, naming: Any, version: str, problems: Problems) -> None:
@@ -197,6 +207,10 @@ def check_naming(
     qualify by type and reach the package through an import, so the head
     is a class name. A rule that required the package name would impose
     one language's conventions on all of them.
+
+    A language that names one assertion names every assertion. One that
+    its overlay declares absent keeps its name, so the implementation that
+    later supplies it does not choose another.
     """
     defined = spec.get("assertions", {})
     languages = naming.get("languages", [])
@@ -208,6 +222,14 @@ def check_naming(
         problems.at("spec/naming.json", f"{missing} has no entry")
     for extra in sorted(set(names) - assertions):
         problems.at("spec/naming.json", f"{extra} is named but not defined")
+
+    implementing = {language for named in names.values() for language in named}
+    for aid in sorted(assertions & set(names)):
+        for language in sorted(implementing - set(names[aid])):
+            problems.at(
+                "spec/naming.json",
+                f"{aid} has no {language} name, and {language} names other assertions",
+            )
 
     for aid, per_language in sorted(names.items()):
         for language, name in sorted(per_language.items()):
@@ -280,13 +302,14 @@ def check_literal(value: Any, where: str, problems: Problems) -> None:
 class Vocabulary:
     """The names a corpus case may use.
 
-    The detail fields of the assertion under test and the subject kinds
-    of the definition are checked together, because a case names either
-    detail fields or a subject.
+    The detail fields and the relaxations of the assertion under test and
+    the subject kinds of the definition are checked together, because a
+    case names any of them.
     """
 
     detail: set[str]
     subjects: set[str]
+    relaxations: set[str]
 
 
 def check_case(
@@ -341,6 +364,22 @@ def check_case(
             f"names subject kind {kind!r}, which the definition does not state",
         )
 
+    options = case.get("options", [])
+    if problems.unless(
+        isinstance(options, list), f"{where} [{cid}]", "options is not a list"
+    ):
+        for option in options:
+            problems.unless(
+                option in vocabulary.relaxations,
+                f"{where} [{cid}]",
+                f"names option {option!r}, which {assertion} does not accept",
+            )
+        problems.unless(
+            len({str(option) for option in options}) == len(options),
+            f"{where} [{cid}]",
+            "names an option twice",
+        )
+
     detail = case.get("detail", {})
     if problems.unless(
         isinstance(detail, dict), f"{where} [{cid}]", "detail is not an object"
@@ -372,11 +411,16 @@ def check_case(
 
 
 def check_corpus(
-    assertions: dict[str, set[str]], subjects: set[str], problems: Problems
+    assertions: dict[str, set[str]],
+    subjects: set[str],
+    accepted: dict[str, set[str]],
+    problems: Problems,
 ) -> int:
     """Check every corpus file and case, and return the number of cases.
 
     Each file names a defined assertion, and each case id is unique.
+    assertions maps each assertion to its detail fields, and accepted to
+    the relaxations it accepts.
     """
     seen: dict[str, str] = {}
     total = 0
@@ -425,7 +469,9 @@ def check_corpus(
                 case,
                 str(assertion),
                 Vocabulary(
-                    detail=assertions.get(str(assertion), set()), subjects=subjects
+                    detail=assertions.get(str(assertion), set()),
+                    subjects=subjects,
+                    relaxations=accepted.get(str(assertion), set()),
                 ),
                 where,
                 problems,
@@ -930,7 +976,12 @@ def main() -> int:
     assertions = check_assertions(spec, problems)
     relaxations = check_relaxations(spec, naming, problems)
     check_naming(naming, spec, set(assertions), problems)
-    cases = check_corpus(assertions, check_subjects(spec, problems), problems)
+    accepted = {
+        aid: set(body.get("relaxations", []) or [])
+        for aid, body in spec.get("assertions", {}).items()
+        if isinstance(body, dict)
+    }
+    cases = check_corpus(assertions, check_subjects(spec, problems), accepted, problems)
     vectors = check_vectors(problems)
     check_surface(naming, set(naming.get("languages", [])), problems)
     check_overlays(

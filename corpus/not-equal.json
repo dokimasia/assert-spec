@@ -48,6 +48,68 @@
         }
       ],
       "expect": "pass"
+    },
+    {
+      "id": "not-equal/negative-zero-against-zero",
+      "args": [
+        {
+          "type": "float",
+          "value": -0.0
+        },
+        {
+          "type": "float",
+          "value": 0.0
+        }
+      ],
+      "expect": "fail",
+      "detail": {
+        "got": {
+          "type": "float",
+          "value": -0.0
+        }
+      }
+    },
+    {
+      "id": "not-equal/nans-under-equate-nans",
+      "args": [
+        {
+          "type": "float",
+          "value": "NaN"
+        },
+        {
+          "type": "float",
+          "value": "NaN"
+        }
+      ],
+      "options": [
+        "equate-nans"
+      ],
+      "expect": "fail",
+      "detail": {
+        "got": {
+          "type": "float",
+          "value": "NaN"
+        }
+      }
+    },
+    {
+      "id": "not-equal/an-absent-list-against-an-empty-one-under-equate-empty",
+      "args": [
+        {
+          "type": "list",
+          "of": "int",
+          "value": null
+        },
+        {
+          "type": "list",
+          "of": "int",
+          "value": []
+        }
+      ],
+      "options": [
+        "equate-empty"
+      ],
+      "expect": "fail"
     }
   ]
 }

@@ -53,6 +53,10 @@
       ],
       "expect": "fail",
       "detail": {
+        "haystack": {
+          "type": "string",
+          "value": "a-b-c"
+        },
         "needle": {
           "type": "string",
           "value": "b"
@@ -81,6 +85,10 @@
       ],
       "expect": "fail",
       "detail": {
+        "haystack": {
+          "type": "string",
+          "value": "a-b-c"
+        },
         "needle": {
           "type": "string",
           "value": "z"
@@ -109,6 +117,10 @@
       ],
       "expect": "fail",
       "detail": {
+        "haystack": {
+          "type": "string",
+          "value": "a-b"
+        },
         "needle": {
           "type": "string",
           "value": "a"

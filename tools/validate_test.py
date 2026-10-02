@@ -386,7 +386,7 @@ class Validator(unittest.TestCase):
         def add_field(document: Any) -> None:
             for case in document["cases"]:
                 if case["expect"] == "fail":
-                    case["detail"]["bogus"] = {"type": "int", "value": 1}
+                    case.setdefault("detail", {})["bogus"] = {"type": "int", "value": 1}
 
         _edit(self.tree / "corpus" / "equal.json", add_field)
         self.assert_caught("which equal does not declare")
@@ -397,7 +397,7 @@ class Validator(unittest.TestCase):
         def untype(document: Any) -> None:
             for case in document["cases"]:
                 if case["expect"] == "fail":
-                    case["detail"]["want"] = 2
+                    case.setdefault("detail", {})["want"] = 2
 
         _edit(self.tree / "corpus" / "equal.json", untype)
         self.assert_caught("detail.want")
@@ -574,6 +574,401 @@ class Validator(unittest.TestCase):
         self.assertEqual(result.returncode, 1)
         self.assertIn("equal has no entry", result.stderr)
         self.assertIn("true has no entry", result.stderr)
+
+    def test_a_definition_table_of_another_version_is_caught(self) -> None:
+        """The assertion table states the version VERSION states."""
+        _edit(
+            self.tree / "spec" / "assertions.json",
+            lambda d: d.update(version="9.9.9"),
+        )
+        self.assert_caught("spec/assertions.json: states version '9.9.9'")
+
+    def test_a_naming_table_of_another_version_is_caught(self) -> None:
+        """The naming table states the version VERSION states."""
+        _edit(self.tree / "spec" / "naming.json", lambda d: d.update(version="9.9.9"))
+        self.assert_caught("spec/naming.json: states version '9.9.9'")
+
+    def test_a_definition_with_no_assertions_is_caught(self) -> None:
+        """A definition that states nothing defines nothing."""
+        _edit(
+            self.tree / "spec" / "assertions.json",
+            lambda d: d.update(assertions={}),
+        )
+        self.assert_caught("spec/assertions.json: states no assertions")
+
+    def test_an_assertion_id_that_is_not_hyphenated_lowercase_is_caught(self) -> None:
+        """An id is lowercase words joined by hyphens."""
+
+        def rename(document: Any) -> None:
+            document["assertions"]["True"] = document["assertions"].pop("true")
+
+        _edit(self.tree / "spec" / "assertions.json", rename)
+        self.assert_caught("assertions.json: True: is not a hyphenated lowercase id")
+
+    def test_an_assertion_of_no_arguments_is_caught(self) -> None:
+        """An assertion takes at least the message."""
+        _edit(
+            self.tree / "spec" / "assertions.json",
+            lambda d: d["assertions"]["equal"].update(arity=0),
+        )
+        self.assert_caught("equal: states arity 0")
+
+    def test_detail_fields_that_are_not_a_list_are_caught(self) -> None:
+        """The detail fields are a list of names."""
+        _edit(
+            self.tree / "spec" / "assertions.json",
+            lambda d: d["assertions"]["equal"].update(detail_fields="want"),
+        )
+        self.assert_caught("equal: detail_fields is not a list")
+
+    def test_a_package_that_is_not_an_id_is_caught(self) -> None:
+        """A package name is an id."""
+        _edit(
+            self.tree / "spec" / "assertions.json",
+            lambda d: d["assertions"]["golden-match"].update(package="Golden"),
+        )
+        self.assert_caught("names package 'Golden', which is not an id")
+
+    def test_a_definition_with_no_subjects_is_caught(self) -> None:
+        """The subject vocabulary is what the subject cases name."""
+        _edit(self.tree / "spec" / "assertions.json", lambda d: d.update(subjects={}))
+        self.assert_caught("spec/assertions.json: states no subject vocabulary")
+
+    def test_a_subject_kind_that_is_not_hyphenated_lowercase_is_caught(self) -> None:
+        """A subject kind is an id."""
+
+        def rename(document: Any) -> None:
+            document["subjects"]["Raises"] = document["subjects"].pop("raises")
+
+        _edit(self.tree / "spec" / "assertions.json", rename)
+        self.assert_caught("subject Raises: is not a hyphenated lowercase id")
+
+    def test_a_subject_with_no_summary_is_caught(self) -> None:
+        """Each implementation builds a subject from its summary."""
+        _edit(
+            self.tree / "spec" / "assertions.json",
+            lambda d: d["subjects"]["raises"].update(summary="  "),
+        )
+        self.assert_caught("subject raises: states no summary")
+
+    def test_a_naming_table_with_no_languages_is_caught(self) -> None:
+        """The table declares the languages its columns may name."""
+        _edit(self.tree / "spec" / "naming.json", lambda d: d.update(languages=[]))
+        self.assert_caught("spec/naming.json: declares no languages")
+
+    def test_a_name_for_an_undefined_assertion_is_caught(self) -> None:
+        """The tables are edited separately, so each is checked against the other."""
+        _edit(
+            self.tree / "spec" / "naming.json",
+            lambda d: d["names"].update({"invented": {"go": "Invented"}}),
+        )
+        self.assert_caught("invented is named but not defined")
+
+    def test_an_empty_name_is_caught(self) -> None:
+        """A name a user types has characters."""
+        _edit(
+            self.tree / "spec" / "naming.json",
+            lambda d: d["names"]["equal"].update(go="  "),
+        )
+        self.assert_caught("spec/naming.json: equal.go: is empty")
+
+    def test_a_language_that_names_only_some_assertions_is_caught(self) -> None:
+        """A language that names one assertion names every one."""
+
+        def drop(document: Any) -> None:
+            del document["names"]["equal"]["go"]
+
+        _edit(self.tree / "spec" / "naming.json", drop)
+        self.assert_caught("equal has no go name, and go names other assertions")
+
+    def test_a_literal_with_a_key_its_type_does_not_take_is_caught(self) -> None:
+        """An int has a value and nothing else."""
+        _edit(
+            self.tree / "corpus" / "equal.json",
+            lambda d: d["cases"][0]["args"][0].update(of="int"),
+        )
+        self.assert_caught("states 'of', which type 'int' does not take")
+
+    def test_a_list_of_a_type_that_is_not_a_scalar_is_caught(self) -> None:
+        """A list's of names a scalar type, as an absent list's of does."""
+        _edit(
+            self.tree / "corpus" / "contains.json",
+            lambda d: d["cases"][1]["args"][0].update(of="widget"),
+        )
+        self.assert_caught("of is 'widget', which is not a scalar type")
+
+    def test_a_case_that_is_not_an_object_is_caught(self) -> None:
+        """A case is an object."""
+        _edit(
+            self.tree / "corpus" / "equal.json",
+            lambda d: d["cases"].append("equal/a-string"),
+        )
+        self.assert_caught("corpus/equal.json: is not an object")
+
+    def test_a_case_id_that_is_not_hyphenated_lowercase_is_caught(self) -> None:
+        """A case id is <assertion>/<case> in hyphenated lowercase."""
+        _edit(
+            self.tree / "corpus" / "equal.json",
+            lambda d: d["cases"][0].update(id="equal/Identical Ints"),
+        )
+        self.assert_caught("states id 'equal/Identical Ints', want <assertion>/<case>")
+
+    def test_a_case_with_neither_args_nor_a_subject_is_caught(self) -> None:
+        """A case states what the assertion is given."""
+
+        def drop(document: Any) -> None:
+            del document["cases"][0]["args"]
+
+        _edit(self.tree / "corpus" / "equal.json", drop)
+        self.assert_caught("states neither args nor a subject")
+
+    def test_a_file_that_is_no_json_object_is_reported_not_raised(self) -> None:
+        """Every file the validator reads is one JSON object."""
+        (self.tree / "corpus" / "equal.json").write_text("[]")
+        self.assert_caught("corpus/equal.json: is not a JSON object")
+
+    def test_a_case_with_both_args_and_a_subject_is_caught(self) -> None:
+        """A case states values or names a behaviour, not both."""
+        _edit(
+            self.tree / "corpus" / "equal.json",
+            lambda d: d["cases"][0].update(subject={"kind": "raises"}),
+        )
+        self.assert_caught("states both args and a subject")
+
+    def test_args_that_are_not_a_list_are_caught(self) -> None:
+        """The arguments are a list, in call order."""
+        _edit(
+            self.tree / "corpus" / "equal.json",
+            lambda d: d["cases"][0].update(args={"type": "int", "value": 1}),
+        )
+        self.assert_caught("states args that are not a list")
+
+    def test_a_subject_that_is_not_an_object_is_caught(self) -> None:
+        """A subject is an object that names its kind."""
+        _edit(
+            self.tree / "corpus" / "throws.json",
+            lambda d: d["cases"][0].update(subject="raises"),
+        )
+        self.assert_caught("subject is not an object")
+
+    def test_an_unknown_subject_kind_is_caught(self) -> None:
+        """A case names a kind of the definition's vocabulary."""
+        _edit(
+            self.tree / "corpus" / "throws.json",
+            lambda d: d["cases"][0].update(subject={"kind": "sleeps"}),
+        )
+        self.assert_caught("names subject kind 'sleeps', which the definition does not")
+
+    def test_detail_that_is_not_an_object_is_caught(self) -> None:
+        """The detail maps field names to literals."""
+        _edit(
+            self.tree / "corpus" / "equal.json",
+            lambda d: d["cases"][1].update(detail=[]),
+        )
+        self.assert_caught("detail is not an object")
+
+    def test_a_skip_that_is_not_an_object_is_caught(self) -> None:
+        """A skip maps each language to its reason."""
+        _edit(
+            self.tree / "corpus" / "equal.json",
+            lambda d: d["cases"][0].update(skip="go"),
+        )
+        self.assert_caught("skip is not an object")
+
+    def test_options_that_are_not_a_list_are_caught(self) -> None:
+        """A case's options are a list of relaxation ids."""
+        _edit(
+            self.tree / "corpus" / "equal.json",
+            lambda d: d["cases"][0].update(options="equate-nans"),
+        )
+        self.assert_caught("options is not a list")
+
+    def test_an_option_the_assertion_does_not_accept_is_caught(self) -> None:
+        """A case relaxes only what its assertion accepts."""
+        _edit(
+            self.tree / "corpus" / "true.json",
+            lambda d: d["cases"][0].update(options=["equate-nans"]),
+        )
+        self.assert_caught("names option 'equate-nans', which true does not accept")
+
+    def test_an_option_named_twice_is_caught(self) -> None:
+        """A relaxation applies once."""
+        _edit(
+            self.tree / "corpus" / "equal.json",
+            lambda d: d["cases"][0].update(options=["equate-nans", "equate-nans"]),
+        )
+        self.assert_caught("names an option twice")
+
+    def test_a_corpus_with_no_files_is_caught(self) -> None:
+        """A corpus without a file checks no meaning at all."""
+        for path in (self.tree / "corpus").glob("*.json"):
+            path.unlink()
+        self.assert_caught("corpus/: holds no cases")
+
+    def test_a_corpus_file_named_for_another_assertion_is_caught(self) -> None:
+        """A corpus file is named for the assertion it states."""
+        corpus = self.tree / "corpus"
+        (corpus / "equal.json").rename(corpus / "equal-again.json")
+        self.assert_caught("is named 'equal-again' but states 'equal'")
+
+    def test_a_corpus_file_with_no_cases_is_caught(self) -> None:
+        """A corpus file states at least one case."""
+        _edit(self.tree / "corpus" / "equal.json", lambda d: d.update(cases=[]))
+        self.assert_caught("corpus/equal.json: states no cases")
+
+    def test_a_vector_that_is_not_an_object_is_caught(self) -> None:
+        """A vector is an object."""
+        _edit(
+            self.tree / "corpus" / "prop" / "token.json",
+            lambda d: d["cases"].append("token/a-string"),
+        )
+        self.assert_caught("corpus/prop/token.json: a case is not an object")
+
+    def test_a_vector_id_that_is_not_hyphenated_lowercase_is_caught(self) -> None:
+        """A vector id is <subject>/<case> in hyphenated lowercase."""
+        _edit(
+            self.tree / "corpus" / "prop" / "token.json",
+            lambda d: d["cases"][0].update(id="token/Encodes Nothing"),
+        )
+        self.assert_caught("states id 'token/Encodes Nothing', want <subject>/<case>")
+
+    def test_a_vector_file_of_an_unknown_kind_is_caught(self) -> None:
+        """A vector file states one of the definition's kinds."""
+        (self.tree / "corpus" / "prop" / "fuzzing.json").write_text(
+            json.dumps({"kind": "fuzzing", "cases": [{"id": "fuzzing/one"}]})
+        )
+        self.assert_caught("states kind 'fuzzing', which no vector has")
+
+    def test_a_vector_file_with_no_cases_is_caught(self) -> None:
+        """A vector file states at least one vector."""
+        _edit(
+            self.tree / "corpus" / "prop" / "token.json",
+            lambda d: d.update(cases=[]),
+        )
+        self.assert_caught("corpus/prop/token.json: states no cases")
+
+    def test_a_definition_with_no_relaxations_is_caught(self) -> None:
+        """The definition states the relaxations a caller may apply."""
+
+        def drop(document: Any) -> None:
+            document["relaxations"] = {}
+            for body in document["assertions"].values():
+                body.pop("relaxations", None)
+
+        _edit(self.tree / "spec" / "assertions.json", drop)
+        self.assert_caught("spec/assertions.json: states no relaxations")
+
+    def test_a_relaxation_id_that_is_not_hyphenated_lowercase_is_caught(self) -> None:
+        """A relaxation id is an id."""
+
+        def rename(document: Any) -> None:
+            relaxations = document["relaxations"]
+            relaxations["Equate-NaNs"] = relaxations.pop("equate-nans")
+
+        _edit(self.tree / "spec" / "assertions.json", rename)
+        self.assert_caught("Equate-NaNs: is not a hyphenated lowercase id")
+
+    def test_a_naming_table_with_no_surface_is_caught(self) -> None:
+        """The table names what a caller types beside the assertions."""
+        _edit(self.tree / "spec" / "naming.json", lambda d: d.update(surface={}))
+        self.assert_caught("spec/naming.json: states no surface table")
+
+    def test_a_surface_id_that_is_not_well_formed_is_caught(self) -> None:
+        """A surface id is an id with at most one dot."""
+        _edit(
+            self.tree / "spec" / "naming.json",
+            lambda d: d["surface"]["helpers"].update({"golden.a.b": {"go": "X"}}),
+        )
+        self.assert_caught("surface.helpers.golden.a.b: is not a well-formed id")
+
+    def test_a_surface_name_in_an_undeclared_language_is_caught(self) -> None:
+        """A surface column names a declared language."""
+        _edit(
+            self.tree / "spec" / "naming.json",
+            lambda d: d["surface"]["types"]["seat"].update(cobol="SEAT"),
+        )
+        self.assert_caught("surface.types.seat: cobol is not in the declared languages")
+
+    def test_an_empty_surface_name_is_caught(self) -> None:
+        """A surface name a user types has characters."""
+        _edit(
+            self.tree / "spec" / "naming.json",
+            lambda d: d["surface"]["types"]["seat"].update(go="  "),
+        )
+        self.assert_caught("surface.types.seat: go is empty")
+
+    def test_an_overlay_surface_that_is_not_a_list_is_caught(self) -> None:
+        """An overlay's surface is a list of declines."""
+        _edit(self.tree / "overlays" / "go.json", lambda d: d.update(surface={}))
+        self.assert_caught("overlays/go.json: surface is not a list")
+
+    def test_a_surface_decline_that_is_not_an_object_is_caught(self) -> None:
+        """A decline states an id and a reason."""
+        _edit(
+            self.tree / "overlays" / "go.json",
+            lambda d: d["surface"].append("standard-seat"),
+        )
+        self.assert_caught("surface entry 'standard-seat' is not an object")
+
+    def test_a_decline_of_an_unknown_surface_id_is_caught(self) -> None:
+        """A language declines only what the table states."""
+        _edit(
+            self.tree / "overlays" / "go.json",
+            lambda d: d["surface"].append({"id": "invented", "why": "stated"}),
+        )
+        self.assert_caught("declines surface id 'invented', which the table does not")
+
+    def test_a_surface_decline_with_no_reason_is_caught(self) -> None:
+        """Declining a surface id is a claim, so it states a reason."""
+        _edit(
+            self.tree / "overlays" / "go.json",
+            lambda d: d["surface"][0].update(why="  "),
+        )
+        self.assert_caught("declines surface id 'standard-seat' with no why")
+
+    def test_overlay_relaxations_that_are_not_a_list_are_caught(self) -> None:
+        """An overlay's relaxations are a list of declines."""
+        _edit(self.tree / "overlays" / "rust.json", lambda d: d.update(relaxations={}))
+        self.assert_caught("overlays/rust.json: relaxations is not a list")
+
+    def test_a_relaxation_decline_that_is_not_an_object_is_caught(self) -> None:
+        """A decline states an id and a reason."""
+        _edit(
+            self.tree / "overlays" / "rust.json",
+            lambda d: d["relaxations"].append("equate-nans"),
+        )
+        self.assert_caught("relaxation 'equate-nans' is not an object")
+
+    def test_an_overlay_named_for_another_language_is_caught(self) -> None:
+        """An overlay's file name is its language."""
+        _edit(self.tree / "overlays" / "go.json", lambda d: d.update(language="rust"))
+        self.assert_caught("overlays/go.json: is named 'go' but declares 'rust'")
+
+    def test_limits_that_are_not_a_list_are_caught(self) -> None:
+        """An overlay's limits are a list."""
+        _edit(self.tree / "overlays" / "java.json", lambda d: d.update(limits={}))
+        self.assert_caught("overlays/java.json: limits is not a list")
+
+    def test_a_limit_that_is_not_an_object_is_caught(self) -> None:
+        """A limit states an id, what it misses and why."""
+        _edit(
+            self.tree / "overlays" / "java.json",
+            lambda d: d.setdefault("limits", []).append("no-task-leaks"),
+        )
+        self.assert_caught("limit 'no-task-leaks' is not an object")
+
+    def test_divergences_that_are_not_a_list_are_caught(self) -> None:
+        """An overlay's divergences are a list."""
+        _edit(self.tree / "overlays" / "java.json", lambda d: d.update(diverge={}))
+        self.assert_caught("overlays/java.json: diverge is not a list")
+
+    def test_a_divergence_that_is_not_an_object_is_caught(self) -> None:
+        """A divergence states an id, a stance and a reason."""
+        _edit(
+            self.tree / "overlays" / "java.json",
+            lambda d: d["diverge"].append("max-allocs"),
+        )
+        self.assert_caught("divergence 'max-allocs' is not an object")
 
 
 if __name__ == "__main__":

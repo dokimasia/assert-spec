@@ -1,7 +1,10 @@
 # Canonical assertion definitions. Language-neutral.
 #
 # arity counts required arguments to the function form, excluding the
-# failure seat and including the trailing message.
+# failure seat and including the trailing message. A type the caller
+# states counts as an argument, whether a language takes it as a value
+# or as a type parameter. Optional arguments do not count: the
+# relaxations, a golden comparison's scrubbers and a property's options.
 #
 # package is empty for an assertion in the language's root namespace,
 # and names a subpackage otherwise.
@@ -13,7 +16,7 @@
 # assertion carries exactly these. got is what the assertion observed
 # and want is what it required, so an assertion whose failure holds
 # neither states no fields and reports the caller's message alone.
-version: "1.4.0"
+version: "2.0.0"
 
 # What a caller may relax, for one call.
 #
@@ -81,7 +84,8 @@ assertions:
     summary: >
       Structural equality. A null collection does not equal an empty
       one, no type coercion, NaN is unequal to itself, floats compare
-      exactly, cycles stop, functions compare by identity.
+      exactly and by value so -0 equals +0, cycles stop, functions
+      compare by identity.
     detail_fields: [want, got]
     relaxations: [equate-empty, equate-nans]
 
@@ -120,27 +124,32 @@ assertions:
   "length":
     arity: 3
     summary: >
-      The container holds the stated number of items. Answers for any
-      sized container or text.
+      The container has the stated number of items: the elements of a
+      sequence, the entries of a map, the bytes of a byte string, or the
+      Unicode scalar values of text. A null value has no length, and
+      fails.
     detail_fields: [want, got]
 
   "empty":
     arity: 2
     summary: >
-      The container holds nothing.
+      The container has no items. A null value is no container, and
+      fails.
     detail_fields: [length]
 
   "not-empty":
     arity: 2
     summary: >
-      The container holds something.
+      The container has at least one item. A null value is no container,
+      and fails.
     detail_fields: []
 
   "contains":
     arity: 3
     summary: >
-      Text holds a substring, a sequence holds an element, or a map
-      holds a key.
+      Text contains a substring, a sequence an element, or a map a key.
+      An element or a key compares as equal compares, so an int does not
+      match a float.
     detail_fields: [haystack, needle]
     relaxations: [equate-empty, equate-nans]
 
@@ -172,50 +181,54 @@ assertions:
   "matches":
     arity: 3
     summary: >
-      Text matches a regular expression. A pattern that does not compile
-      is a failure, not an error.
+      A pattern of the portable subset that string-matching reads matches
+      anywhere in the text. $ matches at the end of the text only, \d, \w
+      and \s are their ASCII classes, and . matches no line terminator. A
+      pattern outside the subset is a failure, not an error.
     detail_fields: [got, pattern]
 
   "close-to":
     arity: 4
     summary: >
       A number is within a tolerance of another, by absolute difference.
-      NaN is outside every tolerance.
+      NaN is outside every tolerance, and so are two equal infinities,
+      whose difference is NaN.
     detail_fields: [got, want, tolerance]
 
   "in-range":
     arity: 4
     summary: >
-      A number falls in a closed interval. NaN is in no range.
+      A number falls in a closed interval. NaN is in no range, and a
+      range with a NaN bound contains no number.
     detail_fields: [got, low, high]
 
   "pairwise":
-    arity: 4
+    arity: 3
     summary: >
       Every adjacent pair of a sequence satisfies a predicate. Nought or
       one item passes.
     detail_fields: [index, first, second]
 
   "err-absent":
-    arity: 3
+    arity: 2
     summary: >
       No failure value is present.
     detail_fields: [got]
 
   "err-present":
-    arity: 3
+    arity: 2
     summary: >
       Some failure value is present.
     detail_fields: []
 
   "err-is":
-    arity: 4
+    arity: 3
     summary: >
       A failure matches a sentinel, through the chain of wrapped causes.
     detail_fields: [want, got]
 
   "err-is-not":
-    arity: 4
+    arity: 3
     summary: >
       A failure does not match a sentinel.
     detail_fields: [got]
@@ -227,57 +240,59 @@ assertions:
     detail_fields: [want, got]
 
   "throws":
-    arity: 3
+    arity: 2
     summary: >
       A callable raises. Yields what was raised.
     detail_fields: []
 
   "not-throws":
-    arity: 3
+    arity: 2
     summary: >
       A callable does not raise.
     detail_fields: [got]
 
   "honours-cancellation":
-    arity: 3
+    arity: 2
     summary: >
       A subject given a cancelled handle reports a cancellation failure.
     detail_fields: [got]
 
   "honours-deadline":
-    arity: 3
+    arity: 2
     summary: >
       A subject given an expired deadline reports a deadline failure.
     detail_fields: [got]
 
   "completes-within":
-    arity: 4
+    arity: 3
     summary: >
-      A subject finishes before the stated duration.
+      A subject finishes before the stated duration. A subject that has
+      not returned when the duration has passed fails then, and the
+      assertion does not wait for it.
     detail_fields: [want, got]
 
   "pure":
-    arity: 4
+    arity: 3
     summary: >
       Observed state is unchanged across a call.
     detail_fields: [want, got]
     relaxations: [equate-empty, equate-nans]
 
   "nil-context-safe":
-    arity: 3
+    arity: 2
     summary: >
       A subject given an absent cancellation handle does not crash.
     detail_fields: [got]
 
   "eventually":
-    arity: 5
+    arity: 4
     summary: >
       An assertion body passes within a timeout, retried at an interval.
       Reports the last failure.
     detail_fields: [attempts, last]
 
   "eventually-true":
-    arity: 4
+    arity: 3
     summary: >
       A predicate becomes true within a timeout, retried with backoff.
     detail_fields: [attempts]
@@ -297,7 +312,7 @@ assertions:
     detail_fields: [want, got]
 
   "golden-match":
-    arity: 5
+    arity: 3
     package: golden
     summary: >
       Output matches the golden file resolved against the conventional
@@ -305,14 +320,14 @@ assertions:
     detail_fields: [want, got]
 
   "golden-match-at":
-    arity: 5
+    arity: 3
     package: golden
     summary: >
       Output matches the golden file at a given path.
     detail_fields: [want, got]
 
   "golden-match-json-field":
-    arity: 6
+    arity: 4
     package: golden
     summary: >
       Output matches one named field of a golden JSON object.
@@ -347,7 +362,7 @@ assertions:
     detail_fields: [want, got]
 
   "rejects":
-    arity: 3
+    arity: 2
     summary: >
       A check fails against an implementation it is meant to reject.
       Yields the failure message.

@@ -531,11 +531,17 @@ expression engines of every target language read the same way:
   reads `&&` as an intersection, and other engines reserve the rest for
   set operations.
 - A group is `(...)` or `(?:...)`, and `|` separates alternatives.
+  Groups nest at most 100 deep. Python's engine refuses a pattern whose
+  groups nest 495 deep.
 - The quantifiers are `*`, `+`, `?`, `{m}`, `{m,}` and `{m,n}`. A count
   is at most 1,000, the limit RE2 sets. A count of two or more digits
   does not start with `0`, because RE2 reads `x{007}` as literal text. A
   quantifier may not follow another quantifier. Lazy quantifiers such as
   `+?` are outside the subset for that reason.
+- Along every chain of quantifiers nested inside one another, the
+  product of their counts is at most 1,000, because RE2 refuses
+  `(a{1000}){2}`. A quantifier's count is its upper count, or its lower
+  count when it has none, and a count of 0 counts as 1.
 - `^` may be the first character of the pattern and `$` its last.
 
 Each implementation parses the subset itself, because two engines that
@@ -1618,9 +1624,10 @@ fast-check, proptest, jqwik, Kotest and rapid. Callers get the
 established engines' quality behind one set of names.
 
 **Why not:** a wrapper renames a call and cannot make six engines agree
-on what they generate, how they shrink, or what they store. The history
-checker rejects wrapping existing checkers for the same reason: five
-tools give five answers to what was decided. Each wrapped engine is also
+on what they generate, how they shrink, or what they store. The
+linearizability checker rejects wrapping existing checkers for the same
+reason: the tools differ in when they give up, in what a crashed call
+means and in what they report. Each wrapped engine is also
 a dependency with its own licence. Hypothesis and rapid are under the
 Mozilla Public License 2.0 and jqwik under the Eclipse Public License
 2.0, and a test-only library of this standard would add those licences

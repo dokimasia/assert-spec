@@ -150,6 +150,102 @@
           "value": 10.0
         }
       }
+    },
+    {
+      "id": "close-to/nan-tolerance-fails",
+      "args": [
+        {
+          "type": "float",
+          "value": 1.0
+        },
+        {
+          "type": "float",
+          "value": 1.0
+        },
+        {
+          "type": "float",
+          "value": "NaN"
+        }
+      ],
+      "expect": "fail",
+      "detail": {
+        "got": {
+          "type": "float",
+          "value": 1.0
+        },
+        "want": {
+          "type": "float",
+          "value": 1.0
+        },
+        "tolerance": {
+          "type": "float",
+          "value": "NaN"
+        }
+      }
+    },
+    {
+      "id": "close-to/equal-infinities-are-not-close",
+      "args": [
+        {
+          "type": "float",
+          "value": "Inf"
+        },
+        {
+          "type": "float",
+          "value": "Inf"
+        },
+        {
+          "type": "float",
+          "value": 1.0
+        }
+      ],
+      "expect": "fail",
+      "detail": {
+        "got": {
+          "type": "float",
+          "value": "Inf"
+        },
+        "want": {
+          "type": "float",
+          "value": "Inf"
+        },
+        "tolerance": {
+          "type": "float",
+          "value": 1.0
+        }
+      }
+    },
+    {
+      "id": "close-to/text-is-no-number",
+      "args": [
+        {
+          "type": "string",
+          "value": "1"
+        },
+        {
+          "type": "float",
+          "value": 1.0
+        },
+        {
+          "type": "float",
+          "value": 0.5
+        }
+      ],
+      "expect": "fail",
+      "detail": {
+        "got": {
+          "type": "string",
+          "value": "1"
+        },
+        "want": {
+          "type": "float",
+          "value": 1.0
+        },
+        "tolerance": {
+          "type": "float",
+          "value": 0.5
+        }
+      }
     }
   ]
 }

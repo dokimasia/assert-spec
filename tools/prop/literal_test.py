@@ -66,9 +66,19 @@ class DecodeTest(unittest.TestCase):
         legacy = {"type": "map", "key": "string", "of": "int", "value": {"a": 1}}
         self.assertEqual(decode(legacy), Pairs((("a", 1),)))
 
+    def test_an_absent_list_or_map_of_a_stated_type_decodes_to_none(self) -> None:
+        """A null value in the of form states an absent container."""
+        self.assertIsNone(decode({"type": "list", "of": "int", "value": None}))
+        absent_map = {"type": "map", "key": "string", "of": "int", "value": None}
+        self.assertIsNone(decode(absent_map))
+
     def test_a_literal_the_encoding_does_not_define_raises(self) -> None:
         """Each malformed form."""
         malformed: list[object] = [
+            {"type": "list", "of": "widget", "value": None},
+            {"type": "list", "value": None},
+            {"type": "map", "key": "int", "of": "int", "value": None},
+            {"type": "map", "key": "string", "of": "widget", "value": None},
             [1],
             {"type": "int", "value": "3"},
             {"type": "int", "value": True},

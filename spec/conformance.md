@@ -105,6 +105,12 @@ stance and a reason. The mechanism exists because a gap nobody could
 close and a gap nobody got to look identical until someone writes down
 which it is.
 
+**A corpus case the language cannot run.** A `skip` on the case, with
+the reason, or a relaxation that the overlay declines. A runner that
+cannot build a subject the case names, or cannot call the assertion,
+fails the case. A skip that the definition does not declare is a gap
+that nobody wrote down.
+
 **An assertion supplied partly.** A `limit` entry with what it misses and
 why. Rust's `no-task-leaks` sees tasks on a runtime and not a thread,
 because nothing in its standard library enumerates threads.
@@ -156,9 +162,10 @@ assertion, and the completeness gate does not know about it.
 
 | Tier | Checked by |
 |---|---|
-| Fixed: meaning | The corpus, run against both surfaces |
+| Fixed: meaning | The corpus, run against both surfaces and every call form of each |
+| Fixed: the values of a failure record | The corpus: the record of every failing case states the case's assertion and the caller's message unchanged, and it contains exactly the fields that the assertion declares |
 | Fixed: two surfaces, readable outcome | The corpus needs both to run at all |
-| Named | The completeness gate, against the naming table |
+| Named | The completeness gate, against the naming table, with each member's arity as far as the language can read it |
 | Declared | The validator, which refuses an entry with no reason |
 | Free | Nothing |
 

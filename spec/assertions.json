@@ -43,15 +43,15 @@
                 "want",
                 "tolerance"
             ],
-            "summary": "A number is within a tolerance of another, by absolute difference. NaN is outside every tolerance.\n"
+            "summary": "A number is within a tolerance of another, by absolute difference. NaN is outside every tolerance, and so are two equal infinities, whose difference is NaN.\n"
         },
         "completes-within": {
-            "arity": 4,
+            "arity": 3,
             "detail_fields": [
                 "want",
                 "got"
             ],
-            "summary": "A subject finishes before the stated duration.\n"
+            "summary": "A subject finishes before the stated duration. A subject that has not returned when the duration has passed fails then, and the assertion does not wait for it.\n"
         },
         "contains": {
             "arity": 3,
@@ -63,7 +63,7 @@
                 "equate-empty",
                 "equate-nans"
             ],
-            "summary": "Text holds a substring, a sequence holds an element, or a map holds a key.\n"
+            "summary": "Text contains a substring, a sequence an element, or a map a key. An element or a key compares as equal compares, so an int does not match a float.\n"
         },
         "contains-in-order": {
             "arity": 3,
@@ -79,7 +79,7 @@
             "detail_fields": [
                 "length"
             ],
-            "summary": "The container holds nothing.\n"
+            "summary": "The container has no items. A null value is no container, and fails.\n"
         },
         "equal": {
             "arity": 3,
@@ -91,10 +91,10 @@
                 "equate-empty",
                 "equate-nans"
             ],
-            "summary": "Structural equality. A null collection does not equal an empty one, no type coercion, NaN is unequal to itself, floats compare exactly, cycles stop, functions compare by identity.\n"
+            "summary": "Structural equality. A null collection does not equal an empty one, no type coercion, NaN is unequal to itself, floats compare exactly and by value so -0 equals +0, cycles stop, functions compare by identity.\n"
         },
         "err-absent": {
-            "arity": 3,
+            "arity": 2,
             "detail_fields": [
                 "got"
             ],
@@ -109,7 +109,7 @@
             "summary": "A failure of the given type is in the chain. Yields it.\n"
         },
         "err-is": {
-            "arity": 4,
+            "arity": 3,
             "detail_fields": [
                 "want",
                 "got"
@@ -117,19 +117,19 @@
             "summary": "A failure matches a sentinel, through the chain of wrapped causes.\n"
         },
         "err-is-not": {
-            "arity": 4,
+            "arity": 3,
             "detail_fields": [
                 "got"
             ],
             "summary": "A failure does not match a sentinel.\n"
         },
         "err-present": {
-            "arity": 3,
+            "arity": 2,
             "detail_fields": [],
             "summary": "Some failure value is present.\n"
         },
         "eventually": {
-            "arity": 5,
+            "arity": 4,
             "detail_fields": [
                 "attempts",
                 "last"
@@ -137,7 +137,7 @@
             "summary": "An assertion body passes within a timeout, retried at an interval. Reports the last failure.\n"
         },
         "eventually-true": {
-            "arity": 4,
+            "arity": 3,
             "detail_fields": [
                 "attempts"
             ],
@@ -149,7 +149,7 @@
             "summary": "The condition does not hold.\n"
         },
         "golden-match": {
-            "arity": 5,
+            "arity": 3,
             "detail_fields": [
                 "want",
                 "got"
@@ -158,7 +158,7 @@
             "summary": "Output matches the golden file resolved against the conventional directory.\n"
         },
         "golden-match-at": {
-            "arity": 5,
+            "arity": 3,
             "detail_fields": [
                 "want",
                 "got"
@@ -167,7 +167,7 @@
             "summary": "Output matches the golden file at a given path.\n"
         },
         "golden-match-json-field": {
-            "arity": 6,
+            "arity": 4,
             "detail_fields": [
                 "want",
                 "got",
@@ -193,14 +193,14 @@
             "summary": "Text ends with the given suffix.\n"
         },
         "honours-cancellation": {
-            "arity": 3,
+            "arity": 2,
             "detail_fields": [
                 "got"
             ],
             "summary": "A subject given a cancelled handle reports a cancellation failure.\n"
         },
         "honours-deadline": {
-            "arity": 3,
+            "arity": 2,
             "detail_fields": [
                 "got"
             ],
@@ -213,7 +213,7 @@
                 "low",
                 "high"
             ],
-            "summary": "A number falls in a closed interval. NaN is in no range.\n"
+            "summary": "A number falls in a closed interval. NaN is in no range, and a range with a NaN bound contains no number.\n"
         },
         "length": {
             "arity": 3,
@@ -221,7 +221,7 @@
                 "want",
                 "got"
             ],
-            "summary": "The container holds the stated number of items. Answers for any sized container or text.\n"
+            "summary": "The container has the stated number of items: the elements of a sequence, the entries of a map, the bytes of a byte string, or the Unicode scalar values of text. A null value has no length, and fails.\n"
         },
         "matches": {
             "arity": 3,
@@ -229,7 +229,7 @@
                 "got",
                 "pattern"
             ],
-            "summary": "Text matches a regular expression. A pattern that does not compile is a failure, not an error.\n"
+            "summary": "A pattern of the portable subset that string-matching reads matches anywhere in the text. $ matches at the end of the text only, \\d, \\w and \\s are their ASCII classes, and . matches no line terminator. A pattern outside the subset is a failure, not an error.\n"
         },
         "max-allocs": {
             "arity": 3,
@@ -247,7 +247,7 @@
             "summary": "The value is absent. A typed nil counts as nil.\n"
         },
         "nil-context-safe": {
-            "arity": 3,
+            "arity": 2,
             "detail_fields": [
                 "got"
             ],
@@ -275,7 +275,7 @@
         "not-empty": {
             "arity": 2,
             "detail_fields": [],
-            "summary": "The container holds something.\n"
+            "summary": "The container has at least one item. A null value is no container, and fails.\n"
         },
         "not-equal": {
             "arity": 3,
@@ -294,14 +294,14 @@
             "summary": "The value is present. A typed nil counts as nil.\n"
         },
         "not-throws": {
-            "arity": 3,
+            "arity": 2,
             "detail_fields": [
                 "got"
             ],
             "summary": "A callable does not raise.\n"
         },
         "pairwise": {
-            "arity": 4,
+            "arity": 3,
             "detail_fields": [
                 "index",
                 "first",
@@ -327,7 +327,7 @@
             "summary": "A body passes for every input a run generates. A run replays the stored failures, tries the simplest input and the boundary inputs, then generates inputs it has not tested until it has run the stated number of cases or tested every input. A fixed sequence of passes shrinks a failing case towards the smallest case that fails the same way.\n"
         },
         "pure": {
-            "arity": 4,
+            "arity": 3,
             "detail_fields": [
                 "want",
                 "got"
@@ -339,12 +339,12 @@
             "summary": "Observed state is unchanged across a call.\n"
         },
         "rejects": {
-            "arity": 3,
+            "arity": 2,
             "detail_fields": [],
             "summary": "A check fails against an implementation it is meant to reject. Yields the failure message.\n"
         },
         "throws": {
-            "arity": 3,
+            "arity": 2,
             "detail_fields": [],
             "summary": "A callable raises. Yields what was raised.\n"
         },
@@ -394,5 +394,5 @@
             "summary": "Reports a failure twice and succeeds on the third attempt.\n"
         }
     },
-    "version": "1.4.0"
+    "version": "2.0.0"
 }

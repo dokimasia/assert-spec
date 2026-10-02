@@ -74,6 +74,47 @@
           "value": "ell"
         }
       }
+    },
+    {
+      "id": "not-contains/a-nan-is-absent",
+      "args": [
+        {
+          "type": "list",
+          "items": [
+            {
+              "type": "float",
+              "value": "NaN"
+            }
+          ]
+        },
+        {
+          "type": "float",
+          "value": "NaN"
+        }
+      ],
+      "expect": "pass"
+    },
+    {
+      "id": "not-contains/a-nan-is-present-under-equate-nans",
+      "args": [
+        {
+          "type": "list",
+          "items": [
+            {
+              "type": "float",
+              "value": "NaN"
+            }
+          ]
+        },
+        {
+          "type": "float",
+          "value": "NaN"
+        }
+      ],
+      "options": [
+        "equate-nans"
+      ],
+      "expect": "fail"
     }
   ]
 }

@@ -139,6 +139,124 @@
           "value": "b"
         }
       }
+    },
+    {
+      "id": "contains/an-int-does-not-match-a-float",
+      "args": [
+        {
+          "type": "list",
+          "of": "float",
+          "value": [
+            1.0,
+            2.0
+          ]
+        },
+        {
+          "type": "int",
+          "value": 1
+        }
+      ],
+      "expect": "fail",
+      "detail": {
+        "haystack": {
+          "type": "list",
+          "of": "float",
+          "value": [
+            1.0,
+            2.0
+          ]
+        },
+        "needle": {
+          "type": "int",
+          "value": 1
+        }
+      }
+    },
+    {
+      "id": "contains/a-nan-is-not-found",
+      "args": [
+        {
+          "type": "list",
+          "items": [
+            {
+              "type": "float",
+              "value": "NaN"
+            }
+          ]
+        },
+        {
+          "type": "float",
+          "value": "NaN"
+        }
+      ],
+      "expect": "fail"
+    },
+    {
+      "id": "contains/a-nan-is-found-under-equate-nans",
+      "args": [
+        {
+          "type": "list",
+          "items": [
+            {
+              "type": "float",
+              "value": "NaN"
+            }
+          ]
+        },
+        {
+          "type": "float",
+          "value": "NaN"
+        }
+      ],
+      "options": [
+        "equate-nans"
+      ],
+      "expect": "pass"
+    },
+    {
+      "id": "contains/an-empty-list-does-not-match-an-absent-one",
+      "args": [
+        {
+          "type": "list",
+          "items": [
+            {
+              "type": "list",
+              "of": "int",
+              "value": null
+            }
+          ]
+        },
+        {
+          "type": "list",
+          "of": "int",
+          "value": []
+        }
+      ],
+      "expect": "fail"
+    },
+    {
+      "id": "contains/an-empty-list-matches-an-absent-one-under-equate-empty",
+      "args": [
+        {
+          "type": "list",
+          "items": [
+            {
+              "type": "list",
+              "of": "int",
+              "value": null
+            }
+          ]
+        },
+        {
+          "type": "list",
+          "of": "int",
+          "value": []
+        }
+      ],
+      "options": [
+        "equate-empty"
+      ],
+      "expect": "pass"
     }
   ]
 }

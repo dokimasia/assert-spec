@@ -13,7 +13,12 @@
       "subject": {
         "kind": "ignores-handle"
       },
-      "expect": "fail"
+      "expect": "fail",
+      "detail": {
+        "got": {
+          "type": "null"
+        }
+      }
     },
     {
       "id": "honours-cancellation/a-subject-failing-for-its-own-reason-fails",

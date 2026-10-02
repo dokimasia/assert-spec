@@ -13,7 +13,12 @@
       "subject": {
         "kind": "ignores-handle"
       },
-      "expect": "fail"
+      "expect": "fail",
+      "detail": {
+        "got": {
+          "type": "null"
+        }
+      }
     }
   ]
 }

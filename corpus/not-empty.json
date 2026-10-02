@@ -34,6 +34,15 @@
         }
       ],
       "expect": "fail"
+    },
+    {
+      "id": "not-empty/null-is-no-container",
+      "args": [
+        {
+          "type": "null"
+        }
+      ],
+      "expect": "fail"
     }
   ]
 }

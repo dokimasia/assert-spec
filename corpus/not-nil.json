@@ -19,6 +19,18 @@
         }
       ],
       "expect": "fail"
+    },
+    {
+      "id": "not-nil/an-absent-map-fails",
+      "args": [
+        {
+          "type": "map",
+          "key": "string",
+          "of": "int",
+          "value": null
+        }
+      ],
+      "expect": "fail"
     }
   ]
 }

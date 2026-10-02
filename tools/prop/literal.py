@@ -13,6 +13,10 @@ value into its one canonical literal:
 - map: ``entries``, a list of key and value literal pairs in order. The
   older form, ``key``, ``of`` and a JSON object ``value``, decodes when
   its keys are strings.
+- An absent list or map of a stated type: the ``of`` form, or the ``key``
+  and ``of`` form, with a ``value`` of null. It decodes to None, which is
+  the only absent value Python has. encode() never writes this form,
+  because no generator decodes an absent container.
 """
 
 from __future__ import annotations
@@ -32,6 +36,9 @@ _ENTRY: Final = 2
 
 #: The names a float takes for the values JSON cannot state.
 NON_FINITE: Final = {"NaN": math.nan, "Inf": math.inf, "-Inf": -math.inf}
+
+#: The scalar types a list's ``of`` and a map's ``key`` may name.
+SCALARS: Final = frozenset({"bool", "int", "float", "string"})
 
 
 class LiteralError(ValueError):
@@ -118,21 +125,36 @@ def _bytes(value: object) -> bytes:
         raise LiteralError(f"prop: {value!r} is not hexadecimal") from bad
 
 
-def _list(literal: Mapping[str, Any]) -> list[object]:
-    """Return a list stated by of and value, or by items."""
+def _absent(literal: Mapping[str, Any]) -> bool:
+    """Report whether literal states an absent container of a scalar type.
+
+    Raises:
+        LiteralError: the value is null and of names no scalar type.
+    """
+    if "value" not in literal or literal["value"] is not None:
+        return False
+    if literal.get("of") not in SCALARS:
+        raise LiteralError(f"prop: {literal!r} states no type for its absent value")
+    return True
+
+
+def _list(literal: Mapping[str, Any]) -> list[object] | None:
+    """Return a list stated by of and value, or by items, or None for an absent one."""
     if "items" in literal:
         items = literal["items"]
         if not isinstance(items, list):
             raise LiteralError(f"prop: items is {items!r}, not a list")
         return [decode(item) for item in items]
+    if _absent(literal):
+        return None
     values = literal.get("value")
     if not isinstance(values, list):
         raise LiteralError(f"prop: {literal!r} states no list")
     return [scalar(literal.get("of"), v) for v in values]
 
 
-def _map(literal: Mapping[str, Any]) -> Pairs:
-    """Return a map stated by entries, or by string keys in a JSON object."""
+def _map(literal: Mapping[str, Any]) -> Pairs | None:
+    """Return a map stated by entries or by string keys, or None for an absent one."""
     if "entries" in literal:
         entries = literal["entries"]
         if not isinstance(entries, list) or not all(
@@ -140,8 +162,12 @@ def _map(literal: Mapping[str, Any]) -> Pairs:
         ):
             raise LiteralError(f"prop: entries is {entries!r}, not key and value pairs")
         return Pairs(tuple((decode(k), decode(v)) for k, v in entries))
+    if literal.get("key") != "string":
+        raise LiteralError(f"prop: {literal!r} is not a map with string keys")
+    if _absent(literal):
+        return None
     values = literal.get("value")
-    if literal.get("key") != "string" or not isinstance(values, Mapping):
+    if not isinstance(values, Mapping):
         raise LiteralError(f"prop: {literal!r} is not a map with string keys")
     return Pairs(tuple((k, scalar(literal.get("of"), v)) for k, v in values.items()))
 

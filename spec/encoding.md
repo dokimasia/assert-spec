@@ -29,6 +29,13 @@ of any type, listed in the order the map produced them.
 A `list` whose `value` is `[]` is an empty list, and does not equal
 `null`. The `equal/null-against-empty-list` case pins that.
 
+A `list` with `of` and a `value` of `null` is an absent list of that
+type, and a `map` with `key`, `of` and a `value` of `null` is an absent
+map. Go decodes them to a nil slice and a nil map of the stated types,
+and a language without typed absence decodes them to its null. The
+`equate-empty` cases compare an absent container with an empty one of
+the same type through this form.
+
 An `int` within ±(2^53 − 1) is a JSON number. A larger one is a decimal
 string, such as `"18446744073709551615"`, because a JavaScript reader
 rounds a larger JSON number.
@@ -36,9 +43,25 @@ rounds a larger JSON number.
 JSON has no NaN or infinity. A `float` accepts the strings `NaN`,
 `Inf` and `-Inf` in place of a number.
 
+Both rules apply to the elements of a `value` list and to the values of
+a `value` map, as they apply to a scalar on its own.
+
+## Options
+
+A case of an assertion that accepts relaxations may name them:
+
+```json
+"options": ["equate-nans"]
+```
+
+Each option is the id of a relaxation that the assertion accepts, named
+once. The runner passes each as the language's relaxation for this call.
+A case whose options name a relaxation that a language's overlay
+declines does not apply to that language, as a declared skip does not.
+
 ## Skips
 
-A case a language cannot express carries a reason:
+A case that a language cannot express states a reason:
 
 ```json
 "skip": { "go": "a type mismatch is a compile error under generics" }
