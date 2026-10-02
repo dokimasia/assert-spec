@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@1.3.0",
+  "extends": "spec://assertions@1.4.0",
   "language": "kotlin",
   "diverge": [
     {
@@ -26,6 +26,10 @@
     {
       "id": "contract.excluding",
       "why": "The harness owns the loop here, so setup goes in a second closure, handed to measuring, that the harness runs outside the measurement. Marking the setup in place would need the body to reach the contract it was handed to."
+    },
+    {
+      "id": "case.cancellation",
+      "why": "Kotlin cancels a coroutine through its Job, and honoursCancellation hands a subject no handle. A case has no handle to return that the code under test would read."
     }
   ]
 }

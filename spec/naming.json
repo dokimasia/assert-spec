@@ -643,6 +643,12 @@
                 "rust": "assume",
                 "typescript": "assume"
             },
+            "case.cancellation": {
+                "go": "Context",
+                "java": "cancelled",
+                "rust": "cancellation",
+                "typescript": "signal"
+            },
             "case.classify": {
                 "go": "Classify",
                 "java": "classify",
@@ -650,6 +656,14 @@
                 "python": "classify",
                 "rust": "classify",
                 "typescript": "classify"
+            },
+            "case.cleanup": {
+                "go": "Cleanup",
+                "java": "cleanup",
+                "kotlin": "cleanup",
+                "python": "cleanup",
+                "rust": "cleanup",
+                "typescript": "cleanup"
             },
             "case.draw": {
                 "go": "Draw",
@@ -660,7 +674,7 @@
                 "typescript": "draw"
             },
             "case.note": {
-                "go": "Note",
+                "go": "Logf",
                 "java": "note",
                 "kotlin": "note",
                 "python": "note",
@@ -997,5 +1011,5 @@
             }
         }
     },
-    "version": "1.3.0"
+    "version": "1.4.0"
 }

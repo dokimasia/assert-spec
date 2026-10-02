@@ -3,7 +3,7 @@
 # A qualified name names a member of the subpackage the assertion table
 # gives it. The separator is the language's own: a dot in Go, Java,
 # Kotlin, Python and TypeScript, two colons in Rust.
-version: "1.3.0"
+version: "1.4.0"
 
 languages: [go, java, kotlin, php, python, rust, typescript]
 
@@ -371,6 +371,16 @@ relaxations:
 # Java and Kotlin spell the boolean and float generators bool and
 # floating, because boolean and float are Java keywords and the two
 # languages share one set of names.
+#
+# A case is a seat, so Go names its note Logf, the testing.TB member for
+# a message that a failing test reports, as it names the seat's members.
+# The case's cancellation handle is the one honours-cancellation hands a
+# subject in each language, and each language names the member after its
+# handle: Context for Go's context.Context, signal for TypeScript's
+# AbortSignal, cancelled for Java's Supplier<Boolean>, and cancellation
+# for Rust's Cancel, because a method named cancel would read as an order
+# to cancel. Python and Kotlin cancel a coroutine through its task or its
+# job and hand a subject no handle, so both decline the member.
 surface:
   types:
     "seat":
@@ -644,7 +654,7 @@ surface:
       java: "classify"
       kotlin: "classify"
     "case.note":
-      go: "Note"
+      go: "Logf"
       python: "note"
       rust: "note"
       typescript: "note"
@@ -664,6 +674,18 @@ surface:
       typescript: "observe"
       java: "observe"
       kotlin: "observe"
+    "case.cleanup":
+      go: "Cleanup"
+      python: "cleanup"
+      rust: "cleanup"
+      typescript: "cleanup"
+      java: "cleanup"
+      kotlin: "cleanup"
+    "case.cancellation":
+      go: "Context"
+      rust: "cancellation"
+      typescript: "signal"
+      java: "cancelled"
     "generator.map":
       go: "Map"
       python: "map"

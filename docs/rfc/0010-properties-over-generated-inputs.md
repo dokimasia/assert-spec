@@ -321,6 +321,12 @@ Case                       a Seat, plus the members below
       Records a 64-bit fingerprint of the subject's state at this point.
       A replay compares its fingerprints with the recorded ones and
       reports the first that differs.
+  cleanup(function)
+      Registers function to run when the case ends. A case runs its
+      cleanups after its body, the last registered first.
+  cancellation() -> cancellation handle
+      Returns the case's cancellation handle, which is cancelled when
+      the body ends and before the cleanups run.
 ```
 
 `rand()` returns `math/rand/v2.Source` in Go, a `random.Random` in
@@ -329,9 +335,33 @@ the Rust implementation states for a random source. TypeScript has no
 standard interface, so it returns a function that produces the next
 unsigned 64-bit value as a `bigint`.
 
+In Go, `note` is `Logf` and takes a format string and arguments. Go
+takes the name from `testing.TB`, as it does `Fatalf` and `Errorf` for
+the seat's `fail` and `record`. In every language, only a failing case
+reports its notes.
+
+`cancellation()` returns the handle that `honours-cancellation` hands a
+subject in the same language, so a body passes it to the code under test
+unchanged. The handle is a `context.Context` in Go, the implementation's
+`Cancel` in Rust, an `AbortSignal` in TypeScript and a
+`Supplier<Boolean>` in Java. In Go the context derives from the context
+of the property's seat when the seat states one, as `*testing.T` does.
+Python and Kotlin cancel a coroutine through its task or its job and
+hand a subject no handle, so both decline the member.
+
 `assume` and a draw that stops the body end the case with a signal of
 the engine, an exception or a panic depending on the language. A body
 must let that signal pass, as it must let an aborting assertion pass.
+
+A cleanup is part of its case. The case runs its cleanups on the thread
+that ran the body, however the body ended: it returned, an assertion
+aborted it, `assume` rejected the case, a draw stopped a repeated case,
+or the body raised an error. The cleanups run for a stored, shrinking,
+explaining or fuzzed case as for a generated one. A failure in a cleanup
+fails the case as a failure in the body does, and the later cleanups
+still run. A draw in a cleanup is a draw of the case, so a replay
+repeats it. A cleanup that registers another runs it before the case
+ends.
 
 A case is safe for concurrent use, as every seat is. Assertions may
 report to it from any thread. A body that starts threads still draws on
@@ -1385,9 +1415,10 @@ in the plural and fast-check in the singular. The naming rule allows a
 difference only where a language requires one, so the standard takes
 the id.
 
-The preceding table shows 6 of 39 rows. The full set is the assertion,
+The preceding table shows 6 of 41 rows. The full set is the assertion,
 15 generators, 4 combinators, 2 types (the generator and the case), the
-case's 6 members, 10 options and the bridge, each named in 6 languages.
+case's 8 members, 10 options and the bridge. Every row names 6
+languages, except `case.cancellation`, which Python and Kotlin decline.
 `map`, `filter` and `bind` are members of the generator, and
 `composite` is a function of the package.
 
@@ -1408,6 +1439,7 @@ methods, a feature of Go 1.27.
 | A change to how a generator decodes choices | Major; stored cases and replay tokens decode to different values |
 | A change to the coverage test or its constants | Major; the same counts may meet a requirement under one version and not under another |
 | A change to an outcome or a detail field | Major |
+| A new member of the case | Minor |
 
 ### Measurements
 
@@ -1685,7 +1717,7 @@ failures and the case tree, and fixes a smaller set of them by version.
 
 - **It is the largest addition the standard has proposed.** An
   implementation has a random source, three choice kinds, 15 generators
-  with their decoders, the runner with its case tree and workers, 15
+  with their decoders, the runner with its case tree and workers, 16
   shrink passes, the explain phase, a regular-expression subset parser,
   the coverage test, the store and the fuzz bridge. For scale, Hypothesis's engine package
   is 11,470 lines of Python in 22 files, and rapid, Go's largest
@@ -1704,9 +1736,9 @@ failures and the case tree, and fixes a smaller set of them by version.
   definition.
 - **A shrink takes more runs than Hypothesis's.** On the shrinking
   challenge, the median shrink takes more runs than Hypothesis's on 12 of
-  13 properties, from 1.04 to 8.5 times as many. `deletion` takes 85
-  runs against 10, and `lengthlist` 338 against 88. On the lambda
-  calculus, the median shrink takes 188.5 runs against 92.5. The
+  13 properties, from 1.13 to 8.5 times as many. `deletion` takes 85
+  runs against 10, and `lengthlist` 340 against 88. On the lambda
+  calculus, the median shrink takes 215.5 runs against 92.5. The
   reference finds the known minimum at least as often on all 13
   challenge properties. For a slow body, the extra runs cost wall time,
   up to the 30-second `shrink-time`.
@@ -1736,9 +1768,12 @@ failures and the case tree, and fixes a smaller set of them by version.
   that is not safe to run concurrently with itself fails on more than
   one worker in ways that do not reproduce on one. The engine can report
   such a failure only as `flaky`.
-- **The naming table grows by 39 rows**, 234 names across six
+- **The naming table grows by 41 rows**, 244 names across six
   languages, and every row is a name that cannot change without a
   version.
+- **A cleanup runs for every case, the shrinker's included.** Its cost
+  grows with the runs: a cleanup of 10 ms adds 3.65 seconds to the 365
+  runs of the median `binheap` shrink.
 - **This repository gains code to maintain.** The executable reference
   of the fixed algorithms is a second implementation of the hardest part
   of the engine, in Python, in a repository that has contained only data
