@@ -29,11 +29,13 @@ jobs:
           enable-cache: true
 
       # uv reads .python-version and fetches that Python itself, so
-      # nothing here depends on what the runner ships.
-      - run: uv sync --extra dev
+      # nothing here depends on what the runner ships. --locked fails
+      # when uv.lock does not match pyproject.toml, so the tools CI runs
+      # are the ones the lock pins.
+      - run: uv sync --locked --extra dev
 
       - name: Install markdownlint
-        run: npm install -g markdownlint-cli
+        run: npm install -g markdownlint-cli@0.49.1
 
       # render, fail on stale JSON, validate, run the validator's own
       # tests, lint the tools and the Markdown.

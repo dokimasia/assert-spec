@@ -7,8 +7,8 @@ help: ## Show this help
 	@grep -hE '^[a-z-]+:.*?##' $(MAKEFILE_LIST) | sort | \
 		awk 'BEGIN {FS = ":.*?## "}; {printf "  %-12s %s\n", $$1, $$2}'
 
-install: ## Create the environment
-	uv sync --extra dev
+install: ## Create the environment at the versions uv.lock pins
+	uv sync --locked --extra dev
 
 render: ## Render the JSON an implementation reads from the YAML people edit
 	@uv run python tools/render.py
@@ -46,7 +46,7 @@ lint-md: ## Lint the Markdown
 	@if command -v markdownlint >/dev/null 2>&1; then \
 		markdownlint '**/*.md'; \
 	elif command -v npx >/dev/null 2>&1; then \
-		npx --yes markdownlint-cli '**/*.md'; \
+		npx --yes markdownlint-cli@0.49.1 '**/*.md'; \
 	else \
 		echo "lint-md: no markdownlint and no npx; skipped"; exit 1; \
 	fi
