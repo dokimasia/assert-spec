@@ -205,8 +205,9 @@ caller needs it.
 - In Go, a run with the race detector, msan or asan, or with
   optimisation or inlining off, checks no allocation ceiling. A suite
   that runs only with `-race` checks none.
-- Rounding down passes a callable that allocates once every other call
-  against a ceiling of none.
+- Rounding down passes a callable whose allocations average below one
+  per call against a ceiling of none. Over 100 counted calls, a callable
+  that allocates on 99 of them passes.
 - Go recognises a build with optimisation or inlining off only through
   the `-gcflags` that its build information records.
 
