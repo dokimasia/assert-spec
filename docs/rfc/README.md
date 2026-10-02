@@ -18,3 +18,4 @@ they record why not.
 | [0010](0010-properties-over-generated-inputs.md) | Properties over generated inputs | Accepted |
 | [0011](0011-property-forms-and-derived-inputs.md) | Property forms and inputs derived from types | Draft |
 | [0012](0012-machines-simulation-and-campaigns.md) | Machines, simulation and campaigns | Draft |
+| [0014](0014-pinning-the-answers-languages-disagree-on.md) | Pinning the answers languages disagree on | Accepted |
