@@ -227,18 +227,20 @@ typed literals.
 
 ### Property forms
 
-A property form of a member generates some of its arguments and runs the
-member on each generated case:
+A property form of a member generates inputs and runs the member on each
+generated case:
 
-| Member | Generated arguments |
+| Member | What the form generates |
 |---|---|
 | `idempotent`, `accumulates`, `deterministic`, `round-trip` | `input` |
 | `commutative` | `a` and `b` |
 | `associative` | `a`, `b` and `c` |
-| `total` | The elements of `domain` |
+| `not-pure` | The input that `call` takes, as for `pure` |
 
-The other six members take no input to generate. RFC-0011 states the
-property forms.
+`total` has no property form. Generating its domain gives a call that
+succeeds for every generated input, which is the property form of
+`err-absent`. The other five members take no input to generate. RFC-0011
+states the property forms.
 
 ### Scope
 
