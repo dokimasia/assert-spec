@@ -50,6 +50,8 @@ class PredicateTest(unittest.TestCase):
             ),
             ({"kind": "not-sorted"}, [2, 1], [1, 2]),
             ({"kind": "has-duplicate"}, [1, 1], [1, 2]),
+            ({"kind": "indexed-above", "n": 100}, [0, 200, 1], [0, 200, 0]),
+            ({"kind": "indexed-above", "n": 100}, [200, 0], [100, 0]),
         ]
         for spec, yes, no in cases:
             self.assertTrue(holds(spec, yes), (spec, yes))
@@ -73,6 +75,18 @@ class PredicateTest(unittest.TestCase):
     def test_equal_neighbours_are_sorted(self) -> None:
         """[1, 1] is in ascending order."""
         self.assertFalse(holds({"kind": "not-sorted"}, [1, 1]))
+
+    def test_indexed_above_holds_only_inside_the_earlier_elements(self) -> None:
+        """An index past them, a negative index or an empty list holds for nothing."""
+        above = {"kind": "indexed-above", "n": 100}
+        for value in ([200, 1], [200, -1], [], [200]):
+            self.assertFalse(holds(above, value), value)
+
+    def test_indexed_above_reads_no_bool_as_an_index_or_an_element(self) -> None:
+        """False is no index 0, and True at the index is no number above 0."""
+        above_zero = {"kind": "indexed-above", "n": 0}
+        self.assertFalse(holds(above_zero, [5, False]))
+        self.assertFalse(holds(above_zero, [True, 0]))
 
     def test_contains_compares_as_uniqueness_does(self) -> None:
         """True is no element equal to the int 1."""

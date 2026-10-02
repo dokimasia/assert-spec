@@ -11,8 +11,9 @@ another way makes the run flaky.
 
 The shrinker runs its passes over the best case of one failure, in the
 order Shrinker.shrink() lists them, until a whole round accepts no
-candidate. A candidate is run only when it is smaller than the best case
-and no earlier candidate had the same choices.
+candidate. delete-and-lower runs only in a round in which no other pass
+accepted a candidate. A candidate is run only when it is smaller than the
+best case and no earlier candidate had the same choices.
 It is accepted when its run fails with the same identity and the run's
 recorded choices are smaller than the best case's. A run that fails with
 another identity is kept as a further failure. Every failure is shrunk in
@@ -372,6 +373,9 @@ class Shrinker:
     def shrink(self, identity: str) -> None:
         """Run rounds of every pass on one failure until a round accepts nothing.
 
+        delete-and-lower runs only in a round in which no other pass
+        accepted a candidate, and a round it improves is followed by another.
+
         Raises:
             Exhausted: the budget is spent.
         """
@@ -398,7 +402,7 @@ class Shrinker:
             for shrink_pass in passes:
                 if shrink_pass():
                     improved = True
-            if not improved:
+            if not improved and not self.delete_and_lower():
                 return
 
     def _sweep(self, candidates: Callable[[], Iterator[Nodes]]) -> bool:
@@ -669,6 +673,50 @@ class Shrinker:
             self.consider((*stepped[: span.start], *stepped[span.end :]))
             for span in later
         )
+
+    def delete_and_lower(self) -> bool:
+        """Step each integer towards its target with earlier data deleted.
+
+        Integers are visited in order. Each one's step is tried with one
+        span removed that is not empty and ends at or before the integer,
+        the span that starts last first and of two that start together the
+        longer first. Then it is tried with one element removed from an
+        earlier sequence, the last sequence and its last element first,
+        when the sequence is longer than its min_size. The step alone is no
+        candidate of this pass.
+        """
+
+        def candidates() -> Iterator[Nodes]:
+            nodes, spans = self.nodes, self.spans
+            for index, node in enumerate(nodes):
+                bounds, value = node.request.bounds, node.choice.value
+                if not isinstance(bounds, IntegerBounds) or not isinstance(value, int):
+                    continue
+                target = bounds.target
+                if value == target:
+                    continue
+                step = value - 1 if value > target else value + 1
+                stepped = _replace(nodes, index, step)
+                earlier = sorted(
+                    (span for span in spans if span.start < span.end <= index),
+                    key=lambda span: (span.start, span.end),
+                    reverse=True,
+                )
+                for span in earlier:
+                    yield (*stepped[: span.start], *stepped[span.end :])
+                for at in range(index - 1, -1, -1):
+                    before = stepped[at]
+                    sequence, elements = before.request.bounds, before.choice.value
+                    if not isinstance(sequence, SequenceBounds):
+                        continue
+                    assert isinstance(elements, tuple)
+                    if len(elements) <= sequence.min_size:
+                        continue
+                    for position in range(len(elements) - 1, -1, -1):
+                        kept = elements[:position] + elements[position + 1 :]
+                        yield _replace(stepped, at, kept)
+
+        return self._sweep(candidates)
 
     def sort_siblings(self) -> bool:
         """Swap adjacent siblings with one label when the later one is smaller.

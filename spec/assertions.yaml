@@ -13,7 +13,7 @@
 # assertion carries exactly these. got is what the assertion observed
 # and want is what it required, so an assertion whose failure holds
 # neither states no fields and reports the caller's message alone.
-version: "1.2.0"
+version: "1.3.0"
 
 # What a caller may relax, for one call.
 #

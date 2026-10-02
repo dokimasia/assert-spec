@@ -390,7 +390,7 @@
         0
       ],
       "token": "prop1:AAEAAQABAAAAAA",
-      "runs": 33
+      "runs": 35
     },
     {
       "id": "list/shrinks-a-large-sum-to-one-element",
@@ -462,6 +462,41 @@
       ],
       "token": "prop1:AAEAQgABAC8AAQAvAAA",
       "runs": 5
+    },
+    {
+      "id": "list/shrinks-an-indexed-element-to-the-front",
+      "generator": {
+        "gen": "list",
+        "of": {
+          "gen": "integer",
+          "min": 0,
+          "max": 9
+        }
+      },
+      "fails-when": {
+        "kind": "indexed-above",
+        "n": 5
+      },
+      "seed": "13",
+      "outcome": "counterexample",
+      "cases": 4,
+      "value": {
+        "type": "list",
+        "of": "int",
+        "value": [
+          6,
+          0
+        ]
+      },
+      "choices": [
+        1,
+        6,
+        1,
+        0,
+        0
+      ],
+      "token": "prop1:AAEABgABAAAAAA",
+      "runs": 83
     },
     {
       "id": "list/passes-when-no-value-fails",
@@ -541,7 +576,7 @@
         0
       ],
       "token": "prop1:AAEAAAAAAAEAAQAAAAA",
-      "runs": 49
+      "runs": 50
     },
     {
       "id": "dict/passes-when-no-value-fails",
@@ -809,7 +844,7 @@
         0
       ],
       "token": "prop1:AAEAAAABAAAAAQAAAAAAAA",
-      "runs": 30
+      "runs": 31
     },
     {
       "id": "string-matching/passes-when-no-value-fails",
@@ -875,7 +910,7 @@
         0
       ],
       "token": "prop1:AAEAAQAAAAAAAQAAAAAAAQAAAAAAAA",
-      "runs": 63
+      "runs": 65
     },
     {
       "id": "recursive/stops-at-two-equal-children",

@@ -90,6 +90,10 @@ cases:
     fails-when: {kind: sum-above, n: 150}
     seed: "7"
     budget: 5
+  - id: list/shrinks-an-indexed-element-to-the-front
+    generator: {gen: list, of: {gen: integer, min: 0, max: 9}}
+    fails-when: {kind: indexed-above, n: 5}
+    seed: "13"
   - id: list/passes-when-no-value-fails
     generator: {gen: list, of: {gen: integer, min: 0, max: 100}}
     fails-when: {kind: never}

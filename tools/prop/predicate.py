@@ -14,6 +14,9 @@ A predicate is a JSON object with a ``kind`` and its parameters, and
   value, or a string or byte string that contains it.
 - ``not-sorted``: a list that is not in ascending order.
 - ``has-duplicate``: a list with two equal elements.
+- ``indexed-above`` n: a list whose last element is an index, from 0, into
+  the elements before it, where the element at the index is a number above
+  n.
 
 Equal means equal under value.canonical(). A body classifies, rejects
 and fails by predicates, and a ``filter`` generator keeps the values for
@@ -172,6 +175,24 @@ def _has_duplicate(spec: Mapping[str, Any]) -> Predicate:
     return holds
 
 
+def _indexed_above(spec: Mapping[str, Any]) -> Predicate:
+    """Hold for a list whose last element indexes an earlier number above n."""
+    n = _number(spec["n"])
+
+    def holds(value: object) -> bool:
+        if not isinstance(value, list) or not value:
+            return False
+        index, earlier = value[-1], value[:-1]
+        if not isinstance(index, int) or not _is_number(index):
+            return False
+        if not 0 <= index < len(earlier):
+            return False
+        element = earlier[index]
+        return isinstance(element, int | float) and _is_number(element) and element > n
+
+    return holds
+
+
 #: The predicates of the vocabulary, keyed by kind.
 _PREDICATES: Final[dict[str, Callable[[Mapping[str, Any]], Predicate]]] = {
     "always": _always,
@@ -184,4 +205,5 @@ _PREDICATES: Final[dict[str, Callable[[Mapping[str, Any]], Predicate]]] = {
     "contains": _contains,
     "not-sorted": _not_sorted,
     "has-duplicate": _has_duplicate,
+    "indexed-above": _indexed_above,
 }

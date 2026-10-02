@@ -4,7 +4,7 @@ title: Properties over generated inputs
 author: Roy Klopper <roy.klopper@stealthscale.io>
 status: Accepted
 created: 2026-10-01
-updated: 2026-10-01
+updated: 2026-10-02
 discussion: none
 supersedes: none
 superseded-by: none
@@ -877,9 +877,11 @@ changes.
 
 ### Shrinking
 
-The shrinker takes the failing case and runs passes over its choice
-sequence until a whole round of passes finds no smaller case, or until
-the budget is spent. A candidate is accepted when the recorded sequence
+The shrinker takes the failing case and runs rounds of passes over its
+choice sequence while each round finds a smaller case and budget
+remains. A round runs the passes of the table in order.
+`delete-and-lower` runs only in a round in which no other pass accepted
+a candidate. A candidate is accepted when the recorded sequence
 of its run is shortlex-smaller than the current best and the run fails
 with the same identity. Choices of different kinds at one position
 compare by kind: an integer, then a float, then a sequence.
@@ -911,6 +913,7 @@ and the top-level spans last.
 | `lower-together` | Move an integer and the next integer with the same bounds towards their target by one amount, keeping their difference, when both lie on one side of it: as large an amount as a search finds, 1 to 4 in turn, then doubling, then bisection |
 | `minimize-duplicates` | Move every choice with the same value and bounds towards its target together, an integer as `minimize-choice` moves one |
 | `float-simplify` | Round a fractional float to fewer fractional bits, from none up, towards and then away from its target; then move an integral float towards its target as an integer, over the integers of its bounds below 2^53 in magnitude |
+| `delete-and-lower` | Move each integer one step towards its target, and in the same candidate remove one span that is not empty and ends before the integer, from the span that starts last and of spans that start together the longer first, or one element of an earlier sequence, from the last sequence and its last element, never below `min_size` |
 
 An integer's position in the key order of its bounds is 0 for the
 target, then 1 for one above it, 2 for one below, 3 for two above, and
@@ -932,6 +935,16 @@ element inside the list in one candidate, and `[0, 0, 900]` becomes
 `[900]` in two steps. The step alone is a candidate of its own. The
 shrinker keeps the number of choices each candidate's run recorded, so
 the check costs no further run.
+
+`delete-and-lower` is for an integer that refers to data drawn before it.
+One property draws a string `s` and then a count `n`, and fails when the
+first `n` bytes of `s` split a character. It fails on `"0é"` with
+`n = 2`. Removing the `0` alone moves the cut to the end of `é`. Lowering
+`n` alone cuts after the `0`. Both candidates pass. `delete-and-lower`
+removes the `0` and lowers `n` in one candidate, and `"é"` with `n = 1`
+fails. The pass tries one candidate for each pair of an integer and an
+earlier span or element. It runs only in a round in which the other
+passes find nothing.
 
 The order of the passes, the order in which each pass visits spans and
 choices, and the acceptance rule are part of the definition. The same
@@ -1016,7 +1029,7 @@ against. Each entry is one JSON file in it:
 ```json
 {
   "store": 1,
-  "definition": "1.2.0",
+  "definition": "1.3.0",
   "property": "decoding undoes encoding",
   "identity": { "assertion": "equal", "file": "codec_test.go", "line": 18 },
   "choices": "prop1:dWdvZ...",
@@ -1269,7 +1282,7 @@ kind, each containing `{"kind": …, "cases": […]}`:
 |---|---|---|---|
 | `decoding.json` | A generator and choices, including out-of-bounds and exhausted replays | The value, the choices the case recorded, and whether it was rejected | 3 per generator, `filter` included, and 1 more for a dict in a unique list, 49 |
 | `generation.json` | A generator, a seed and a number of cases | Each case's choices and value | 2 per generator, 32 |
-| `shrinking.json` | A generator, a failing predicate, a seed and optionally a budget | The outcome, the valid cases, the minimal value, its choices and token, and the runs the shrink spent | 2 per generator, and 3 more for the budget and the order of the passes, 35 |
+| `shrinking.json` | A generator, a failing predicate, a seed and optionally a budget | The outcome, the valid cases, the minimal value, its choices and token, and the runs the shrink spent | 2 per generator, and 4 more for the budget and the order of the passes, 36 |
 | `coverage.json` | Counts, a share, and whether the check is the last or exact | The verdict | Every verdict, most on a boundary of the Wilson test, 12 |
 | `bridge.json` | A generator and fuzzer bytes | The choices and the value | Every choice kind, and a filter's attempts, 11 |
 | `token.json` | Choices, or a token | The token, or the choices it decodes to or its refusal | 6 encodings and 11 decodings, 17 |
@@ -1322,9 +1335,13 @@ the case or classify it by predicates over the same value:
 ```
 
 The predicates are `always`, `never`, `equals`, `at-least`,
-`divisible-by`, `sum-above`, `length-at-least`, `contains`, `not-sorted`
-and `has-duplicate`, each negated by `"not": true`. A `filter` states
-its `keep` as one of these predicates. A label or an
+`divisible-by`, `sum-above`, `length-at-least`, `contains`, `not-sorted`,
+`has-duplicate` and `indexed-above`, each negated by `"not": true`.
+`indexed-above` reads the last element of a list as an index, from 0,
+into the elements before it. It is false for a negative index and for an
+index past the last of those elements. Otherwise it is true when the
+element at the index is a number above `n`. A `filter` states its `keep`
+as one of these predicates. A label or an
 identity is a string, and a renderer refuses any other value, such as a
 YAML word read as a boolean. Three bodies are named
 instead, because no predicate states them: `draws-nothing`, `diverges`,
@@ -1392,7 +1409,7 @@ methods, a feature of Go 1.27.
 | A change to the coverage test or its constants | Major; the same counts may meet a requirement under one version and not under another |
 | A change to an outcome or a detail field | Major |
 
-### Measurements before acceptance
+### Measurements
 
 The executable reference and Hypothesis 6.168.3 ran the same Python
 ports of two published benchmarks, in one harness:
@@ -1485,18 +1502,18 @@ least as often as Hypothesis on every property:
 | Property | Minimal of 100: Hypothesis, definition | Median runs: Hypothesis, definition |
 |---|---|---|
 | `reverse` | 100, 100 | 8, 44 |
-| `distinct` | 100, 100 | 36, 126 |
-| `large_union_list` | 100, 100 | 194, 278 |
-| `nestedlists` | 100, 100 | 54, 76 |
-| `lengthlist` | 100, 100 | 88, 338 |
-| `coupling` | 28, 63 | 40, 99 |
+| `distinct` | 100, 100 | 36, 133 |
+| `large_union_list` | 100, 100 | 194, 314 |
+| `nestedlists` | 100, 100 | 54, 86 |
+| `lengthlist` | 100, 100 | 88, 340 |
+| `coupling` | 28, 63 | 40, 105 |
 | `deletion` | 100, 100 | 10, 85 |
-| `difference_must_not_be_zero` | 100, 100 | 26, 135 |
-| `difference_must_not_be_small` | 8, 60 | 37, 28 |
-| `difference_must_not_be_one` | 5, 22 | 33, 43 |
-| `bound5` | 100, 100 | 115, 120 |
+| `difference_must_not_be_zero` | 100, 100 | 26, 136 |
+| `difference_must_not_be_small` | 8, 60 | 37, 29 |
+| `difference_must_not_be_one` | 5, 22 | 33, 44 |
+| `bound5` | 100, 100 | 115, 130 |
 | `calculator` | 81, 100 | 55, 222 |
-| `binheap` | 78, 86 | 126, 337 |
+| `binheap` | 78, 86 | 126, 365 |
 
 A run that never found the bug counts as not minimal, so the difference
 properties and `calculator` show how often each engine found the bug as
@@ -1508,21 +1525,34 @@ Each was removed in turn, with the rest of the definition unchanged:
 | Removed | Effect |
 |---|---|
 | The search over the key-order position in `minimize-choice` and `minimize-duplicates`, replaced by a search over the distance on the value's own side | `reverse`, `distinct` and `large_union_list` find their minimum in 43, 79 and 39 runs of 100 |
-| `delete-structure-pair` | `large_union_list` finds its minimum in 33 runs of 100, and the median shrink of `nestedlists` takes 202 runs instead of 76 |
-| `lower-together` | `difference_must_not_be_one` finds its minimum in 20 of its 22 failing runs, and its mean shrink takes 322.7 runs instead of 41.9 |
+| `delete-structure-pair` | `large_union_list` finds its minimum in 33 runs of 100, and the median shrink of `nestedlists` takes 212 runs instead of 86 |
+| `lower-together` | `difference_must_not_be_one` finds its minimum in 20 of its 22 failing runs, and its mean shrink takes 323.6 runs instead of 42.9 |
 | The deletion at any depth in `lower-and-delete`, replaced by the later siblings of the integer's span | `lengthlist` finds its minimum in 20 runs of 100 |
 
 No other property found its minimum less often without the part. The
 deletion at any depth costs runs: the median shrink of `binheap` takes
-337 runs instead of 295, and `binheap` finds its minimum in 86 runs
+365 runs instead of 323, and `binheap` finds its minimum in 86 runs
 instead of 89, against Hypothesis's 78.
+
+With `delete-and-lower`, every property of the challenge finds its
+minimum as often as before, and the median shrinks take up to 36 runs
+more, on `large_union_list`. `truncate` and `index` measure what the
+pass adds, because in each an integer refers to earlier data. `truncate`
+draws a string of up to 8 characters and a count `n` from 0 to 8, and
+fails when the first `n` bytes split a character. Its minimum is one
+character with `n = 1`.
+`index` draws a list of up to 8 integers from 0 to 1,000 and an index
+from 0 to 7, and fails when the element at the index is above 100. Its
+minimum is `[101]` with index 0. Without the pass, the definition finds
+the minimum in 84 and 85 of 100 runs, and Hypothesis in 83 and 95. With
+the pass, the definition finds it in all 100 runs of both.
 
 The lambda calculus has no known minimum, so 30 seeds of each of its 20
 pairs shrank on each engine, and the measure is the counterexample's
 size in nodes. The median counterexample has 7 nodes on both engines.
-The mean is 7.63 for the definition and 7.78 for Hypothesis, and the
-definition's median is smaller on 7 pairs, equal on 6 and larger on 7.
-The definition's median shrink takes 188.5 runs, against Hypothesis's
+The mean is 7.55 for the definition and 7.78 for Hypothesis, and the
+definition's median is smaller on 7 pairs, equal on 7 and larger on 6.
+The definition's median shrink takes 215.5 runs, against Hypothesis's
 92.5.
 
 ## Alternatives considered

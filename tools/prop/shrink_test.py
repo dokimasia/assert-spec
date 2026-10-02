@@ -70,6 +70,10 @@ SIGNED_LIST = build({"gen": "list", "of": {"gen": "integer", "min": -100, "max":
 NESTED = build({"gen": "list", "of": {"gen": "list", "of": DIGIT}})
 POSITIVE = build({"gen": "integer", "min": 1, "max": 1000})
 SIGNED_FLOAT = build({"gen": "float", "min": -10, "max": 10})
+INDEX = build(DIGIT)
+BYTE_STRINGS = build({"gen": "bytes"})
+PAIR_BYTES = build({"gen": "bytes", "min_size": MIN_COUNT})
+JUST = build({"gen": "just", "value": {"type": "int", "value": SEVEN_VALUE}})
 
 
 def node(bounds: Bounds, value: Any) -> Node:
@@ -148,6 +152,45 @@ def sum_above(case: Case) -> None:
     assert isinstance(values, list)
     if sum(values) > SUM_LIMIT:
         case.fail("sum")
+
+
+def indexed_above(case: Case) -> None:
+    """Fail when the percentage at an index drawn after the list is above FIFTY."""
+    values = case.draw(PERCENT, "xs")
+    index = case.draw(INDEX, "i")
+    assert isinstance(values, list)
+    assert isinstance(index, int)
+    if index < len(values) and values[index] > FIFTY:
+        case.fail("indexed")
+
+
+def byte_at(case: Case) -> None:
+    """Fail when the byte at an index drawn after the bytes is above HIGH_BYTE."""
+    value = case.draw(BYTE_STRINGS, "b")
+    index = case.draw(INDEX, "i")
+    assert isinstance(value, bytes)
+    assert isinstance(index, int)
+    if index < len(value) and value[index] > HIGH_BYTE:
+        case.fail("high")
+
+
+def pair_byte_at(case: Case) -> None:
+    """Fail as byte_at does, over bytes of at least MIN_COUNT."""
+    value = case.draw(PAIR_BYTES, "b")
+    index = case.draw(INDEX, "i")
+    assert isinstance(value, bytes)
+    assert isinstance(index, int)
+    if index < len(value) and value[index] > HIGH_BYTE:
+        case.fail("high")
+
+
+def above_after_just(case: Case) -> None:
+    """Fail when an integer drawn after a just is above FIFTY."""
+    case.draw(JUST, "j")
+    value = case.draw(SMALL, "n")
+    assert isinstance(value, int)
+    if value > FIFTY:
+        case.fail("above")
 
 
 @final
@@ -553,6 +596,58 @@ class PassTest(unittest.TestCase):
         self.assertTrue(shrinking.lower_and_delete())
         self.assertEqual(drawn(shrinking.best.execution), [1, [NINE]])
         self.assertEqual(shrinking.runs, 16)
+
+    def test_delete_and_lower_removes_a_list_element_before_its_index(self) -> None:
+        """[0, 60] at index 1 becomes [60] at index 0 in one candidate.
+
+        The index's step is tried with the spans that end at or before it,
+        the list's own span included, and the ninth run deletes the first
+        element.
+        """
+        shrinking = shrinker(indexed_above, *integers(1, 0, 1, 60, 0, 1))
+        self.assertTrue(shrinking.delete_and_lower())
+        self.assertEqual(drawn(shrinking.best.execution), [[60], 0])
+        self.assertEqual(shrinking.runs, 9)
+
+    def test_delete_and_lower_removes_a_sequence_element_before_its_index(
+        self,
+    ) -> None:
+        """Bytes [1, 250] at index 1 become [250] at index 0 in one candidate.
+
+        The bytes' span goes first, then the last element, then the first.
+        """
+        shrinking = shrinker(
+            byte_at, Choice("sequence", (1, 250)), Choice("integer", 1)
+        )
+        self.assertTrue(shrinking.delete_and_lower())
+        self.assertEqual(drawn(shrinking.best.execution), [bytes([250]), 0])
+        self.assertEqual(shrinking.runs, 3)
+
+    def test_delete_and_lower_keeps_a_sequence_at_its_min_size(self) -> None:
+        """Bytes of at least 2 keep both elements: the one candidate deletes them."""
+        shrinking = shrinker(
+            pair_byte_at, Choice("sequence", (1, 250)), Choice("integer", 1)
+        )
+        self.assertFalse(shrinking.delete_and_lower())
+        self.assertEqual(shrinking.runs, 1)
+
+    def test_delete_and_lower_deletes_no_empty_span(self) -> None:
+        """The pass skips the empty span of a just, so the step alone never runs."""
+        shrinking = shrinker(above_after_just, *integers(60))
+        self.assertFalse(shrinking.delete_and_lower())
+        self.assertEqual(shrinking.runs, 0)
+
+    def test_delete_and_lower_runs_nothing_without_earlier_data(self) -> None:
+        """[60] at index 0: no integer that can step has data before it."""
+        shrinking = shrinker(indexed_above, *integers(1, 60, 0, 0))
+        self.assertFalse(shrinking.delete_and_lower())
+        self.assertEqual(shrinking.runs, 0)
+
+    def test_shrink_lowers_an_index_into_an_earlier_list(self) -> None:
+        """[0, 60] at index 1 shrinks to [51] at index 0."""
+        shrinking = shrinker(indexed_above, *integers(1, 0, 1, 60, 0, 1))
+        shrinking.shrink_all()
+        self.assertEqual(drawn(shrinking.best.execution), [[FIFTY + 1], 0])
 
     def test_sort_siblings_puts_the_smaller_element_first(self) -> None:
         """[5, 3] becomes [3, 5] for a property about the multiset."""
