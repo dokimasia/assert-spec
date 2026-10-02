@@ -2,7 +2,7 @@
 rfc: 0002
 title: The relation family
 author: Roy Klopper <roy.klopper@stealthscale.io>
-status: Draft
+status: Accepted
 created: 2026-08-30
 updated: 2026-10-02
 discussion: none
@@ -15,15 +15,15 @@ produces-adr: none
 
 ## Summary
 
-The standard states forty-one assertions, and all but a handful compare a
-value against another value. This adds a second kind: an assertion that
-states a relation a subject must satisfy, rather than an answer it must
-give. Twenty of them. Ten drive one callable and the inputs to run it
-with. The other ten drive several, such as a forward conversion and the
-inverse that has to undo it.
+The standard states 43 assertions, and all but a few compare a value
+against another value. This adds a second kind: an assertion that states a
+relation a subject must satisfy, which a test can check without knowing
+the subject's correct output. The family has thirteen members. Six call
+one callable with the inputs to run it with. The other seven call two,
+such as a forward conversion and the inverse that has to undo it.
 
-Each one is a necessary property of the subject rather than a recorded
-output, so a test can state it without knowing what the right answer is.
+The analysis behind the family also adds one value assertion,
+`permutation`: a sequence equal to another in any order.
 
 ## Motivation
 
@@ -33,132 +33,228 @@ whatever the code currently returns, which pins the behaviour instead of
 checking it. The field calls this the oracle problem and has surveyed it
 for thirty years.
 
-Metamorphic testing is the established answer. Rather than asking what
-the output should be, it asks what must hold between inputs and outputs:
-run the subject twice and relate the two runs. `f(f(x))` equalling `f(x)`
-is checkable without knowing what `f(x)` is.
+Metamorphic testing runs the subject twice and relates the two runs to
+each other, so a test does not need the correct output. `f(f(x))`
+equalling `f(x)` is checkable without knowing what `f(x)` is.
 
-The standard already has one of these. `pure` states that observed state
-does not change across a call, which is a relation and not a comparison.
-It sits alone among forty value assertions, and there is no reason for
-that beyond the order things were written in.
+`pure` is the one relation among the 43 assertions. It states that
+observed state does not change across a call, and the order in which the
+assertions were written is the only reason it has no siblings.
 
-The size of the gap is known rather than guessed. A catalogue of a
-hundred and seven relations exists, derived from real interfaces, and
-this standard can express seven of them. Thirty-six of the rest need
-nothing but new members in the shape the standard already uses. This
-proposes twenty of those thirty-six, the ones a caller can drive with
-closures it already holds.
+A catalogue of 107 relations, derived from real interfaces, contains 7
+that the standard can express and 36 that need nothing but new assertions
+of the form the standard already uses (Research-0002). Of those 36:
+
+| Disposition | Count | Where |
+|---|---|---|
+| A member of this family | 13 | The members |
+| A value assertion, `permutation` | 1 | The value assertion |
+| A merge that converges, which composes from three members | 1 | Scope |
+| A store protocol that pairs an operation with the sibling confirming it | 15 | Unresolved and future work |
+| Rejected | 6 | Alternatives considered |
 
 ## Detailed design
 
 ### What makes a member
 
-A member of this family states a property that relates the runs of a
-subject to each other, and that a test can check without knowing the
-subject's correct output. That is the membership test, and it is what
-keeps the family from becoming a list of everything anyone wants.
-
-Three consequences follow. A member drives the subject through at least
-one callable rather than inspecting an answer it was handed. A member
-needs no expected output. And a member says nothing about whether the
-subject is correct, only that it is consistent in a stated way.
+A member states a property of a subject that a test can check without the
+subject's correct output. It calls the subject through at least one
+callable, and it does not take an expected output. A member establishes
+that the subject is consistent in a stated way, and not that the subject
+is correct.
 
 ### The members
 
-Each is given with the arguments it takes beyond the seat and the
-message, in the order the standard's existing signatures use.
+Each member is given with the arguments it takes beyond the seat and the
+message. The arity counts by the definition's rule: the seat is not
+counted, and the message is.
 
-**Repetition.** How a subject behaves when run more than once.
+**Repetition.** How a subject behaves when it runs more than once.
 
-```
-idempotent(call, input, observe)      running twice leaves what running once left
-accumulates(call, input, observe)     running twice leaves twice what once left
-cacheable(call, input)                the same input answers the same over time
-retry-succeeds(call, attempts)        a failing call converges within attempts
-```
+| Member | Arguments | Law | Arity | Detail fields |
+|---|---|---|---|---|
+| `idempotent` | `call`, `input`, `observe` | After `call(input)`, `observe` reads `first`. After a second `call(input)`, it reads `second`. The two are equal | 4 | `first`, `second` |
+| `accumulates` | `call`, `input`, `observe` | `observe` reads an integer before the first `call(input)`, after it and after a second one. The first call changes the integer, and the second changes it by the same amount. `first` and `second` are the two changes | 4 | `first`, `second` |
+| `deterministic` | `call`, `input` | 32 calls of `call(input)` return equal results. `first` is the first result, and `second` the first result that differs | 3 | `first`, `second` |
 
-`idempotent` and `accumulates` are two positions on one axis, not a claim
-and its negation. A subject carrying neither has not been asked.
+`idempotent` and `accumulates` are two positions on one axis, and a
+subject may satisfy neither. A subject whose call leaves the observed
+state unchanged satisfies `idempotent` and fails `accumulates`, because
+its first call leaves the integer as it was.
 
 **Algebra.** How results combine.
 
-```
-commutative(combine, a, b)            order does not matter
-associative(combine, a, b, c)         grouping does not matter
-round-trip(forward, inverse, input)   inverse(forward(x)) equals x
-conserves(measure, call)              a named quantity moves but is neither made nor destroyed
-```
+| Member | Arguments | Law | Arity | Detail fields |
+|---|---|---|---|---|
+| `commutative` | `combine`, `a`, `b` | `combine(a, b)`, the `first`, equals `combine(b, a)`, the `second` | 4 | `first`, `second` |
+| `associative` | `combine`, `a`, `b`, `c` | `combine(combine(a, b), c)`, the `first`, equals `combine(a, combine(b, c))`, the `second` | 5 | `first`, `second` |
+| `round-trip` | `forward`, `inverse`, `input` | `inverse(forward(input))`, the `got`, equals `input`, the `want` | 4 | `want`, `got` |
 
-`round-trip` is the relation a codec states, and it is the one members of
-this family most often want: a serializer, a parser, a compressor and an
-encryptor all state it.
+`round-trip` is the relation of a codec: a serializer, a parser, a
+compressor and an encryptor all state it.
 
-Nothing here covers a merge that converges under concurrent writes,
-because a merge that is commutative, associative and idempotent converges
-already. The three primitives compose into it, so the composite is not a
-member.
+**Sequence.** Properties of what a subject yields, or of what it reads
+over successive steps.
 
-**Sequence.** Properties of what a subject yields.
+| Member | Arguments | Law | Arity | Detail fields |
+|---|---|---|---|---|
+| `stable-order` | `iterate` | 32 iterations yield equal sequences. `first` is the first sequence, and `second` the first sequence that differs | 2 | `first`, `second` |
+| `no-duplicates` | `iterate` | One iteration yields each element at most once. `got` is the first element equal to an earlier one, and `index` its position | 2 | `got`, `index` |
+| `monotonic` | `observe`, `advance`, `steps` | `observe` reads a number, then `advance` runs and `observe` reads again, `steps` times. No reading is below the reading before it, and none is NaN. `index` is the step of the first reading that is below or NaN, `first` the reading before it, and `second` that reading | 4 | `index`, `first`, `second` |
 
-```
-stable-order(iterate)                 repeated iteration yields the same order
-permutation(iterate, want)            every element exactly once, order unspecified
-no-duplicates(iterate)                one drain yields each element at most once
-monotonic(observe, advance)           successive observations never decrease
-```
+`stable-order` and `no-duplicates` are independent. A sequence may repeat
+without changing its order, and may change its order without repeating.
 
-`permutation` and `no-duplicates` are independent. A sequence may repeat
-without being disordered and may be disordered without repeating.
+**Totality and state.**
 
-**Totality and defaults.** What a subject does at the edges.
+| Member | Arguments | Law | Arity | Detail fields |
+|---|---|---|---|---|
+| `total` | `call`, `domain` | `call` succeeds for each element of `domain`, in order. `index` is the position of the first element for which it fails, and `got` the failure | 3 | `index`, `got` |
+| `not-pure` | `observe`, `call` | `observe` reads before and after `call`, and the two readings differ. `got` is the reading that did not change | 3 | `got` |
 
-```
-total(call, domain)                   defined for every input in the domain
-default-on-error(call, bad-input)     a failed call answers the zero value beside the error
-side-effect(call, observe)            an observation does change, which is the inverse of pure
-```
+`not-pure` is the negation of `pure`, and takes the same arguments.
 
 **Lifecycle.** What a subject does around its own boundaries.
 
-```
-after-close(close, call, sentinel)    behaves after close, reporting the sentinel
-poisoned(induce, observe)             a failure state, once induced, sticks
-```
+| Member | Arguments | Law | Arity | Detail fields |
+|---|---|---|---|---|
+| `after-close` | `close`, `call`, `sentinel` | After `close`, `call` fails with `sentinel`, found through the chain of wrapped causes as `err-is` finds it. `want` is the sentinel and `got` what `call` returned | 4 | `want`, `got` |
+| `poisoned` | `induce`, `observe` | After `induce`, 32 readings of `observe` each fail. `index` is the position of the first reading that does not fail, and `got` what it returned | 3 | `index`, `got` |
 
-**Safety.** What a subject does with input it should not trust.
+### Callables that fail
 
-```
-escapes(render, unsafe, context)      untrusted input leaves escaped for the context
-treats-as-data(call, unsafe, observe) untrusted input reaches an interpreter as data
-tamper-evident(accept, tamper, verify) modification of accepted data is detectable
-```
+A callable that fails or panics fails the member, except where the law
+requires a failure. The failure or the panic value takes the place of the
+value that the callable did not return, in `first`, `second` or `got`.
+Every other field of the record is null.
 
-These three are the same shape: hand the subject something hostile and
-require that it does not become syntax. They are separated because what
-counts as hostile differs by context, and a caller supplies the payload.
+`after-close` requires `call` to fail with the sentinel, and `poisoned`
+requires every reading to fail. In those two, the failure is the value
+that the law examines. A panic fails them as it fails every member.
 
-### What a member reports
+### Comparison and relaxations
 
-A failure names the relation, the inputs that broke it, and the two runs
-that disagreed. `idempotent` failing reports what the observation was
-after one call and after two, because the difference between them is the
-whole finding.
+`idempotent`, `deterministic`, `commutative`, `associative`,
+`round-trip`, `stable-order`, `no-duplicates` and `not-pure` compare two
+values as `equal` compares them, and accept `equate-empty` and
+`equate-nans`. Under `equate-empty`, a codec that decodes an absent list
+as an empty one passes `round-trip`.
 
-### What this does not add
+`accumulates` and `monotonic` compare numbers. `total` and `poisoned`
+examine failures, and `after-close` compares a failure with its sentinel.
+These five do not accept a relaxation.
 
-No member here takes a clock, records a history, or drives concurrent
-callers. Each of the twenty runs its callables a fixed number of times on
-one thread and compares what it sees. That is what makes them cheap to
-implement and cheap to conform to.
+### Repetitions
 
-Sixteen relations are left out for one of two reasons. A merge that
-converges is commutative, associative and idempotent, so it composes from
-members proposed here. The other fifteen are store protocols that pair an
-operation with the sibling confirming it: a write and the read that finds
-it, an acquire and its release, an insert and the update that replaces
-it. Those need a convention for naming the parts rather than a new kind
-of assertion.
+`deterministic`, `stable-order` and `poisoned` run their callable 32
+times. A subject whose result or order varies can agree with itself by
+chance, and the count bounds that chance. We measured it on Go's map,
+whose iteration order varies by design, with go1.27.1 and 20,000 trials
+for each cell:
+
+| Entries | All 10 iterations agree | All 16 agree | All 32 agree |
+|---|---|---|---|
+| 2 | 27% | 12% | 1.5% |
+| 3 | 5.6% | 1.1% | 0.01% |
+| 4 | 0.9% | 0.04% | none |
+| 5 or more | under 0.1% | none | none |
+
+At 32 iterations, `stable-order` passes a Go map of two entries in 1.5% of
+runs, and it has not passed one of four or more.
+
+### Order of the callables
+
+A member that takes two callables takes them in the order its law reads.
+`after-close` takes `close` before `call`, because the law is "close,
+then call fails". RFC-0003 states the same rule for the relations that
+pass their parts as roles.
+
+### The value assertion
+
+`permutation(got, want)` passes when `got` and `want` contain the same
+elements, each as often, in any order. It compares elements as `equal`
+compares them and accepts `equate-empty` and `equate-nans`. Its arity is
+3, and a failure reports `want` and `got`.
+
+`permutation` takes an expected output. It is a value assertion for that
+reason, and not a member of the family.
+
+### Corpus cases
+
+A member takes callables. A corpus case of a member states a subject, as
+the cases of `pure` do. The subject supplies every callable and every
+input of the member, and the case states nothing else. Each member has
+one passing case and one failing case:
+
+| Member | Passing subject | Failing subject |
+|---|---|---|
+| `idempotent` | `sets-value` | `accumulates` |
+| `accumulates` | `accumulates` | `sets-value` |
+| `deterministic` | `returns-ok` | `counts-calls` |
+| `commutative` | `adds` | `subtracts` |
+| `associative` | `adds` | `subtracts` |
+| `round-trip` | `renders-decimal` | `drops-the-sign` |
+| `stable-order` | `yields-in-order` | `rotates` |
+| `no-duplicates` | `yields-in-order` | `repeats-an-element` |
+| `monotonic` | `accumulates` | `wraps-around` |
+| `total` | `returns-ok` | `fails-otherwise` |
+| `not-pure` | `accumulates` | `leaves-state-alone` |
+| `after-close` | `refuses-after-close` | `serves-after-close` |
+| `poisoned` | `never-settles` | `settles-after` |
+
+Six of these subject kinds exist already, and the definition gains
+twelve:
+
+| Subject | Behaviour |
+|---|---|
+| `sets-value` | Sets the observed state to its input, 7 |
+| `counts-calls` | Returns the number of times it has been called |
+| `adds` | Combines two integers by adding them, over the inputs 2, 3 and 5 |
+| `subtracts` | Combines two integers by subtracting the second from the first, over the inputs 2, 3 and 5 |
+| `renders-decimal` | Renders an integer as decimal text and parses the text back, over the input -42 |
+| `drops-the-sign` | Renders the absolute value of an integer as decimal text and parses the text back, over the input -42 |
+| `yields-in-order` | Yields the integers 1 to 5 in order, on every iteration |
+| `rotates` | Yields the integers 1 to 5, rotated one place further on each iteration |
+| `repeats-an-element` | Yields 1, 2, 2 and 3 |
+| `wraps-around` | Counts up by one per advance and returns to 0 after 3, over 5 steps |
+| `refuses-after-close` | After it closes, fails every call with its closed sentinel |
+| `serves-after-close` | After it closes, still succeeds on every call |
+
+The subject `accumulates` observes an integer count that rises by one per
+call. It passes `accumulates`, `monotonic` over 5 steps and `not-pure`,
+and it fails `idempotent`. `permutation` takes values, so its cases state
+typed literals.
+
+### Property forms
+
+A property form of a member generates some of its arguments and runs the
+member on each generated case:
+
+| Member | Generated arguments |
+|---|---|
+| `idempotent`, `accumulates`, `deterministic`, `round-trip` | `input` |
+| `commutative` | `a` and `b` |
+| `associative` | `a`, `b` and `c` |
+| `total` | The elements of `domain` |
+
+The other six members take no input to generate. RFC-0011 states the
+property forms.
+
+### Scope
+
+Each member runs its callables a fixed number of times on one thread and
+compares what it reads, so it is cheap to implement and cheap to conform
+to. The family leaves out every relation that needs a clock, a history or
+concurrent callers.
+
+A merge that converges under concurrent writes is commutative,
+associative and idempotent, so it composes from three members and is not
+a member of its own.
+
+### Versioning
+
+Adding the thirteen members, `permutation`, their subjects and their
+cases is a minor version.
 
 ## Alternatives considered
 
@@ -166,71 +262,99 @@ of assertion.
 
 Every relation here is expressible as a property, and the property-based
 testing libraries are mature and widely used. fast-check, hypothesis and
-proptest all have more adoption than this standard is likely to reach.
+proptest all have more users than this standard is likely to gain.
 
-Rejected because they answer a different question. A property needs a
-generator, a shrinking strategy and a separate test style. An assertion
-states the relation about a call the author already has in front of them,
-in the test they were already writing. The two compose: the same relation
-can be asserted about one input or driven over generated ones, which is
-the point of naming it once.
+Rejected, because a property needs a generator, a shrinking strategy and
+a separate test style. An assertion states the relation about a call that
+the author already has, in the test that they were already writing. The
+two compose. One named relation can be asserted about one input, and its
+property form runs it over generated inputs.
 
 ### B. Add a general relation combinator instead of named members
 
-One assertion taking a relation as an argument would cover all twenty and
-any relation nobody has thought of. It is less to specify and less to
+One assertion taking a relation as an argument would cover every member
+and any relation nobody has thought of. It is less to specify and less to
 implement.
 
-Rejected because a named relation is what makes a suite readable and what
-makes coverage answerable. A test that says `idempotent` says what it
-checks; a test that passes a lambda to a combinator says only that
-something was checked. Naming is also what lets an overlay record that a
-language cannot supply one.
+Rejected, because a named relation makes a suite readable and makes its
+coverage countable. A test that calls `idempotent` states what it checks,
+and a lambda passed to a combinator states only that something was
+checked. A name is also what lets an overlay record that a language
+cannot supply a member.
 
-### C. Take a value rather than a callable
+### C. Take values instead of callables
 
-Several members could compare two values the caller produced. That would
-match the existing signatures more closely.
+A member could take the two values that the caller produced, such as the
+results of `combine(a, b)` and `combine(b, a)`. That would match the
+existing signatures more closely.
 
-Rejected because the caller producing both runs is the mistake the
-assertion exists to prevent. A caller who runs the subject twice and
+Rejected, because the caller producing both runs is the mistake that the
+member exists to prevent. A caller who runs the subject twice and
 compares has written the relation by hand. The usual error is running it
 twice in a way that does not test the property.
 
+### D. `conserves`, a member for a quantity that moves but is not made or destroyed
+
+`pure(observe, call)`, with `observe` returning the total, such as the
+sum of every balance, passes exactly when the call conserves the total.
+Rejected for that reason. A conserved quantity that needs a tolerance,
+such as a total of floats, would need a member that compares with
+`close-to`.
+
+### E. The safety members: `escapes`, `treats-as-data` and `tamper-evident`
+
+Each hands the subject hostile input and requires that the input does not
+become syntax. Rejected, because the caller supplies the payload, so a
+weak payload passes a weak subject, and the member cannot fail on the
+property that it names. A versioned corpus of payloads for each context,
+in the definition, would change this.
+
+### F. `default-on-error`, a zero value beside a failure
+
+Only Go returns a value beside a failure. Python, Java, Kotlin and
+TypeScript raise. Rust returns a result that is a value or a failure.
+Rejected, because an assertion that means something different in each
+language is a helper, and a helper belongs in the library of its
+language.
+
+### G. `retry-succeeds`, a failing call that converges within a number of attempts
+
+On a controlled clock, `eventually` runs a fixed number of attempts and
+reports how many it ran. Rejected, because `eventually` states the same
+law.
+
+### H. Fewer repetitions
+
+Ten repetitions pass a Go map of two entries in 27% of runs and one of
+three entries in 5.6%. Rejected for that reason. 32 repetitions cost 32
+calls of the callable, which is cheap for a function and noticeable for a
+call over a network.
+
 ## Drawbacks
 
-Twenty members is a forty-nine percent increase on a set of forty-one,
-and every one has to be implemented five times, named in the naming
-table, and given corpus cases. On the evidence of the existing set, that
-is roughly one file per family per language.
-
-The corpus reaches a member only by naming the behaviour it wants, the
-way it reaches the assertions that take a callable today. Where no named
-behaviour fits, a member rests on the completeness gate and on each
-implementation's own tests. Sixteen of the existing forty-one are in that
-position, and every member added here that wants a subject the vocabulary
-does not name joins them.
-
-Three of the safety members need a payload to be hostile with, and what
-counts as hostile is language and context specific. The caller supplies
-it. So the assertion cannot tell whether that payload would have broken
-an unsafe subject, which means a weak payload passes a weak subject.
+- Fourteen assertions are a 33% increase on a set of 43. Each one is
+  implemented in every language, named in the naming table and given
+  corpus cases, and the definition gains twelve subject kinds.
+- `stable-order` passes a Go map of two entries in 1.5% of runs, and a
+  map of three entries in 0.01%. A test that needs the property states a
+  map of four entries or more.
+- A member checks consistency and not correctness. A subject that is
+  wrong in the same way on every run passes `deterministic` and
+  `stable-order`.
+- `deterministic` and `stable-order` call their subject 32 times, which a
+  slow subject makes slow.
 
 ## Unresolved and future work
 
-Whether `conserves` belongs here or in the sequence group. It states that
-a measured quantity is unchanged across a call, which is `pure` over a
-projection rather than over whole state, and the two may be one member.
-
-Whether the safety members belong in the standard at all. They are the
-only ones whose correctness depends on a corpus of attacks that ages,
-and a standard that names them takes on the job of saying what the corpus
-must contain.
-
-The relations that need a recorded history, a controlled clock or
-concurrent callers are not proposed here. The standard's clock is the
-controlled clock they need. The history and the concurrency driver are
-proposed as the observation seams.
+- The fifteen store protocols, such as a delete and the read that
+  confirms it, an acquire and its release, and an insert and the update
+  that replaces it. Each takes its callables in the order its law reads.
+  A later RFC proposes them after the observation seams of RFC-0003.
+- The relations that need a recorded history, a controlled clock or
+  concurrent callers. The standard's clock is the controlled clock they
+  need. The history and the concurrency driver are proposed as the
+  observation seams.
+- The property forms of the members, which RFC-0011 states.
 
 ## References
 
@@ -243,3 +367,4 @@ proposed as the observation seams.
 - Conflict-free replicated data types, for why a converging merge is
   commutative, associative and idempotent: Shapiro, Preguiça, Baquero and
   Zawirski, <https://doi.org/10.1007/978-3-642-24550-3_29>
+- The catalogue of relations and its classification: Research-0002

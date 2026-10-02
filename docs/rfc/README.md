@@ -7,7 +7,7 @@ they record why not.
 | # | Title | Status |
 |---|---|---|
 | [0001](0001-the-standardized-assertion-set.md) | The standardized assertion set | Accepted |
-| [0002](0002-the-relation-family.md) | The relation family | Draft |
+| [0002](0002-the-relation-family.md) | The relation family | Accepted |
 | [0003](0003-the-observation-seams.md) | The observation seams | Draft |
 | [0004](0004-the-history-checker.md) | The linearizability checker | Draft |
 | [0005](0005-the-failure-record.md) | The failure record | Accepted |
