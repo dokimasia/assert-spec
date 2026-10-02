@@ -1,5 +1,33 @@
 {
     "assertions": {
+        "accumulates": {
+            "arity": 4,
+            "detail_fields": [
+                "first",
+                "second"
+            ],
+            "summary": "Each call of a subject with one input changes an observed integer by the same amount, and the first call changes it. first and second are the changes of the first and the second call.\n"
+        },
+        "after-close": {
+            "arity": 4,
+            "detail_fields": [
+                "want",
+                "got"
+            ],
+            "summary": "After a subject closes, a call fails with a sentinel, through the chain of wrapped causes. want is the sentinel, and got what the call returned.\n"
+        },
+        "associative": {
+            "arity": 5,
+            "detail_fields": [
+                "first",
+                "second"
+            ],
+            "relaxations": [
+                "equate-empty",
+                "equate-nans"
+            ],
+            "summary": "Combining the combination of a and b with c gives what combining a with the combination of b and c gives. first is the former, and second the latter.\n"
+        },
         "bench-max-allocs": {
             "arity": 1,
             "detail_fields": [
@@ -45,6 +73,18 @@
             ],
             "summary": "A number is within a tolerance of another, by absolute difference. NaN is outside every tolerance, and so are two equal infinities, whose difference is NaN.\n"
         },
+        "commutative": {
+            "arity": 4,
+            "detail_fields": [
+                "first",
+                "second"
+            ],
+            "relaxations": [
+                "equate-empty",
+                "equate-nans"
+            ],
+            "summary": "Combining a and b gives what combining b and a gives. first is the combination of a and b, and second the combination of b and a.\n"
+        },
         "completes-within": {
             "arity": 3,
             "detail_fields": [
@@ -73,6 +113,18 @@
                 "index"
             ],
             "summary": "Text holds every needle, each after the previous one's match ends.\n"
+        },
+        "deterministic": {
+            "arity": 3,
+            "detail_fields": [
+                "first",
+                "second"
+            ],
+            "relaxations": [
+                "equate-empty",
+                "equate-nans"
+            ],
+            "summary": "32 calls of a subject with one input return equal results. first is the first result, and second the first result that differs.\n"
         },
         "empty": {
             "arity": 2,
@@ -206,6 +258,18 @@
             ],
             "summary": "A subject given an expired deadline reports a deadline failure.\n"
         },
+        "idempotent": {
+            "arity": 4,
+            "detail_fields": [
+                "first",
+                "second"
+            ],
+            "relaxations": [
+                "equate-empty",
+                "equate-nans"
+            ],
+            "summary": "Calling a subject twice with one input leaves the observed state that calling it once left. first is the observation after one call, and second after two.\n"
+        },
         "in-range": {
             "arity": 4,
             "detail_fields": [
@@ -239,6 +303,15 @@
             ],
             "summary": "A callable makes at most a stated number of heap allocations per call. One call warms it first, and the count is the average over the calls after it, rounded down.\n"
         },
+        "monotonic": {
+            "arity": 4,
+            "detail_fields": [
+                "index",
+                "first",
+                "second"
+            ],
+            "summary": "An observed number never falls and is never NaN while a subject advances a stated number of steps. index is the position of the first reading that falls or is NaN, the reading before the first step at position 0. first is the reading before it, and second that reading.\n"
+        },
         "nil": {
             "arity": 2,
             "detail_fields": [
@@ -252,6 +325,18 @@
                 "got"
             ],
             "summary": "A subject given an absent cancellation handle does not crash.\n"
+        },
+        "no-duplicates": {
+            "arity": 2,
+            "detail_fields": [
+                "got",
+                "index"
+            ],
+            "relaxations": [
+                "equate-empty",
+                "equate-nans"
+            ],
+            "summary": "One iteration of a subject yields each element at most once. got is the first element equal to an earlier one, and index its position.\n"
         },
         "no-task-leaks": {
             "arity": 2,
@@ -293,6 +378,17 @@
             "detail_fields": [],
             "summary": "The value is present. A typed nil counts as nil.\n"
         },
+        "not-pure": {
+            "arity": 3,
+            "detail_fields": [
+                "got"
+            ],
+            "relaxations": [
+                "equate-empty",
+                "equate-nans"
+            ],
+            "summary": "Observed state changes across a call. got is the observation that did not change.\n"
+        },
         "not-throws": {
             "arity": 2,
             "detail_fields": [
@@ -308,6 +404,26 @@
                 "second"
             ],
             "summary": "Every adjacent pair of a sequence satisfies a predicate. Nought or one item passes.\n"
+        },
+        "permutation": {
+            "arity": 3,
+            "detail_fields": [
+                "want",
+                "got"
+            ],
+            "relaxations": [
+                "equate-empty",
+                "equate-nans"
+            ],
+            "summary": "A sequence contains the same elements as another, each as often, in any order. Elements compare as equal compares them.\n"
+        },
+        "poisoned": {
+            "arity": 3,
+            "detail_fields": [
+                "index",
+                "got"
+            ],
+            "summary": "After a failure is induced, 32 readings each report a failure. index is the position of the first reading that does not, and got what it returned.\n"
         },
         "prop-for-all": {
             "arity": 2,
@@ -343,10 +459,42 @@
             "detail_fields": [],
             "summary": "A check fails against an implementation it is meant to reject. Yields the failure message.\n"
         },
+        "round-trip": {
+            "arity": 4,
+            "detail_fields": [
+                "want",
+                "got"
+            ],
+            "relaxations": [
+                "equate-empty",
+                "equate-nans"
+            ],
+            "summary": "The inverse conversion of the forward conversion of an input returns the input. want is the input, and got what came back.\n"
+        },
+        "stable-order": {
+            "arity": 2,
+            "detail_fields": [
+                "first",
+                "second"
+            ],
+            "relaxations": [
+                "equate-empty",
+                "equate-nans"
+            ],
+            "summary": "32 iterations of a subject yield equal sequences. first is the first sequence, and second the first sequence that differs.\n"
+        },
         "throws": {
             "arity": 2,
             "detail_fields": [],
             "summary": "A callable raises. Yields what was raised.\n"
+        },
+        "total": {
+            "arity": 3,
+            "detail_fields": [
+                "index",
+                "got"
+            ],
+            "summary": "A call succeeds for every input of a domain, in order. index is the position of the first input for which it fails, and got the failure.\n"
         },
         "true": {
             "arity": 2,
@@ -364,13 +512,22 @@
     },
     "subjects": {
         "accumulates": {
-            "summary": "Changes the observed state once per call.\n"
+            "summary": "Changes the observed state once per call: a counter that starts at 0 and rises by one per call, whatever the input. As the subject of monotonic, it advances 5 steps.\n"
+        },
+        "adds": {
+            "summary": "Combines two integers by adding them. Its inputs are 2, 3 and 5, as a, b and c.\n"
+        },
+        "counts-calls": {
+            "summary": "Returns the number of times it has been called, starting at 1, whatever its input. Its input is 1.\n"
         },
         "dereferences-handle": {
             "summary": "Reads a handle without checking it is there, so a missing one crashes it.\n"
         },
+        "drops-the-sign": {
+            "summary": "Renders the absolute value of an integer as decimal text, and parses decimal text back into the integer. Its input is -42.\n"
+        },
         "fails-otherwise": {
-            "summary": "Answers a failure of its own, unrelated to any handle it was given.\n"
+            "summary": "Returns a failure of its own, unrelated to any handle it was given. As the subject of total, its domain is 1, 2 and 3.\n"
         },
         "ignores-handle": {
             "summary": "Answers success without reading the handle at all.\n"
@@ -379,7 +536,7 @@
             "summary": "Reads the observed state and changes nothing.\n"
         },
         "never-settles": {
-            "summary": "Reports a failure on every attempt.\n"
+            "summary": "Reports a failure on every attempt. As the subject of poisoned, inducing changes nothing, and every reading reports the failure.\n"
         },
         "raises": {
             "summary": "Raises rather than answering.\n"
@@ -387,12 +544,39 @@
         "reads-handle": {
             "summary": "Reads the cancellation handle and answers the reason it gives, or success when the handle is absent or still running.\n"
         },
+        "refuses-after-close": {
+            "summary": "A resource whose calls succeed until it closes, and fail with its closed sentinel after it closes.\n"
+        },
+        "renders-decimal": {
+            "summary": "Renders an integer as decimal text, and parses decimal text back into the integer. Its input is -42.\n"
+        },
+        "repeats-an-element": {
+            "summary": "Yields 1, 2, 2 and 3.\n"
+        },
         "returns-ok": {
-            "summary": "Does the work and answers success, whatever it was handed.\n"
+            "summary": "Does the work and returns success, whatever it was handed. As the subject of a member, it returns its input, 1, and its domain is 1, 2 and 3.\n"
+        },
+        "rotates": {
+            "summary": "Yields the integers 1 to 5, rotated one place further on each iteration: 1 to 5 first, then 2, 3, 4, 5 and 1.\n"
+        },
+        "serves-after-close": {
+            "summary": "A resource whose calls succeed before and after it closes. Its closed sentinel is a failure that no call returns.\n"
+        },
+        "sets-value": {
+            "summary": "A cell that starts at 0. A call sets it to the call's input, 7, and an observation reads it.\n"
         },
         "settles-after": {
-            "summary": "Reports a failure twice and succeeds on the third attempt.\n"
+            "summary": "Reports a failure twice and succeeds on the third attempt. As the subject of poisoned, inducing changes nothing, and the third reading succeeds.\n"
+        },
+        "subtracts": {
+            "summary": "Combines two integers by subtracting the second from the first. Its inputs are 2, 3 and 5, as a, b and c.\n"
+        },
+        "wraps-around": {
+            "summary": "A counter that starts at 0, rises by one per advance and returns to 0 after 3. It advances 5 steps.\n"
+        },
+        "yields-in-order": {
+            "summary": "Yields the integers 1 to 5 in order, on every iteration.\n"
         }
     },
-    "version": "2.0.0"
+    "version": "2.1.0"
 }

@@ -46,7 +46,7 @@ tools/validate.py      the rules, checked
 tools/prop/            the property engine's executable reference
 tools/spec-sync.sh     how an implementation vendors the definition
 tools/spec-check.sh    how an implementation checks its copy
-VERSION                2.0.0
+VERSION                2.1.0
 ```
 
 People edit the YAML. `make render` produces the JSON, which is
@@ -83,12 +83,12 @@ one definition.
 
 ## The set
 
-43 assertions: 35 in the root namespace, 3 for golden files, 4 for
+57 assertions: 49 in the root namespace, 3 for golden files, 4 for
 benchmark ceilings and 1 property check. They cover equality, truth,
 nullity, length, containment, text, numbers, ordering, errors, raising,
 cancellation and deadlines, retrying, goroutine and task leaks,
-allocations, recorded output, performance ceilings, and properties over
-generated inputs.
+allocations, relations between runs of a subject, recorded output,
+performance ceilings, and properties over generated inputs.
 
 An assertion earns its place by answering two questions. Does it state
 something that must be true, and fail when it is not? Does it mean the
@@ -119,8 +119,8 @@ what the failure must mention:
 ```
 
 Typed literals cross a language boundary only as data, so the corpus
-covers 25 of the 43 assertions. Seventeen of those state their
-arguments. The other eight name a behaviour instead, because what they
+covers 39 of the 57 assertions. Eighteen of those state their
+arguments. The other 21 name a behaviour instead, because what they
 take is a callable and no encoding states one. The remaining 18 take an
 error value, a predicate, a callable that no subject describes, a golden
 file, a benchmark measurement or a property's body, and none of those is
@@ -232,15 +232,15 @@ differently.
 
 | Language | Repository | Assertions |
 |---|---|---|
-| Go | [assert-go](https://github.com/dokimasia/assert-go) | 43 of 43 |
-| Java | [assert-java](https://github.com/dokimasia/assert-java) | 41 of 43 |
-| Kotlin | [assert-java](https://github.com/dokimasia/assert-java) | 41 of 43 |
-| Python | [assert-python](https://github.com/dokimasia/assert-python) | 41 of 43 |
-| Rust | [assert-rust](https://github.com/dokimasia/assert-rust) | 43 of 43 |
-| TypeScript | [assert-typescript](https://github.com/dokimasia/assert-typescript) | 40 of 43 |
+| Go | [assert-go](https://github.com/dokimasia/assert-go) | 57 of 57 |
+| Java | [assert-java](https://github.com/dokimasia/assert-java) | 55 of 57 |
+| Kotlin | [assert-java](https://github.com/dokimasia/assert-java) | 55 of 57 |
+| Python | [assert-python](https://github.com/dokimasia/assert-python) | 55 of 57 |
+| Rust | [assert-rust](https://github.com/dokimasia/assert-rust) | 57 of 57 |
+| TypeScript | [assert-typescript](https://github.com/dokimasia/assert-typescript) | 54 of 57 |
 
 Each count is what the language's overlay declares against version
-2.0.0. An implementation that has not synced to it yet has a drift issue
+2.1.0. An implementation that has not synced to it yet has a drift issue
 open until it does.
 
 Java and Kotlin ship from one repository and are named identically, so
@@ -253,7 +253,7 @@ answers only as a heap-usage delta that moves with whether the collector
 ran. Each gap is in that language's overlay with the measurement behind
 it.
 
-Go and Rust state all forty-three and declare nothing absent. Go checks no
+Go and Rust state all fifty-seven and declare nothing absent. Go checks no
 allocation ceiling in a build with the race detector, msan or asan, or
 in one whose `-gcflags` turn off optimisation or inlining, because those
 builds allocate differently from the one that ships. In Rust four are

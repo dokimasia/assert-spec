@@ -1,0 +1,29 @@
+{
+  "assertion": "no-duplicates",
+  "cases": [
+    {
+      "id": "no-duplicates/distinct-elements-pass",
+      "subject": {
+        "kind": "yields-in-order"
+      },
+      "expect": "pass"
+    },
+    {
+      "id": "no-duplicates/a-repeated-element-fails",
+      "subject": {
+        "kind": "repeats-an-element"
+      },
+      "expect": "fail",
+      "detail": {
+        "got": {
+          "type": "int",
+          "value": 2
+        },
+        "index": {
+          "type": "int",
+          "value": 2
+        }
+      }
+    }
+  ]
+}

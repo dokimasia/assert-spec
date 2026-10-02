@@ -24,11 +24,11 @@ simpler than a list of exceptions.
 ## Corpus coverage by assertion
 
 A case states its arguments as typed literals, or names a subject from a
-small vocabulary that each implementation builds natively. 25 of the 43
+small vocabulary that each implementation builds natively. 39 of the 57
 assertions have corpus cases:
 
-- 17 take data.
-- 8 take a callable that a subject describes.
+- 18 take data.
+- 21 take a callable that a subject describes.
 
 The other 18 take an error value, a predicate, a callable that no
 subject describes, a golden file, a benchmark or a property's body. Each

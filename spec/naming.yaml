@@ -3,7 +3,7 @@
 # A qualified name names a member of the subpackage the assertion table
 # gives it. The separator is the language's own: a dot in Go, Java,
 # Kotlin, Python and TypeScript, two colons in Rust.
-version: "2.0.0"
+version: "2.1.0"
 
 languages: [go, java, kotlin, php, python, rust, typescript]
 
@@ -92,6 +92,13 @@ names:
     typescript: "containsInOrder"
     java: "containsInOrder"
     kotlin: "containsInOrder"
+  "permutation":
+    go: "Permutation"
+    python: "is_permutation"
+    rust: "is_permutation"
+    typescript: "isPermutation"
+    java: "isPermutation"
+    kotlin: "isPermutation"
   "has-prefix":
     go: "HasPrefix"
     python: "has_prefix"
@@ -218,6 +225,97 @@ names:
     typescript: "nullHandleSafe"
     java: "nullHandleSafe"
     kotlin: "nullHandleSafe"
+  "idempotent":
+    go: "Idempotent"
+    python: "is_idempotent"
+    rust: "is_idempotent"
+    typescript: "isIdempotent"
+    java: "isIdempotent"
+    kotlin: "isIdempotent"
+  "accumulates":
+    go: "Accumulates"
+    python: "accumulates"
+    rust: "accumulates"
+    typescript: "accumulates"
+    java: "accumulates"
+    kotlin: "accumulates"
+  "deterministic":
+    go: "Deterministic"
+    python: "is_deterministic"
+    rust: "is_deterministic"
+    typescript: "isDeterministic"
+    java: "isDeterministic"
+    kotlin: "isDeterministic"
+  "commutative":
+    go: "Commutative"
+    python: "is_commutative"
+    rust: "is_commutative"
+    typescript: "isCommutative"
+    java: "isCommutative"
+    kotlin: "isCommutative"
+  "associative":
+    go: "Associative"
+    python: "is_associative"
+    rust: "is_associative"
+    typescript: "isAssociative"
+    java: "isAssociative"
+    kotlin: "isAssociative"
+  "round-trip":
+    go: "RoundTrip"
+    python: "round_trip"
+    rust: "round_trip"
+    typescript: "roundTrip"
+    java: "roundTrip"
+    kotlin: "roundTrip"
+  "stable-order":
+    go: "StableOrder"
+    python: "has_stable_order"
+    rust: "has_stable_order"
+    typescript: "hasStableOrder"
+    java: "hasStableOrder"
+    kotlin: "hasStableOrder"
+  "no-duplicates":
+    go: "NoDuplicates"
+    python: "no_duplicates"
+    rust: "no_duplicates"
+    typescript: "noDuplicates"
+    java: "noDuplicates"
+    kotlin: "noDuplicates"
+  "monotonic":
+    go: "Monotonic"
+    python: "is_monotonic"
+    rust: "is_monotonic"
+    typescript: "isMonotonic"
+    java: "isMonotonic"
+    kotlin: "isMonotonic"
+  "total":
+    go: "Total"
+    python: "is_total"
+    rust: "is_total"
+    typescript: "isTotal"
+    java: "isTotal"
+    kotlin: "isTotal"
+  "not-pure":
+    go: "NotPure"
+    python: "is_not_pure"
+    rust: "is_not_pure"
+    typescript: "isNotPure"
+    java: "isNotPure"
+    kotlin: "isNotPure"
+  "after-close":
+    go: "FailsAfterClose"
+    python: "fails_after_close"
+    rust: "fails_after_close"
+    typescript: "failsAfterClose"
+    java: "failsAfterClose"
+    kotlin: "failsAfterClose"
+  "poisoned":
+    go: "Poisoned"
+    python: "is_poisoned"
+    rust: "is_poisoned"
+    typescript: "isPoisoned"
+    java: "isPoisoned"
+    kotlin: "isPoisoned"
   "eventually":
     go: "Eventually"
     python: "eventually"

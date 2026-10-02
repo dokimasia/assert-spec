@@ -74,7 +74,7 @@ The stance vocabulary is not closed. `blocked` is the one in use.
 ## Relaxations
 
 A relaxation widens what counts as equal for one call. The definition
-states two, and five assertions accept them.
+states two, and fourteen assertions accept them.
 
 A language may have nothing to relax. Rust's types keep an absent
 container and an empty one apart, and its `==` already says NaN is

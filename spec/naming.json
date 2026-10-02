@@ -9,6 +9,30 @@
         "typescript"
     ],
     "names": {
+        "accumulates": {
+            "go": "Accumulates",
+            "java": "accumulates",
+            "kotlin": "accumulates",
+            "python": "accumulates",
+            "rust": "accumulates",
+            "typescript": "accumulates"
+        },
+        "after-close": {
+            "go": "FailsAfterClose",
+            "java": "failsAfterClose",
+            "kotlin": "failsAfterClose",
+            "python": "fails_after_close",
+            "rust": "fails_after_close",
+            "typescript": "failsAfterClose"
+        },
+        "associative": {
+            "go": "Associative",
+            "java": "isAssociative",
+            "kotlin": "isAssociative",
+            "python": "is_associative",
+            "rust": "is_associative",
+            "typescript": "isAssociative"
+        },
         "bench-max-allocs": {
             "go": "bench.Contract.MaxAllocs",
             "java": "Contract.maxAllocs",
@@ -49,6 +73,14 @@
             "rust": "close_to",
             "typescript": "closeTo"
         },
+        "commutative": {
+            "go": "Commutative",
+            "java": "isCommutative",
+            "kotlin": "isCommutative",
+            "python": "is_commutative",
+            "rust": "is_commutative",
+            "typescript": "isCommutative"
+        },
         "completes-within": {
             "go": "CompletesWithin",
             "java": "completesWithin",
@@ -72,6 +104,14 @@
             "python": "contains_in_order",
             "rust": "contains_in_order",
             "typescript": "containsInOrder"
+        },
+        "deterministic": {
+            "go": "Deterministic",
+            "java": "isDeterministic",
+            "kotlin": "isDeterministic",
+            "python": "is_deterministic",
+            "rust": "is_deterministic",
+            "typescript": "isDeterministic"
         },
         "empty": {
             "go": "Empty",
@@ -209,6 +249,14 @@
             "rust": "honours_deadline",
             "typescript": "honoursDeadline"
         },
+        "idempotent": {
+            "go": "Idempotent",
+            "java": "isIdempotent",
+            "kotlin": "isIdempotent",
+            "python": "is_idempotent",
+            "rust": "is_idempotent",
+            "typescript": "isIdempotent"
+        },
         "in-range": {
             "go": "InRange",
             "java": "inRange",
@@ -241,6 +289,14 @@
             "rust": "max_allocs",
             "typescript": "maxAllocs"
         },
+        "monotonic": {
+            "go": "Monotonic",
+            "java": "isMonotonic",
+            "kotlin": "isMonotonic",
+            "python": "is_monotonic",
+            "rust": "is_monotonic",
+            "typescript": "isMonotonic"
+        },
         "nil": {
             "go": "Nil",
             "java": "isNull",
@@ -256,6 +312,14 @@
             "python": "none_handle_safe",
             "rust": "none_handle_safe",
             "typescript": "nullHandleSafe"
+        },
+        "no-duplicates": {
+            "go": "NoDuplicates",
+            "java": "noDuplicates",
+            "kotlin": "noDuplicates",
+            "python": "no_duplicates",
+            "rust": "no_duplicates",
+            "typescript": "noDuplicates"
         },
         "no-task-leaks": {
             "go": "NoGoroutineLeaks",
@@ -297,6 +361,14 @@
             "rust": "is_some",
             "typescript": "isNotNil"
         },
+        "not-pure": {
+            "go": "NotPure",
+            "java": "isNotPure",
+            "kotlin": "isNotPure",
+            "python": "is_not_pure",
+            "rust": "is_not_pure",
+            "typescript": "isNotPure"
+        },
         "not-throws": {
             "go": "NotPanics",
             "java": "doesNotThrow",
@@ -312,6 +384,22 @@
             "python": "pairwise",
             "rust": "pairwise",
             "typescript": "pairwise"
+        },
+        "permutation": {
+            "go": "Permutation",
+            "java": "isPermutation",
+            "kotlin": "isPermutation",
+            "python": "is_permutation",
+            "rust": "is_permutation",
+            "typescript": "isPermutation"
+        },
+        "poisoned": {
+            "go": "Poisoned",
+            "java": "isPoisoned",
+            "kotlin": "isPoisoned",
+            "python": "is_poisoned",
+            "rust": "is_poisoned",
+            "typescript": "isPoisoned"
         },
         "prop-for-all": {
             "go": "prop.ForAll",
@@ -337,6 +425,22 @@
             "rust": "rejects",
             "typescript": "rejects"
         },
+        "round-trip": {
+            "go": "RoundTrip",
+            "java": "roundTrip",
+            "kotlin": "roundTrip",
+            "python": "round_trip",
+            "rust": "round_trip",
+            "typescript": "roundTrip"
+        },
+        "stable-order": {
+            "go": "StableOrder",
+            "java": "hasStableOrder",
+            "kotlin": "hasStableOrder",
+            "python": "has_stable_order",
+            "rust": "has_stable_order",
+            "typescript": "hasStableOrder"
+        },
         "throws": {
             "go": "Panics",
             "java": "throwsException",
@@ -344,6 +448,14 @@
             "python": "raises",
             "rust": "panics",
             "typescript": "throws"
+        },
+        "total": {
+            "go": "Total",
+            "java": "isTotal",
+            "kotlin": "isTotal",
+            "python": "is_total",
+            "rust": "is_total",
+            "typescript": "isTotal"
         },
         "true": {
             "go": "True",
@@ -1011,5 +1123,5 @@
             }
         }
     },
-    "version": "2.0.0"
+    "version": "2.1.0"
 }

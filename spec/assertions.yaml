@@ -16,7 +16,7 @@
 # assertion carries exactly these. got is what the assertion observed
 # and want is what it required, so an assertion whose failure holds
 # neither states no fields and reports the caller's message alone.
-version: "2.0.0"
+version: "2.1.0"
 
 # What a caller may relax, for one call.
 #
@@ -46,7 +46,9 @@ relaxations:
 subjects:
   "returns-ok":
     summary: >
-      Does the work and answers success, whatever it was handed.
+      Does the work and returns success, whatever it was handed. As the
+      subject of a member, it returns its input, 1, and its domain is 1, 2
+      and 3.
   "reads-handle":
     summary: >
       Reads the cancellation handle and answers the reason it gives,
@@ -59,24 +61,75 @@ subjects:
       Raises rather than answering.
   "fails-otherwise":
     summary: >
-      Answers a failure of its own, unrelated to any handle it was
-      given.
+      Returns a failure of its own, unrelated to any handle it was given.
+      As the subject of total, its domain is 1, 2 and 3.
   "dereferences-handle":
     summary: >
       Reads a handle without checking it is there, so a missing one
       crashes it.
   "never-settles":
     summary: >
-      Reports a failure on every attempt.
+      Reports a failure on every attempt. As the subject of poisoned,
+      inducing changes nothing, and every reading reports the failure.
   "settles-after":
     summary: >
-      Reports a failure twice and succeeds on the third attempt.
+      Reports a failure twice and succeeds on the third attempt. As the
+      subject of poisoned, inducing changes nothing, and the third reading
+      succeeds.
   "accumulates":
     summary: >
-      Changes the observed state once per call.
+      Changes the observed state once per call: a counter that starts at 0
+      and rises by one per call, whatever the input. As the subject of
+      monotonic, it advances 5 steps.
   "leaves-state-alone":
     summary: >
       Reads the observed state and changes nothing.
+  "sets-value":
+    summary: >
+      A cell that starts at 0. A call sets it to the call's input, 7, and
+      an observation reads it.
+  "counts-calls":
+    summary: >
+      Returns the number of times it has been called, starting at 1,
+      whatever its input. Its input is 1.
+  "adds":
+    summary: >
+      Combines two integers by adding them. Its inputs are 2, 3 and 5, as
+      a, b and c.
+  "subtracts":
+    summary: >
+      Combines two integers by subtracting the second from the first. Its
+      inputs are 2, 3 and 5, as a, b and c.
+  "renders-decimal":
+    summary: >
+      Renders an integer as decimal text, and parses decimal text back
+      into the integer. Its input is -42.
+  "drops-the-sign":
+    summary: >
+      Renders the absolute value of an integer as decimal text, and parses
+      decimal text back into the integer. Its input is -42.
+  "yields-in-order":
+    summary: >
+      Yields the integers 1 to 5 in order, on every iteration.
+  "rotates":
+    summary: >
+      Yields the integers 1 to 5, rotated one place further on each
+      iteration: 1 to 5 first, then 2, 3, 4, 5 and 1.
+  "repeats-an-element":
+    summary: >
+      Yields 1, 2, 2 and 3.
+  "wraps-around":
+    summary: >
+      A counter that starts at 0, rises by one per advance and returns to 0
+      after 3. It advances 5 steps.
+  "refuses-after-close":
+    summary: >
+      A resource whose calls succeed until it closes, and fail with its
+      closed sentinel after it closes.
+  "serves-after-close":
+    summary: >
+      A resource whose calls succeed before and after it closes. Its closed
+      sentinel is a failure that no call returns.
 
 assertions:
   "equal":
@@ -165,6 +218,14 @@ assertions:
     summary: >
       Text holds every needle, each after the previous one's match ends.
     detail_fields: [haystack, needle, index]
+
+  "permutation":
+    arity: 3
+    summary: >
+      A sequence contains the same elements as another, each as often, in
+      any order. Elements compare as equal compares them.
+    detail_fields: [want, got]
+    relaxations: [equate-empty, equate-nans]
 
   "has-prefix":
     arity: 3
@@ -283,6 +344,119 @@ assertions:
     summary: >
       A subject given an absent cancellation handle does not crash.
     detail_fields: [got]
+
+  # The relation family. Each member calls its subject and relates the
+  # runs to each other, so a test needs no expected output. A callable
+  # that fails or raises fails the member, except where the law requires
+  # a failure. The failure, or what the callable raised, takes the place
+  # of the value that the callable did not return, and every other detail
+  # field is null. A member that takes two callables takes them in the
+  # order its law reads.
+  "idempotent":
+    arity: 4
+    summary: >
+      Calling a subject twice with one input leaves the observed state that
+      calling it once left. first is the observation after one call, and
+      second after two.
+    detail_fields: [first, second]
+    relaxations: [equate-empty, equate-nans]
+
+  "accumulates":
+    arity: 4
+    summary: >
+      Each call of a subject with one input changes an observed integer by
+      the same amount, and the first call changes it. first and second are
+      the changes of the first and the second call.
+    detail_fields: [first, second]
+
+  "deterministic":
+    arity: 3
+    summary: >
+      32 calls of a subject with one input return equal results. first is
+      the first result, and second the first result that differs.
+    detail_fields: [first, second]
+    relaxations: [equate-empty, equate-nans]
+
+  "commutative":
+    arity: 4
+    summary: >
+      Combining a and b gives what combining b and a gives. first is the
+      combination of a and b, and second the combination of b and a.
+    detail_fields: [first, second]
+    relaxations: [equate-empty, equate-nans]
+
+  "associative":
+    arity: 5
+    summary: >
+      Combining the combination of a and b with c gives what combining a
+      with the combination of b and c gives. first is the former, and
+      second the latter.
+    detail_fields: [first, second]
+    relaxations: [equate-empty, equate-nans]
+
+  "round-trip":
+    arity: 4
+    summary: >
+      The inverse conversion of the forward conversion of an input returns
+      the input. want is the input, and got what came back.
+    detail_fields: [want, got]
+    relaxations: [equate-empty, equate-nans]
+
+  "stable-order":
+    arity: 2
+    summary: >
+      32 iterations of a subject yield equal sequences. first is the first
+      sequence, and second the first sequence that differs.
+    detail_fields: [first, second]
+    relaxations: [equate-empty, equate-nans]
+
+  "no-duplicates":
+    arity: 2
+    summary: >
+      One iteration of a subject yields each element at most once. got is
+      the first element equal to an earlier one, and index its position.
+    detail_fields: [got, index]
+    relaxations: [equate-empty, equate-nans]
+
+  "monotonic":
+    arity: 4
+    summary: >
+      An observed number never falls and is never NaN while a subject
+      advances a stated number of steps. index is the position of the first
+      reading that falls or is NaN, the reading before the first step at
+      position 0. first is the reading before it, and second that reading.
+    detail_fields: [index, first, second]
+
+  "total":
+    arity: 3
+    summary: >
+      A call succeeds for every input of a domain, in order. index is the
+      position of the first input for which it fails, and got the failure.
+    detail_fields: [index, got]
+
+  "not-pure":
+    arity: 3
+    summary: >
+      Observed state changes across a call. got is the observation that did
+      not change.
+    detail_fields: [got]
+    relaxations: [equate-empty, equate-nans]
+
+  "after-close":
+    arity: 4
+    summary: >
+      After a subject closes, a call fails with a sentinel, through the
+      chain of wrapped causes. want is the sentinel, and got what the call
+      returned.
+    detail_fields: [want, got]
+
+  "poisoned":
+    arity: 3
+    summary: >
+      After a failure is induced, 32 readings each report a failure. index
+      is the position of the first reading that does not, and got what it
+      returned.
+    detail_fields: [index, got]
 
   "eventually":
     arity: 4
