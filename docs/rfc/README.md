@@ -21,3 +21,4 @@ they record why not.
 | [0013](0013-typescript-names-free-on-vitest-expect.md) | TypeScript names that vitest's expect does not define | Draft |
 | [0014](0014-pinning-the-answers-languages-disagree-on.md) | Pinning the answers languages disagree on | Accepted |
 | [0015](0015-isolation-checks-over-transaction-histories.md) | Isolation checks over transaction histories | Draft |
+| [0016](0016-recording-every-assertion-call.md) | Recording every assertion call | Accepted |
