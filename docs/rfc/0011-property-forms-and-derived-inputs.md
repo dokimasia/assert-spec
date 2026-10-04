@@ -380,9 +380,10 @@ states counts and no field.
 
 ### Reading a type into a shape
 
-Each language reads its types its own way. The mapping from a native
-type to a shape is in the naming table, so the gate checks it. It is the
-only part of derivation that a language decides.
+Each language reads its types its own way, within the table that
+follows. The fixture vectors check each reader: every fixture type reads
+as the shape that its vector states. Reading is the only part of
+derivation that a language decides.
 
 | Language | Reads types through | Reads | Does not read |
 |---|---|---|---|
