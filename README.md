@@ -48,7 +48,7 @@ tools/validate.py      the rules, checked
 tools/prop/            the property engine's executable reference
 tools/spec-sync.sh     how an implementation vendors the definition
 tools/spec-check.sh    how an implementation checks its copy
-VERSION                2.3.0
+VERSION                3.0.0
 ```
 
 People edit the YAML. `make render` produces the JSON, which is
@@ -264,7 +264,7 @@ differently.
 | TypeScript | [assert-typescript](https://github.com/dokimasia/assert-typescript) | 91 of 95 |
 
 Each count is what the language's overlay declares against version
-2.3.0. An implementation that has not synced to it yet has a drift issue
+3.0.0. An implementation that has not synced to it yet has a drift issue
 open until it does.
 
 Java and Kotlin ship from one repository and are named identically, so

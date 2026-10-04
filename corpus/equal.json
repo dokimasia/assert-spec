@@ -418,6 +418,123 @@
         "equate-empty"
       ],
       "expect": "pass"
+    },
+    {
+      "id": "equal/maps-with-a-nan-key-differ",
+      "args": [
+        {
+          "type": "map",
+          "entries": [
+            [
+              {
+                "type": "float",
+                "value": "NaN"
+              },
+              {
+                "type": "int",
+                "value": 1
+              }
+            ]
+          ]
+        },
+        {
+          "type": "map",
+          "entries": [
+            [
+              {
+                "type": "float",
+                "value": "NaN"
+              },
+              {
+                "type": "int",
+                "value": 1
+              }
+            ]
+          ]
+        }
+      ],
+      "expect": "fail",
+      "skip": {
+        "rust": "a std map needs keys that implement Eq and Hash, or Ord, and f64 implements none of them"
+      }
+    },
+    {
+      "id": "equal/maps-with-a-nan-key-are-equal-under-equate-nans",
+      "args": [
+        {
+          "type": "map",
+          "entries": [
+            [
+              {
+                "type": "float",
+                "value": "NaN"
+              },
+              {
+                "type": "int",
+                "value": 1
+              }
+            ]
+          ]
+        },
+        {
+          "type": "map",
+          "entries": [
+            [
+              {
+                "type": "float",
+                "value": "NaN"
+              },
+              {
+                "type": "int",
+                "value": 1
+              }
+            ]
+          ]
+        }
+      ],
+      "options": [
+        "equate-nans"
+      ],
+      "expect": "pass"
+    },
+    {
+      "id": "equal/a-negative-zero-key-equals-a-zero-key",
+      "args": [
+        {
+          "type": "map",
+          "entries": [
+            [
+              {
+                "type": "float",
+                "value": -0.0
+              },
+              {
+                "type": "int",
+                "value": 1
+              }
+            ]
+          ]
+        },
+        {
+          "type": "map",
+          "entries": [
+            [
+              {
+                "type": "float",
+                "value": 0.0
+              },
+              {
+                "type": "int",
+                "value": 1
+              }
+            ]
+          ]
+        }
+      ],
+      "expect": "pass",
+      "skip": {
+        "rust": "a std map needs keys that implement Eq and Hash, or Ord, and f64 implements none of them"
+      }
     }
   ]
 }

@@ -115,6 +115,85 @@
         "equate-nans"
       ],
       "expect": "fail"
+    },
+    {
+      "id": "not-contains/a-nan-key-is-not-contained",
+      "args": [
+        {
+          "type": "map",
+          "entries": [
+            [
+              {
+                "type": "float",
+                "value": "NaN"
+              },
+              {
+                "type": "int",
+                "value": 1
+              }
+            ]
+          ]
+        },
+        {
+          "type": "float",
+          "value": "NaN"
+        }
+      ],
+      "expect": "pass",
+      "skip": {
+        "rust": "a std map needs keys that implement Eq and Hash, or Ord, and f64 implements none of them"
+      }
+    },
+    {
+      "id": "not-contains/a-nan-key-is-contained-under-equate-nans",
+      "args": [
+        {
+          "type": "map",
+          "entries": [
+            [
+              {
+                "type": "float",
+                "value": "NaN"
+              },
+              {
+                "type": "int",
+                "value": 1
+              }
+            ]
+          ]
+        },
+        {
+          "type": "float",
+          "value": "NaN"
+        }
+      ],
+      "options": [
+        "equate-nans"
+      ],
+      "expect": "fail"
+    },
+    {
+      "id": "not-contains/a-null-key-is-contained",
+      "args": [
+        {
+          "type": "map",
+          "entries": [
+            [
+              {
+                "type": "null"
+              },
+              {
+                "type": "int",
+                "value": 1
+              }
+            ]
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "expect": "fail"
     }
   ]
 }

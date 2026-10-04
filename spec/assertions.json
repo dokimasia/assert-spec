@@ -1630,5 +1630,5 @@
             "summary": "Yields the integers 1 to 5 in order, on every iteration.\n"
         }
     },
-    "version": "2.3.0"
+    "version": "3.0.0"
 }

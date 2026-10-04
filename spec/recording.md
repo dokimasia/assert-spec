@@ -50,7 +50,7 @@ A passing `equal`:
 
 ```json
 {
-  "definition": "2.3.0",
+  "definition": "3.0.0",
   "seq": 1,
   "assertion": "equal",
   "contract": "the count is right",
@@ -64,7 +64,7 @@ A failing `equal` on the recording surface:
 
 ```json
 {
-  "definition": "2.3.0",
+  "definition": "3.0.0",
   "seq": 2,
   "assertion": "equal",
   "contract": "the name is kept",
@@ -112,7 +112,7 @@ A passing property and the first call of its body:
 
 ```json
 {
-  "definition": "2.3.0",
+  "definition": "3.0.0",
   "seq": 3,
   "assertion": "prop-for-all",
   "contract": "decoding undoes encoding",
@@ -127,7 +127,7 @@ A passing property and the first call of its body:
 
 ```json
 {
-  "definition": "2.3.0",
+  "definition": "3.0.0",
   "seq": 4,
   "parent": 3,
   "run": 1,
