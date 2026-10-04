@@ -32,17 +32,17 @@ simpler than a list of exceptions.
 ## Corpus coverage by assertion
 
 A case states its arguments as typed literals, or names a subject from a
-small vocabulary that each implementation builds natively. 39 of the 57
+small vocabulary that each implementation builds natively. 39 of the 58
 assertions have corpus cases:
 
 - 18 take data.
 - 21 take a callable that a subject describes.
 
-The other 18 take an error value, a predicate, a callable that no
-subject describes, a golden file, a benchmark or a property's body. Each
-language tests them itself, and the completeness gate checks only that
-they are present. The standard checks an implementation's meaning where
-a case can state it, and its membership everywhere else.
+The other 19 take an error value, a predicate, a callable that no
+subject describes, a golden file, a benchmark, a property's body or a
+model. Each language tests them itself, and the completeness gate checks
+only that they are present. The standard checks an implementation's
+meaning where a case can state it, and its membership everywhere else.
 
 The engine behind `prop-for-all` is data in and data out, so the vectors
 under `corpus/prop/` pin the decoding of every generator, the generation
@@ -56,3 +56,13 @@ property form, and the call records of a property's runs.
 count. People write each vector's inputs in
 `corpus/prop/<kind>.yaml`. `make render` computes the outputs with the
 executable reference in `tools/prop/` and writes the JSON beside them.
+
+The history and the checker behind `linearizable` are data in and data
+out as well. The vectors under `corpus/history/` pin the events that a
+script or a list of intervals records, the entry that the history
+refuses, and the verdict, the steps and the record of a check. A vector
+of the checker names a model from the `models` section of
+`assertions.yaml`, as a case names a subject, and each implementation
+builds every named model natively. People write the inputs in
+`corpus/history/<kind>.yaml`, and `make render` computes the outputs with
+the executable reference in `tools/history/`.

@@ -42,13 +42,16 @@ spec/recording.md      what a recorded run writes for each call
 corpus/*.json          the cases, one file per assertion they cover
 corpus/prop/*.yaml     the property engine's vector inputs  edited by people
 corpus/prop/*.json     the vectors with their outputs       read by libraries
+corpus/history/*.yaml  the history's vector inputs          edited by people
+corpus/history/*.json  the vectors with their outputs       read by libraries
 overlays/*.json        one per language, declaring divergences
 tools/render.py        YAML to JSON, and the vectors' outputs
 tools/validate.py      the rules, checked
 tools/prop/            the property engine's executable reference
+tools/history/         the history's and the checker's executable reference
 tools/spec-sync.sh     how an implementation vendors the definition
 tools/spec-check.sh    how an implementation checks its copy
-VERSION                3.0.0
+VERSION                3.1.0
 ```
 
 People edit the YAML. `make render` produces the JSON, which is
@@ -85,16 +88,17 @@ one definition.
 
 ## The set
 
-57 assertions: 49 in the root namespace, 3 for golden files, 4 for
-benchmark ceilings and 1 property check. They cover equality, truth,
-nullity, length, containment, text, numbers, ordering, errors, raising,
-cancellation and deadlines, retrying, goroutine and task leaks,
-allocations, relations between runs of a subject, recorded output,
-performance ceilings, and properties over generated inputs.
+58 assertions: 49 in the root namespace, 3 for golden files, 4 for
+benchmark ceilings, 1 property check and 1 check of a recorded history.
+They cover equality, truth, nullity, length, containment, text, numbers,
+ordering, errors, raising, cancellation and deadlines, retrying,
+goroutine and task leaks, allocations, relations between runs of a
+subject, recorded output, performance ceilings, properties over generated
+inputs, and the linearizability of concurrent calls.
 
 38 of them also have a property form, which runs the assertion on every
 input that a property generates. Rendering adds the forms to the `prop`
-package by one rule, so the assertion table states 95 entries.
+package by one rule, so the assertion table states 96 entries.
 
 An assertion earns its place by answering two questions. Does it state
 something that must be true, and fail when it is not? Does it mean the
@@ -125,23 +129,26 @@ what the failure must mention:
 ```
 
 Typed literals cross a language boundary only as data, so the corpus
-covers 39 of the 57 assertions. Eighteen of those state their
+covers 39 of the 58 assertions. Eighteen of those state their
 arguments. The other 21 name a behaviour instead, because what they
-take is a callable and no encoding states one. The remaining 18 take an
+take is a callable and no encoding states one. The remaining 19 take an
 error value, a predicate, a callable that no subject describes, a golden
-file, a benchmark measurement or a property's body, and none of those is
-data either. The property engine itself is data in and data out, so 419
-vectors under `corpus/prop/` pin its decoding, generation, shrinking,
-coverage test, fuzz bridge, replay token, run detail and store. They
-also pin the values each shape generates, the choices that produce a
-value, the shape each fixture type reads as, a passing and a failing
-run of every property form but `prop-max-allocs`, and the call records
-of a property's runs.
+file, a benchmark measurement, a property's body or a model, and none of
+those is data either. The property engine itself is data in and data
+out, so 419 vectors under `corpus/prop/` pin its decoding, generation,
+shrinking, coverage test, fuzz bridge, replay token, run detail and
+store. They also pin the values each shape generates, the choices that
+produce a value, the shape each fixture type reads as, a passing and a
+failing run of every property form but `prop-max-allocs`, and the call
+records of a property's runs. The history and the checker are data in
+and data out too. 42 vectors under `corpus/history/` pin the events that
+calls record, the entries that the history refuses, and the verdict,
+steps and record of a check against each named model.
 
 **The completeness gate** checks membership. Every assertion must be
 present under the name the naming table gives it, with the arity the
 definition states as far as the language can read it. The gate covers
-the 18 assertions that the corpus cannot state, and `prop-max-allocs`,
+the 19 assertions that the corpus cannot state, and `prop-max-allocs`,
 whose allocation count no vector can state. The standard checks a
 library's meaning where meaning can be stated, and its membership
 everywhere else.
@@ -231,8 +238,10 @@ package its assertion declares, that every corpus case names a defined
 assertion with a unique id, decodable literals and options its assertion
 accepts, and that an overlay extends this version and diverges only from
 assertions that exist. It also checks that each overlay states where its
-language writes the call records. It reports everything it finds in one
-run.
+language writes the call records, that each history vector names a
+defined model, and that each language whose threads run on more than one
+core limits the history's recorder. It reports everything it finds in
+one run.
 
 `make test` breaks each rule of the validator in a scratch copy and
 requires the validator to report it, and breaks a vendored copy each way
@@ -256,15 +265,15 @@ differently.
 
 | Language | Repository | Assertions |
 |---|---|---|
-| Go | [assert-go](https://github.com/dokimasia/assert-go) | 95 of 95 |
-| Java | [assert-java](https://github.com/dokimasia/assert-java) | 92 of 95 |
-| Kotlin | [assert-java](https://github.com/dokimasia/assert-java) | 92 of 95 |
-| Python | [assert-python](https://github.com/dokimasia/assert-python) | 92 of 95 |
-| Rust | [assert-rust](https://github.com/dokimasia/assert-rust) | 95 of 95 |
-| TypeScript | [assert-typescript](https://github.com/dokimasia/assert-typescript) | 91 of 95 |
+| Go | [assert-go](https://github.com/dokimasia/assert-go) | 96 of 96 |
+| Java | [assert-java](https://github.com/dokimasia/assert-java) | 93 of 96 |
+| Kotlin | [assert-java](https://github.com/dokimasia/assert-java) | 93 of 96 |
+| Python | [assert-python](https://github.com/dokimasia/assert-python) | 93 of 96 |
+| Rust | [assert-rust](https://github.com/dokimasia/assert-rust) | 96 of 96 |
+| TypeScript | [assert-typescript](https://github.com/dokimasia/assert-typescript) | 92 of 96 |
 
 Each count is what the language's overlay declares against version
-3.0.0. An implementation that has not synced to it yet has a drift issue
+3.1.0. An implementation that has not synced to it yet has a drift issue
 open until it does.
 
 Java and Kotlin ship from one repository and are named identically, so
@@ -277,7 +286,7 @@ allocation ceilings, because V8 reports allocation only as a heap-usage
 delta that moves with whether the collector ran. Each gap is in that
 language's overlay with the measurement behind it.
 
-Go and Rust state all ninety-five and declare nothing absent. Go checks no
+Go and Rust state all ninety-six and declare nothing absent. Go checks no
 allocation ceiling in a build with the race detector, msan or asan, or
 in one whose `-gcflags` turn off optimisation or inlining, because those
 builds allocate differently from the one that ships. Go also reads an
@@ -290,6 +299,12 @@ not a thread, because nothing in Rust's standard library enumerates
 threads. Rust also declines both relaxations, since its types keep an
 absent container and an empty one apart and its own equality already
 says NaN is unequal to itself.
+
+Go, Java, Kotlin and Rust declare a limit on the history's recorder
+because their threads run on more than one core. The recorder's counter
+synchronizes the clients that record into it. That synchronization can
+supply a memory barrier that the subject lacks. TypeScript searches the
+partitions of a history one at a time for any number of workers.
 
 PHP is declared as a target language and the naming table carries no
 names for it yet, so adding it starts by filling that column.

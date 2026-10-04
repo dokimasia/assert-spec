@@ -53,6 +53,17 @@ BUDGET: Final = 10_000_000
 #: The bits one partition's memo may count for its sets of calls, 1 GiB.
 MEMO_LIMIT: Final = 1 << 33
 
+#: The fields of a record's detail that describe the reported partition.
+_REPORTED: Final = (
+    "partition",
+    "calls",
+    "concurrency",
+    "linearized",
+    "states",
+    "candidates",
+    "limit",
+)
+
 
 class Outcome(StrEnum):
     """How a check ended."""
@@ -122,7 +133,19 @@ class Verdict:
     limit: Limit | None = None
 
     def detail(self) -> dict[str, Any]:
-        """Return the detail of the record, with values as typed literals."""
+        """Return the detail of the record, with values as typed literals.
+
+        A check that passed reports no record. Its detail states the outcome,
+        the partitions and the steps, and null for each field that describes
+        a reported partition.
+        """
+        if self.outcome is Outcome.PASSED:
+            return {
+                "outcome": self.outcome.value,
+                "partitions": self.partitions,
+                "steps": self.steps,
+                **dict.fromkeys(_REPORTED),
+            }
         return {
             "outcome": self.outcome.value,
             "partitions": self.partitions,

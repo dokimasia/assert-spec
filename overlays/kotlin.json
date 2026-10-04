@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@3.0.0",
+  "extends": "spec://assertions@3.1.0",
   "language": "kotlin",
   "diverge": [
     {
@@ -26,6 +26,11 @@
       "id": "no-task-leaks",
       "what": "Sees coroutines launched in the scope, and the platform threads the Java artifact sees. A leaked virtual thread is not reported.",
       "why": "A coroutine is tracked through its Job, which is why the Kotlin artifact supplies this rather than inheriting it. Virtual threads appear in no standard enumeration on any JVM version."
+    },
+    {
+      "id": "history",
+      "what": "Records every invocation and completion through one counter that all clients share, whose increment is sequentially consistent. A subject whose correctness depends on a memory barrier it lacks can pass under the recorder and fail without it.",
+      "why": "JVM threads, and coroutines on a dispatcher of more than one thread, run on more than one core at once. Each increment of the counter orders the recording client's memory operations against every other client's, and that order can supply the barrier that the subject lacks."
     }
   ],
   "surface": [

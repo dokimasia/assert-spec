@@ -9,8 +9,9 @@ first invocation, and every process has at most one open call.
 record() runs a script, the form in which the corpus states a history. An
 entry with ``invoke`` opens a call under a number of the script, and an
 entry with ``ok``, ``fail`` or ``unknown`` completes the call it names.
-document() returns an event in the history's JSON form, with args, keys
-and output as typed literals and an error as its text.
+from_intervals() builds a history from calls recorded with a start and an
+end on one clock. document() returns an event in the history's JSON form,
+with args, keys and output as typed literals and an error as its text.
 """
 
 from __future__ import annotations
@@ -26,6 +27,28 @@ from prop.value import canonical
 
 class UsageError(Exception):
     """A call that breaks the seam's contract, which is a bug in the test's own code."""
+
+
+@final
+class ScriptError(UsageError):
+    """The usage error of a script entry, which names the entry by its position."""
+
+    def __init__(self, entry: int, refused: UsageError) -> None:
+        """Name the entry and the usage error its call raised."""
+        super().__init__(
+            f"history: script entry {entry}: {str(refused).removeprefix('history: ')}"
+        )
+        self.entry = entry
+
+
+@final
+class IntervalError(ValueError):
+    """An entry that from_intervals refuses, named by its position."""
+
+    def __init__(self, entry: int, reason: str) -> None:
+        """Name the entry and the rule it breaks."""
+        super().__init__(f"history: entry {entry} {reason}")
+        self.entry = entry
 
 
 class Kind(StrEnum):
@@ -179,26 +202,117 @@ def record(script: Sequence[Mapping[str, Any]]) -> list[Event]:
     """Return the events that a script records through a history.
 
     Raises:
-        UsageError: an entry is a call of the seam that its contract refuses.
+        ScriptError: an entry is a call of the seam that its contract refuses.
         LiteralError: an argument, a key or an output is not a typed literal.
     """
     history = History()
     calls: dict[int, Call] = {}
-    for entry in script:
-        if "invoke" in entry:
-            calls[entry["invoke"]] = history.invoke(
-                entry["client"],
-                entry["operation"],
-                [decode(arg) for arg in entry["args"]],
-                [decode(key) for key in entry["keys"]],
-            )
-        elif "ok" in entry:
-            calls[entry["ok"]].ok(decode(entry["output"]))
-        elif "fail" in entry:
-            calls[entry["fail"]].fail(entry["error"])
-        else:
-            calls[entry["unknown"]].unknown(entry["error"])
+    for position, entry in enumerate(script):
+        try:
+            _apply(history, calls, entry)
+        except UsageError as refused:
+            raise ScriptError(position, refused) from refused
     return history.events()
+
+
+def _apply(history: History, calls: dict[int, Call], entry: Mapping[str, Any]) -> None:
+    """Make the call of the seam that one script entry states.
+
+    Raises:
+        UsageError: the seam's contract refuses the call.
+    """
+    if "invoke" in entry:
+        calls[entry["invoke"]] = history.invoke(
+            entry["client"],
+            entry["operation"],
+            [decode(arg) for arg in entry["args"]],
+            [decode(key) for key in entry["keys"]],
+        )
+    elif "ok" in entry:
+        calls[entry["ok"]].ok(decode(entry["output"]))
+    elif "fail" in entry:
+        calls[entry["fail"]].fail(entry["error"])
+    else:
+        calls[entry["unknown"]].unknown(entry["error"])
+
+
+@dataclass(frozen=True)
+class Interval:
+    """A call recorded with a start and an end on one clock.
+
+    A pending call states neither an end nor a completion kind. output is
+    set for an ok call, and error for a fail or an unknown call.
+    """
+
+    client: int
+    operation: str
+    args: tuple[object, ...]
+    keys: tuple[object, ...]
+    start: int
+    end: int | None = None
+    kind: Kind | None = None
+    output: object = None
+    error: str = ""
+
+
+def from_intervals(entries: Sequence[Interval]) -> History:
+    """Return the history of calls recorded with a start and an end on one clock.
+
+    The events are in time order. At one time, an invocation comes before a
+    completion, and the invocations, or the completions, keep the order of
+    their entries. Each interval is closed, so two entries that share an
+    instant overlap, and a pending entry overlaps every later entry of its
+    client. Times are compared and never subtracted.
+
+    Raises:
+        IntervalError: an entry ends before it starts, or overlaps an
+            earlier entry of its client. The error names the first such
+            entry in the given order.
+    """
+    earlier: dict[int, list[tuple[int, Interval]]] = {}
+    for position, entry in enumerate(entries):
+        if entry.end is not None and entry.end < entry.start:
+            raise IntervalError(
+                position, f"ends at {entry.end}, before it starts at {entry.start}"
+            )
+        own = earlier.setdefault(entry.client, [])
+        for other, before in own:
+            if _overlap(before, entry):
+                raise IntervalError(
+                    position, f"overlaps entry {other} of client {entry.client}"
+                )
+        own.append((position, entry))
+    timeline = sorted(
+        [(entry.start, 0, position) for position, entry in enumerate(entries)]
+        + [
+            (entry.end, 1, position)
+            for position, entry in enumerate(entries)
+            if entry.end is not None
+        ]
+    )
+    history = History()
+    calls: dict[int, Call] = {}
+    for _, completes, position in timeline:
+        entry = entries[position]
+        if not completes:
+            calls[position] = history.invoke(
+                entry.client, entry.operation, entry.args, entry.keys
+            )
+        elif entry.kind is Kind.OK:
+            calls[position].ok(entry.output)
+        elif entry.kind is Kind.FAIL:
+            calls[position].fail(entry.error)
+        else:
+            calls[position].unknown(entry.error)
+    return history
+
+
+def _overlap(a: Interval, b: Interval) -> bool:
+    """Report whether two closed intervals share an instant.
+
+    A pending interval has no end.
+    """
+    return (a.end is None or b.start <= a.end) and (b.end is None or a.start <= b.end)
 
 
 def document(event: Event) -> dict[str, Any]:

@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@3.0.0",
+  "extends": "spec://assertions@3.1.0",
   "language": "typescript",
   "diverge": [
     {
@@ -47,6 +47,11 @@
       "id": "prop.workers",
       "what": "Runs one case at a time, whatever the number of workers. The run reports what a run on one worker reports, as it does in every language.",
       "why": "A body runs on the runtime's one thread. An asynchronous body would interleave with another case at each await instead of running beside it, and a body that is not safe to interleave with itself would then fail in a way that a run on one worker never shows."
+    },
+    {
+      "id": "history.workers",
+      "what": "Searches one partition at a time, whatever the number of workers. A check reports what a check on one worker reports, as it does in every language.",
+      "why": "A model is a set of functions, and the structured clone that copies a message to a worker thread refuses a function, so every partition is searched on the runtime's one thread."
     }
   ],
   "surface": [

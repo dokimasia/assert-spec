@@ -287,6 +287,23 @@
             ],
             "summary": "The container has the stated number of items: the elements of a sequence, the entries of a map, the bytes of a byte string, or the Unicode scalar values of text. A null value has no length, and fails.\n"
         },
+        "linearizable": {
+            "arity": 3,
+            "detail_fields": [
+                "outcome",
+                "partitions",
+                "steps",
+                "partition",
+                "calls",
+                "concurrency",
+                "linearized",
+                "states",
+                "candidates",
+                "limit"
+            ],
+            "package": "history",
+            "summary": "Every partition of a recorded history has an order of its calls that keeps the history's precedence and that the model accepts. A fixed search decides it within a budget of model steps and a limit on the size of its memo. A search that uses up either is undecided, and an undecided history fails.\n"
+        },
         "matches": {
             "arity": 3,
             "detail_fields": [
@@ -1524,6 +1541,26 @@
             ]
         }
     },
+    "models": {
+        "cas-register": {
+            "summary": "The register with cas(from, to). A cas outputs true and leaves to when the value equals from, and outputs false and leaves the value otherwise. A cas whose outcome is unknown takes effect when the value equals from, and leaves the value otherwise.\n"
+        },
+        "key-value": {
+            "summary": "A map from keys to strings, initially empty, that stores no empty string, so a key it does not store reads as empty. put(k, v) leaves v under k. append(k, s) leaves the value under k followed by s. get(k) outputs the value under k. The map lists its keys in the order they were stored, and a key whose value changes keeps its place. A get whose outcome is unknown accepts any map.\n"
+        },
+        "lossy-register": {
+            "summary": "The register whose write may be lost. write(v) leaves v or the value before it, in that order. A read is the register's.\n"
+        },
+        "queue": {
+            "summary": "A list of values, initially empty, head first. enqueue(v) adds v at the tail. dequeue() removes the head and outputs it, or outputs null and leaves an empty queue. A dequeue whose outcome is unknown removes the head when one exists.\n"
+        },
+        "register": {
+            "summary": "One value, initially null. write(v) leaves v. read() outputs the value and leaves it. A read whose outcome is unknown accepts any value.\n"
+        },
+        "set": {
+            "summary": "A set of values, initially empty, listed in the order they were added. Two sets are equal when they contain equal values in any order. add(v) adds v when it is absent. remove(v) outputs whether v is present, and leaves the set without v. contains(v) outputs whether v is present. A remove whose outcome is unknown removes v when it is present, and a contains whose outcome is unknown accepts any set.\n"
+        }
+    },
     "relaxations": {
         "equate-empty": {
             "summary": "An absent container equals an empty one of the same type. Without it a null map and an empty map are different values, which is what the standard states by default.\n"
@@ -1630,5 +1667,5 @@
             "summary": "Yields the integers 1 to 5 in order, on every iteration.\n"
         }
     },
-    "version": "3.0.0"
+    "version": "3.1.0"
 }

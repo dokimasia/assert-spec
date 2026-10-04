@@ -288,6 +288,14 @@
             "rust": "length",
             "typescript": "length"
         },
+        "linearizable": {
+            "go": "history.Linearizable",
+            "java": "History.isLinearizable",
+            "kotlin": "History.isLinearizable",
+            "python": "history.is_linearizable",
+            "rust": "history::is_linearizable",
+            "typescript": "history.isLinearizable"
+        },
         "matches": {
             "go": "Matches",
             "java": "matches",
@@ -843,6 +851,62 @@
                 "rust": "golden.should_update",
                 "typescript": "golden.shouldUpdate"
             },
+            "history.budget": {
+                "go": "history.Budget",
+                "java": "History.budget",
+                "kotlin": "History.budget",
+                "python": "history.budget",
+                "rust": "history::budget",
+                "typescript": "history.budget"
+            },
+            "history.concurrently": {
+                "go": "history.Concurrently",
+                "java": "History.concurrently",
+                "kotlin": "History.concurrently",
+                "python": "history.concurrently",
+                "rust": "history::concurrently",
+                "typescript": "history.concurrently"
+            },
+            "history.from-intervals": {
+                "go": "history.FromIntervals",
+                "java": "History.fromIntervals",
+                "kotlin": "History.fromIntervals",
+                "python": "history.from_intervals",
+                "rust": "history::from_intervals",
+                "typescript": "history.fromIntervals"
+            },
+            "history.memo-limit": {
+                "go": "history.MemoLimit",
+                "java": "History.memoLimit",
+                "kotlin": "History.memoLimit",
+                "python": "history.memo_limit",
+                "rust": "history::memo_limit",
+                "typescript": "history.memoLimit"
+            },
+            "history.model-from": {
+                "go": "history.ModelFrom",
+                "java": "History.modelFrom",
+                "kotlin": "History.modelFrom",
+                "python": "history.model_from",
+                "rust": "history::model_from",
+                "typescript": "history.modelFrom"
+            },
+            "history.time-limit": {
+                "go": "history.TimeLimit",
+                "java": "History.timeLimit",
+                "kotlin": "History.timeLimit",
+                "python": "history.time_limit",
+                "rust": "history::time_limit",
+                "typescript": "history.timeLimit"
+            },
+            "history.workers": {
+                "go": "history.Workers",
+                "java": "History.workers",
+                "kotlin": "History.workers",
+                "python": "history.workers",
+                "rust": "history::workers",
+                "typescript": "history.workers"
+            },
             "prop.boolean": {
                 "go": "prop.Boolean",
                 "java": "Prop.bool",
@@ -1138,6 +1202,30 @@
             }
         },
         "members": {
+            "call.fail": {
+                "go": "Fail",
+                "java": "fail",
+                "kotlin": "fail",
+                "python": "fail",
+                "rust": "fail",
+                "typescript": "fail"
+            },
+            "call.ok": {
+                "go": "OK",
+                "java": "ok",
+                "kotlin": "ok",
+                "python": "ok",
+                "rust": "ok",
+                "typescript": "ok"
+            },
+            "call.unknown": {
+                "go": "Unknown",
+                "java": "unknown",
+                "kotlin": "unknown",
+                "python": "unknown",
+                "rust": "unknown",
+                "typescript": "unknown"
+            },
             "case.assume": {
                 "go": "Assume",
                 "java": "assume",
@@ -1312,6 +1400,54 @@
                 "rust": "map",
                 "typescript": "map"
             },
+            "history.events": {
+                "go": "Events",
+                "java": "events",
+                "kotlin": "events",
+                "python": "events",
+                "rust": "events",
+                "typescript": "events"
+            },
+            "history.invoke": {
+                "go": "Invoke",
+                "java": "invoke",
+                "kotlin": "invoke",
+                "python": "invoke",
+                "rust": "invoke",
+                "typescript": "invoke"
+            },
+            "history.new": {
+                "go": "history.New",
+                "java": "new History()",
+                "kotlin": "History()",
+                "python": "History()",
+                "rust": "History::new",
+                "typescript": "new History()"
+            },
+            "model.equal": {
+                "go": "Equal",
+                "java": "equal",
+                "kotlin": "equal",
+                "python": "equal",
+                "rust": "equal",
+                "typescript": "equal"
+            },
+            "model.init": {
+                "go": "Init",
+                "java": "init",
+                "kotlin": "init",
+                "python": "init",
+                "rust": "init",
+                "typescript": "init"
+            },
+            "model.step": {
+                "go": "Step",
+                "java": "step",
+                "kotlin": "step",
+                "python": "step",
+                "rust": "step",
+                "typescript": "step"
+            },
             "recorder-seat.failed": {
                 "go": "Failed",
                 "java": "failed",
@@ -1407,6 +1543,14 @@
                 "java": "Assertion",
                 "kotlin": "Assertion"
             },
+            "call": {
+                "go": "history.Call",
+                "java": "Call",
+                "kotlin": "Call",
+                "python": "history.Call",
+                "rust": "history::Call",
+                "typescript": "history.Call"
+            },
             "case": {
                 "go": "prop.Case",
                 "java": "Case",
@@ -1452,6 +1596,14 @@
                 "rust": "Controlled",
                 "typescript": "Controlled"
             },
+            "event": {
+                "go": "history.Event",
+                "java": "Event",
+                "kotlin": "Event",
+                "python": "history.Event",
+                "rust": "history::Event",
+                "typescript": "history.Event"
+            },
             "failure": {
                 "go": "Failure",
                 "java": "Failure",
@@ -1467,6 +1619,38 @@
                 "python": "prop.Generator",
                 "rust": "prop::Generator",
                 "typescript": "prop.Generator"
+            },
+            "history": {
+                "go": "history.History",
+                "java": "History",
+                "kotlin": "History",
+                "python": "history.History",
+                "rust": "history::History",
+                "typescript": "history.History"
+            },
+            "model": {
+                "go": "history.Model",
+                "java": "Model",
+                "kotlin": "Model",
+                "python": "history.Model",
+                "rust": "history::Model",
+                "typescript": "history.Model"
+            },
+            "op": {
+                "go": "history.Op",
+                "java": "Op",
+                "kotlin": "Op",
+                "python": "history.Op",
+                "rust": "history::Op",
+                "typescript": "history.Op"
+            },
+            "outcome": {
+                "go": "history.Outcome",
+                "java": "Outcome",
+                "kotlin": "Outcome",
+                "python": "history.Outcome",
+                "rust": "history::Outcome",
+                "typescript": "history.Outcome"
             },
             "recorder-seat": {
                 "go": "Recorder",
@@ -1522,5 +1706,5 @@
             }
         }
     },
-    "version": "3.0.0"
+    "version": "3.1.0"
 }

@@ -61,6 +61,11 @@ and a limit has to be present.
 to look the same from outside, and only the reason tells them apart.
 Write it for someone deciding whether to depend on the library.
 
+The validator requires a limit on `history` in the overlays of Go, Java,
+Kotlin and Rust. Their threads run on more than one core. The counter
+that orders a history's events synchronizes the clients, and that
+synchronization can supply a memory barrier that the subject lacks.
+
 ## What the gate does with one
 
 An assertion missing with no matching entry fails the build. An entry

@@ -4,7 +4,8 @@
 # failure seat and including the trailing message. A type the caller
 # states counts as an argument, whether a language takes it as a value
 # or as a type parameter. Optional arguments do not count: the
-# relaxations, a golden comparison's scrubbers and a property's options.
+# relaxations, a golden comparison's scrubbers, and the options of a
+# property or a history check.
 #
 # package is empty for an assertion in the language's root namespace,
 # and names a subpackage otherwise.
@@ -16,7 +17,7 @@
 # assertion carries exactly these. got is what the assertion observed
 # and want is what it required, so an assertion whose failure holds
 # neither states no fields and reports the caller's message alone.
-version: "3.0.0"
+version: "3.1.0"
 
 # What a caller may relax, for one call.
 #
@@ -168,6 +169,57 @@ subjects:
   "raises-on-negative":
     summary: >
       Raises for a negative integer input, and returns otherwise.
+
+# The sequential models that a history vector names in place of a model,
+# as a corpus case names a subject. Each implementation builds every named
+# model natively.
+#
+# Every named model accepts a call whose outcome is unknown in every
+# state, and checks no output of a write, a put, an append, an enqueue or
+# an add. An operation that a model does not define is a fault. States
+# compare with the standard's equal unless a summary states otherwise. A
+# record states each state as a typed literal: the register's value, the
+# map's entries in order, and the queue's and the set's values as a list
+# in order.
+models:
+  "register":
+    summary: >
+      One value, initially null. write(v) leaves v. read() outputs the
+      value and leaves it. A read whose outcome is unknown accepts any
+      value.
+  "cas-register":
+    summary: >
+      The register with cas(from, to). A cas outputs true and leaves to
+      when the value equals from, and outputs false and leaves the value
+      otherwise. A cas whose outcome is unknown takes effect when the value
+      equals from, and leaves the value otherwise.
+  "key-value":
+    summary: >
+      A map from keys to strings, initially empty, that stores no empty
+      string, so a key it does not store reads as empty. put(k, v) leaves v
+      under k. append(k, s) leaves the value under k followed by s. get(k)
+      outputs the value under k. The map lists its keys in the order they
+      were stored, and a key whose value changes keeps its place. A get
+      whose outcome is unknown accepts any map.
+  "queue":
+    summary: >
+      A list of values, initially empty, head first. enqueue(v) adds v at
+      the tail. dequeue() removes the head and outputs it, or outputs null
+      and leaves an empty queue. A dequeue whose outcome is unknown removes
+      the head when one exists.
+  "set":
+    summary: >
+      A set of values, initially empty, listed in the order they were
+      added. Two sets are equal when they contain equal values in any
+      order.
+      add(v) adds v when it is absent. remove(v) outputs whether v is
+      present, and leaves the set without v. contains(v) outputs whether v
+      is present. A remove whose outcome is unknown removes v when it is
+      present, and a contains whose outcome is unknown accepts any set.
+  "lossy-register":
+    summary: >
+      The register whose write may be lost. write(v) leaves v or the value
+      before it, in that order. A read is the register's.
 
 assertions:
   "equal":
@@ -592,6 +644,17 @@ assertions:
       same way.
     detail_fields: [outcome, cases, rejected, seed, counterexample, failure, choices, others, divergence, coverage]
 
+  "linearizable":
+    arity: 3
+    package: history
+    summary: >
+      Every partition of a recorded history has an order of its calls that
+      keeps the history's precedence and that the model accepts. A fixed
+      search decides it within a budget of model steps and a limit on the
+      size of its memo. A search that uses up either is undecided, and an
+      undecided history fails.
+    detail_fields: [outcome, partitions, steps, partition, calls, concurrency, linearized, states, candidates, limit]
+
 # The property form of an assertion runs it on every case of a run, as
 # prop-for-all runs a body. Rendering adds one entry for each form,
 # "prop-" and the assertion's id, by this rule:
@@ -606,10 +669,11 @@ assertions:
 # - The form of a relation generates the arguments that the relation
 #   takes. Its arity is the relation's less those arguments.
 #
-# The other 19 assertions have no form: they retry over time, measure
-# time, scope a block, compare a file or a measurement, drive a check, are
-# prop-for-all itself, or read state without taking an input. total has
-# none either, because generating its domain is the form of err-absent.
+# The other 20 assertions have no form: they retry over time, measure
+# time, scope a block, compare a file or a measurement, drive a check,
+# check a recorded history, are prop-for-all itself, or read state without
+# taking an input. total has none either, because generating its domain is
+# the form of err-absent.
 forms:
   functions:
     - "equal"

@@ -68,6 +68,13 @@ which calls a run records, and the order of a property's call records.
 Every language states the same fields of a call, in the same encoding.
 Only the text of an opaque value is the language's own.
 
+**What a history records, and how a check decides.** A history records
+every call in one order. The checker searches it by one procedure within
+one budget. The history vectors pin the events, the entries that the
+history refuses, and the verdict, the steps and the record of each
+check. One history then gives one outcome and one record in every
+language.
+
 ## Named
 
 The same idea, spelled the way the language spells things. Each has a row
@@ -121,6 +128,12 @@ that nobody wrote down.
 **An assertion supplied partly.** A `limit` entry with what it misses and
 why. Rust's `no-task-leaks` sees tasks on a runtime and not a thread,
 because nothing in its standard library enumerates threads.
+
+**A recorder that can hide a fault.** The counter that orders a
+history's events synchronizes the clients that record into it. That
+synchronization can supply a memory barrier that the subject lacks. Go,
+Java, Kotlin and Rust run threads on more than one core. The validator
+requires each of their overlays to state a limit on `history`.
 
 **A relaxation the language does not offer.** Rust offers neither,
 because its types keep an absent container and an empty one apart and its
@@ -183,6 +196,7 @@ other is the library's.
 | Fixed: the values of a failure record | The corpus: the record of every failing case states the case's assertion and the caller's message unchanged, and it contains exactly the fields that the assertion declares |
 | Fixed: two surfaces, readable outcome | The corpus needs both to run at all |
 | Fixed: the call record | The corpus, run with recording on: the call record of every case. The recording vectors: the call records of a property's runs |
+| Fixed: the history and the checker | The history vectors: the events of a script or of intervals, the entry that the history refuses, and the verdict, the steps and the detail of each check |
 | Named | The completeness gate, against the naming table, with each member's arity as far as the language can read it |
 | Declared | The validator, which refuses an entry with no reason and an overlay that states no artifact |
 | Free | Nothing |

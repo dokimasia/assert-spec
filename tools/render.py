@@ -10,32 +10,45 @@ an editor changed. Rendering adds an entry to each table for every
 property form, by the rule the tables state. The rule stays in the
 published tables, so the validator can check each entry against it.
 
-The property engine's vectors are authored as inputs only, in
-corpus/prop/<kind>.yaml. Each rendered case is its inputs followed by the
-outputs the executable reference computes for them, in the order the
-reference returns them, indented by two as the rest of the corpus is.
+Vectors are authored as inputs only, in corpus/<family>/<kind>.yaml. The
+family prop contains the property engine's vectors, and history those of
+the history seam and the checker. Each rendered case is its inputs followed by
+the outputs the family's executable reference computes for them, in the
+order the reference returns them, indented by two as the rest of the
+corpus is.
 """
 
 from __future__ import annotations
 
 import json
 import sys
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Collection, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Final
 
 import yaml
 
-from prop.vectors import KINDS, Vector, compute
+from history import vectors as history_vectors
+from prop import vectors as prop_vectors
+from prop.vectors import Vector
 
 ROOT = Path(__file__).resolve().parent.parent
 
 #: The tables that are authored in YAML and read as JSON.
 TABLES = ("assertions", "naming")
 
-#: Where the property engine's vectors are authored and rendered.
-VECTORS = ROOT / "corpus" / "prop"
+#: Where the vectors are authored and rendered, one folder per family.
+CORPUS = ROOT / "corpus"
+
+#: Each family of vectors by its folder: its kinds, and the reference
+#: function that computes a kind's outputs.
+FAMILIES: Final[
+    dict[str, tuple[Collection[str], Callable[[str, Mapping[str, Any]], Vector]]]
+] = {
+    "prop": (prop_vectors.KINDS, prop_vectors.compute),
+    "history": (history_vectors.KINDS, history_vectors.compute),
+}
 
 #: The assertion whose run every property form is, and the start of each
 #: form's id.
@@ -208,7 +221,7 @@ def render(name: str, document: Mapping[str, Any]) -> bool:
     return write(ROOT / "spec" / f"{name}.json", rendered + "\n")
 
 
-def vector(kind: str, case: Any) -> Vector:
+def vector(family: str, kind: str, case: Any) -> Vector:
     """Return one case's inputs followed by the outputs the reference computes.
 
     Raises:
@@ -217,37 +230,37 @@ def vector(kind: str, case: Any) -> Vector:
     """
     if not isinstance(case, dict):
         raise RenderError(f"a {kind} case is {case!r}, not an object")
-    outputs = compute(kind, case)
+    outputs = FAMILIES[family][1](kind, case)
     clash = sorted(set(outputs) & set(case))
     if clash:
         raise RenderError(f"{case.get('id')!r} states the outputs {clash}")
     return {**case, **outputs}
 
 
-def vectors_text(kind: str) -> str:
+def vectors_text(family: str, kind: str) -> str:
     """Return the JSON of one kind of vector, rendered from its YAML inputs.
 
     Raises:
         RenderError: the YAML states another kind, or no list of cases.
     """
-    source = VECTORS / f"{kind}.yaml"
+    source = CORPUS / family / f"{kind}.yaml"
     document = yaml.safe_load(source.read_text())
     if not isinstance(document, dict) or document.get("kind") != kind:
         raise RenderError(f"{source.name} does not state kind {kind!r}")
     cases = document.get("cases")
     if not isinstance(cases, list):
         raise RenderError(f"{source.name} states no list of cases")
-    rendered = {"kind": kind, "cases": [vector(kind, case) for case in cases]}
+    rendered = {"kind": kind, "cases": [vector(family, kind, case) for case in cases]}
     return json.dumps(rendered, indent=2) + "\n"
 
 
-def render_vectors(kind: str) -> bool:
+def render_vectors(family: str, kind: str) -> bool:
     """Render one kind of vector, and return whether the file on disk changed.
 
     Raises:
         RenderError: the YAML states another kind, or no list of cases.
     """
-    return write(VECTORS / f"{kind}.json", vectors_text(kind))
+    return write(CORPUS / family / f"{kind}.json", vectors_text(family, kind))
 
 
 def main() -> int:
@@ -256,9 +269,11 @@ def main() -> int:
     for name, document in zip(TABLES, (spec, naming), strict=True):
         changed = render(name, document)
         print(f"spec/{name}.json: {'rendered' if changed else 'unchanged'}")
-    for kind in KINDS:
-        changed = render_vectors(kind)
-        print(f"corpus/prop/{kind}.json: {'rendered' if changed else 'unchanged'}")
+    for family, (kinds, _) in FAMILIES.items():
+        for kind in kinds:
+            changed = render_vectors(family, kind)
+            state = "rendered" if changed else "unchanged"
+            print(f"corpus/{family}/{kind}.json: {state}")
     return 0
 
 

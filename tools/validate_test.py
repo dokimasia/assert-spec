@@ -1071,6 +1071,104 @@ class Validator(unittest.TestCase):
         self._vectors("recording", lambda c: c["id"] != token)
         self.assert_caught("has no vector that records a call of phase 'token'")
 
+    def _history(self, kind: str, keep: Callable[[Any], bool]) -> None:
+        """Keep only the history vectors of one kind that keep accepts."""
+        _edit(
+            self.tree / "corpus" / "history" / f"{kind}.json",
+            lambda d: d.update(cases=[c for c in d["cases"] if keep(c)]),
+        )
+
+    def test_a_definition_with_no_models_is_caught(self) -> None:
+        """The models are what the checker's vectors name."""
+        _edit(self.tree / "spec" / "assertions.json", lambda d: d.update(models={}))
+        self.assert_caught("spec/assertions.json: states no model vocabulary")
+
+    def test_a_model_with_no_summary_is_caught(self) -> None:
+        """Each implementation builds a named model from its summary."""
+        _edit(
+            self.tree / "spec" / "assertions.json",
+            lambda d: d["models"]["queue"].update(summary="  "),
+        )
+        self.assert_caught("model queue: states no summary")
+
+    def test_a_history_vector_of_an_unknown_model_is_caught(self) -> None:
+        """A vector of the checker names a model of the definition."""
+        _edit(
+            self.tree / "corpus" / "history" / "linearizable.json",
+            lambda d: d["cases"][0].update(model="stack"),
+        )
+        self.assert_caught("names model 'stack', which the definition does not state")
+
+    def test_a_missing_history_vector_file_is_caught(self) -> None:
+        """Every kind of history vector has a file."""
+        (self.tree / "corpus" / "history" / "seam.json").unlink()
+        self.assert_caught("corpus/history/: has no seam vectors")
+
+    def test_a_history_vector_file_of_another_kind_is_caught(self) -> None:
+        """A history vector file's name is its kind."""
+        _edit(
+            self.tree / "corpus" / "history" / "seam.json",
+            lambda d: d.update(kind="linearizable"),
+        )
+        self.assert_caught("is named 'seam' but states kind 'linearizable'")
+
+    def test_a_seam_vector_named_for_another_subject_is_caught(self) -> None:
+        """A seam vector's id begins with history."""
+        _edit(
+            self.tree / "corpus" / "history" / "seam.json",
+            lambda d: d["cases"][0].update(id="seam/renamed"),
+        )
+        self.assert_caught("begins with 'seam', which names no seam vector")
+
+    def test_a_repeated_history_vector_id_is_caught(self) -> None:
+        """Two vectors with one id make one of them unreportable."""
+
+        def repeat(document: Any) -> None:
+            document["cases"].append(dict(document["cases"][0]))
+
+        _edit(self.tree / "corpus" / "history" / "linearizable.json", repeat)
+        self.assert_caught("repeats case id 'linearizable/")
+
+    def test_a_malformed_literal_in_a_history_vector_is_caught(self) -> None:
+        """Every typed literal of a history vector is checked."""
+        _edit(
+            self.tree / "corpus" / "history" / "seam.json",
+            lambda d: d["cases"][0]["script"][0]["args"][0].update(type="decimal"),
+        )
+        self.assert_caught("script[0].args[0]: states type 'decimal'")
+
+    def test_intervals_that_refuse_no_entry_are_caught(self) -> None:
+        """from-intervals has a vector that names the entry it refuses."""
+        self._history("seam", lambda c: "intervals" not in c or c["refused"] is None)
+        self.assert_caught("has no vector that covers 'intervals:refused'")
+
+    def test_a_script_without_a_pending_call_is_caught(self) -> None:
+        """A script records a call without a completion."""
+        pending = "history/a-pending-call-has-no-completion"
+        self._history("seam", lambda c: c["id"] != pending)
+        self.assert_caught("has no vector that covers 'script:pending'")
+
+    def test_a_model_driven_only_one_way_is_caught(self) -> None:
+        """Each named model has a vector that passes and one that is violated."""
+        self._history(
+            "linearizable",
+            lambda c: c["model"] != "queue" or c["detail"]["outcome"] != "passed",
+        )
+        self.assert_caught("has no vector that covers 'queue:passed'")
+
+    def test_a_limit_that_no_vector_reaches_is_caught(self) -> None:
+        """The memo limit stops a search in a vector."""
+        self._history("linearizable", lambda c: c["detail"]["limit"] != "memo")
+        self.assert_caught("has no vector that covers 'limit:memo'")
+
+    def test_a_parallel_language_without_the_recorder_limit_is_caught(self) -> None:
+        """The counter can hide a missing barrier where threads run on many cores."""
+        _edit(
+            self.tree / "overlays" / "rust.json",
+            lambda d: d.update(limits=[e for e in d["limits"] if e["id"] != "history"]),
+        )
+        self.assert_caught("overlays/rust.json: states no limit on 'history'")
+
     def _forms(self, change: Callable[[Any], object]) -> None:
         """Edit the form vectors of the scratch tree."""
         _edit(self.tree / "corpus" / "prop" / "forms.json", change)

@@ -1,8 +1,13 @@
 {
-  "extends": "spec://assertions@3.0.0",
+  "extends": "spec://assertions@3.1.0",
   "language": "go",
   "diverge": [],
   "limits": [
+    {
+      "id": "history",
+      "what": "Records every invocation and completion through one counter that all clients share, whose increment is sequentially consistent. A subject whose correctness depends on a memory barrier it lacks can pass under the recorder and fail without it.",
+      "why": "Goroutines run on more than one core at once. Each increment of the counter orders the recording client's memory operations against every other client's, and that order can supply the barrier that the subject lacks."
+    },
     {
       "id": "equal",
       "what": "Compares two functions by their code pointers. Two closures of one function literal compare equal whatever they capture, and so do two method values of one method on different receivers. A function declared at the top level, a method expression and a closure that captures nothing compare exactly. Every assertion that compares values as equal does, and its property form, compares functions the same way.",

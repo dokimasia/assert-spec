@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@3.0.0",
+  "extends": "spec://assertions@3.1.0",
   "language": "rust",
   "diverge": [],
   "relaxations": [
@@ -37,6 +37,11 @@
       "id": "no-task-leaks",
       "what": "Sees tasks spawned on the Tokio runtime the test is running under. A thread started with std::thread is not seen.",
       "why": "Rust's standard library has no way to enumerate threads: nothing in std::thread lists them, so the synchronous crate cannot answer the question at all. Tokio counts its own live tasks, which is why this assertion ships in the tokio crate rather than the core."
+    },
+    {
+      "id": "history",
+      "what": "Records every invocation and completion through one counter that all clients share, whose increment is sequentially consistent. A subject whose correctness depends on a memory barrier it lacks can pass under the recorder and fail without it.",
+      "why": "Threads run on more than one core at once. Each increment of the counter orders the recording client's memory operations against every other client's, and that order can supply the barrier that the subject lacks."
     }
   ],
   "surface": [

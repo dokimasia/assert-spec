@@ -3,7 +3,7 @@
 # A qualified name names a member of the subpackage the assertion table
 # gives it. The separator is the language's own: a dot in Go, Java,
 # Kotlin, Python and TypeScript, two colons in Rust.
-version: "3.0.0"
+version: "3.1.0"
 
 languages: [go, java, kotlin, php, python, rust, typescript]
 
@@ -407,6 +407,13 @@ names:
     typescript: "prop.forAll"
     java: "Prop.forAll"
     kotlin: "Prop.forAll"
+  "linearizable":
+    go: "history.Linearizable"
+    python: "history.is_linearizable"
+    rust: "history::is_linearizable"
+    typescript: "history.isLinearizable"
+    java: "History.isLinearizable"
+    kotlin: "History.isLinearizable"
 
 # What each language calls the relaxations. A language declaring one
 # absent in its overlay carries no name for it.
@@ -479,6 +486,10 @@ relaxations:
 # for Rust's Cancel, because a method named cancel would read as an order
 # to cancel. Python and Kotlin cancel a coroutine through its task or its
 # job and hand a subject no handle, so both decline the member.
+#
+# Each language constructs a history as it constructs any value: Go and
+# Rust through a function, Python and Kotlin by calling the class, and
+# TypeScript and Java with new.
 surface:
   types:
     "seat":
@@ -583,6 +594,48 @@ surface:
       typescript: "prop.Case"
       java: "Case"
       kotlin: "Case"
+    "history":
+      go: "history.History"
+      python: "history.History"
+      rust: "history::History"
+      typescript: "history.History"
+      java: "History"
+      kotlin: "History"
+    "call":
+      go: "history.Call"
+      python: "history.Call"
+      rust: "history::Call"
+      typescript: "history.Call"
+      java: "Call"
+      kotlin: "Call"
+    "event":
+      go: "history.Event"
+      python: "history.Event"
+      rust: "history::Event"
+      typescript: "history.Event"
+      java: "Event"
+      kotlin: "Event"
+    "outcome":
+      go: "history.Outcome"
+      python: "history.Outcome"
+      rust: "history::Outcome"
+      typescript: "history.Outcome"
+      java: "Outcome"
+      kotlin: "Outcome"
+    "model":
+      go: "history.Model"
+      python: "history.Model"
+      rust: "history::Model"
+      typescript: "history.Model"
+      java: "Model"
+      kotlin: "Model"
+    "op":
+      go: "history.Op"
+      python: "history.Op"
+      rust: "history::Op"
+      typescript: "history.Op"
+      java: "Op"
+      kotlin: "Op"
   members:
     "seat.helper":
       go: "Helper"
@@ -812,6 +865,69 @@ surface:
       typescript: "bind"
       java: "bind"
       kotlin: "bind"
+    "history.new":
+      go: "history.New"
+      python: "History()"
+      rust: "History::new"
+      typescript: "new History()"
+      java: "new History()"
+      kotlin: "History()"
+    "history.invoke":
+      go: "Invoke"
+      python: "invoke"
+      rust: "invoke"
+      typescript: "invoke"
+      java: "invoke"
+      kotlin: "invoke"
+    "history.events":
+      go: "Events"
+      python: "events"
+      rust: "events"
+      typescript: "events"
+      java: "events"
+      kotlin: "events"
+    "call.ok":
+      go: "OK"
+      python: "ok"
+      rust: "ok"
+      typescript: "ok"
+      java: "ok"
+      kotlin: "ok"
+    "call.fail":
+      go: "Fail"
+      python: "fail"
+      rust: "fail"
+      typescript: "fail"
+      java: "fail"
+      kotlin: "fail"
+    "call.unknown":
+      go: "Unknown"
+      python: "unknown"
+      rust: "unknown"
+      typescript: "unknown"
+      java: "unknown"
+      kotlin: "unknown"
+    "model.init":
+      go: "Init"
+      python: "init"
+      rust: "init"
+      typescript: "init"
+      java: "init"
+      kotlin: "init"
+    "model.step":
+      go: "Step"
+      python: "step"
+      rust: "step"
+      typescript: "step"
+      java: "step"
+      kotlin: "step"
+    "model.equal":
+      go: "Equal"
+      python: "equal"
+      rust: "equal"
+      typescript: "equal"
+      java: "equal"
+      kotlin: "equal"
   helpers:
     "that":
       go: "That"
@@ -1104,6 +1220,55 @@ surface:
       typescript: "prop.ofShape"
       java: "Prop.ofShape"
       kotlin: "Prop.ofShape"
+    "history.from-intervals":
+      go: "history.FromIntervals"
+      python: "history.from_intervals"
+      rust: "history::from_intervals"
+      typescript: "history.fromIntervals"
+      java: "History.fromIntervals"
+      kotlin: "History.fromIntervals"
+    "history.concurrently":
+      go: "history.Concurrently"
+      python: "history.concurrently"
+      rust: "history::concurrently"
+      typescript: "history.concurrently"
+      java: "History.concurrently"
+      kotlin: "History.concurrently"
+    "history.model-from":
+      go: "history.ModelFrom"
+      python: "history.model_from"
+      rust: "history::model_from"
+      typescript: "history.modelFrom"
+      java: "History.modelFrom"
+      kotlin: "History.modelFrom"
+    "history.budget":
+      go: "history.Budget"
+      python: "history.budget"
+      rust: "history::budget"
+      typescript: "history.budget"
+      java: "History.budget"
+      kotlin: "History.budget"
+    "history.memo-limit":
+      go: "history.MemoLimit"
+      python: "history.memo_limit"
+      rust: "history::memo_limit"
+      typescript: "history.memoLimit"
+      java: "History.memoLimit"
+      kotlin: "History.memoLimit"
+    "history.time-limit":
+      go: "history.TimeLimit"
+      python: "history.time_limit"
+      rust: "history::time_limit"
+      typescript: "history.timeLimit"
+      java: "History.timeLimit"
+      kotlin: "History.timeLimit"
+    "history.workers":
+      go: "history.Workers"
+      python: "history.workers"
+      rust: "history::workers"
+      typescript: "history.workers"
+      java: "History.workers"
+      kotlin: "History.workers"
 
 # The property form of an assertion takes the assertion's name in the prop
 # package. Rendering adds one name for each form that the assertion table

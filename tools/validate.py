@@ -15,11 +15,14 @@ import calendar
 import json
 import re
 import sys
-from collections.abc import Iterable, Iterator
+from collections.abc import Collection, Iterable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import history.linearizable
+import history.seam
+import history.vectors
 from prop import literal
 from prop.coverage import Verdict
 from prop.execution import Phase
@@ -103,6 +106,33 @@ UNRECORDED_PHASES = frozenset({Phase.FUZZ.value})
 #: runner writes for a run, where each call record is in it, and where it
 #: states each test's status.
 RECORDS_KEYS = ("artifact", "location", "status")
+
+#: What the ids of each kind of history vector begin with: the seam's
+#: vectors are named for the history, and the checker's for its assertion.
+HISTORY_PREFIXES = {"seam": "history", "linearizable": "linearizable"}
+
+#: What the seam vectors cover between them, through a script and through
+#: intervals: an event of every kind, a pending call, and a refused entry.
+SEAM_ENDS = tuple(
+    f"{form}:{end}"
+    for form in ("script", "intervals")
+    for end in (*(kind.value for kind in history.seam.Kind), "pending", "refused")
+)
+
+#: What the checker's vectors cover between them: every outcome and every
+#: limit that a vector can state.
+CHECK_ENDS = (
+    *(outcome.value for outcome in history.linearizable.Outcome),
+    *(f"limit:{limit.value}" for limit in history.linearizable.Limit),
+)
+
+#: The languages whose threads run on more than one core. The history's
+#: counter synchronizes the clients of such a language, which can hide a
+#: missing barrier in the subject, so the overlay of each limits RECORDER.
+PARALLEL = frozenset({"go", "java", "kotlin", "rust"})
+
+#: The surface id of the history, which records through that counter.
+RECORDER = "history"
 
 
 class Problems:
@@ -212,23 +242,26 @@ def check_assertions(spec: Any, problems: Problems) -> dict[str, set[str]]:
     }
 
 
-def check_subjects(spec: Any, problems: Problems) -> set[str]:
-    """Check the subject vocabulary, and return its kinds.
+def check_vocabulary(
+    spec: Any, section: str, label: str, problems: Problems
+) -> set[str]:
+    """Check one vocabulary of names that a case states in place of a value.
 
-    A case that cannot state a callable names a subject kind instead, and
-    each implementation builds that subject natively. Every implementation
-    must build every kind, so the vocabulary is small.
+    A case that cannot state a callable names a subject instead, and a
+    history vector names a model. Each implementation builds every subject
+    and every model natively, so each vocabulary is small, and each name
+    has a summary to build it from. Returns the names.
     """
-    subjects = spec.get("subjects", {})
+    entries = spec.get(section, {})
     problems.unless(
-        bool(subjects), "spec/assertions.json", "states no subject vocabulary"
+        bool(entries), "spec/assertions.json", f"states no {label} vocabulary"
     )
-    for kind, body in sorted(subjects.items()):
-        where = f"spec/assertions.json: subject {kind}"
-        problems.unless(bool(ID.match(kind)), where, "is not a hyphenated lowercase id")
+    for name, body in sorted(entries.items()):
+        where = f"spec/assertions.json: {label} {name}"
+        problems.unless(bool(ID.match(name)), where, "is not a hyphenated lowercase id")
         stated = isinstance(body, dict) and bool(str(body.get("summary", "")).strip())
         problems.unless(stated, where, "states no summary")
-    return set(subjects)
+    return set(entries)
 
 
 def check_naming(
@@ -844,9 +877,30 @@ def check_vector_cases(
     passes. The recording vectors record a call of every phase but those
     in UNRECORDED_PHASES.
     """
-    prefixes = _prefixes(kind, forms)
-    seen: set[str] = set()
     found: dict[str, list[str]] = {}
+    named = (_prefixes(kind, forms), _named(kind))
+    for cid, prefix, case in _vector_cases(cases, named, where, problems):
+        if kind == "forms":
+            _check_form_vector(case, prefix, forms, f"{where} [{cid}]", problems)
+        reached = _phases(case) if kind == "recording" else [_reached(kind, case)]
+        found.setdefault(prefix, []).extend(reached)
+    _check_vector_coverage(kind, found, forms, where, problems)
+
+
+def _vector_cases(
+    cases: list[Any],
+    named: tuple[Collection[str], str],
+    where: str,
+    problems: Problems,
+) -> Iterator[tuple[str, str, dict[str, Any]]]:
+    """Yield each vector that is an object, with its id and the start of its id.
+
+    Each id is <subject>/<case> in hyphenated lowercase, appears once, and
+    begins with one of the prefixes, which name what named states. The
+    typed literals of each vector are checked.
+    """
+    prefixes, what = named
+    seen: set[str] = set()
     for case in cases:
         if not problems.unless(
             isinstance(case, dict), where, "a case is not an object"
@@ -864,15 +918,11 @@ def check_vector_cases(
         problems.unless(
             prefix in prefixes,
             where,
-            f"id {cid!r} begins with {prefix!r}, which names no {_named(kind)}",
+            f"id {cid!r} begins with {prefix!r}, which names no {what}",
         )
         for path, value in literals(case):
             check_literal(value, f"{where} [{cid}] {path}", problems)
-        if kind == "forms":
-            _check_form_vector(case, prefix, forms, f"{where} [{cid}]", problems)
-        reached = _phases(case) if kind == "recording" else [_reached(kind, case)]
-        found.setdefault(prefix, []).extend(reached)
-    _check_vector_coverage(kind, found, forms, where, problems)
+        yield cid, prefix, case
 
 
 def _both_ways(
@@ -953,12 +1003,100 @@ def check_vectors(forms: FormVocabulary, problems: Problems) -> int:
     vectors cover the vocabulary. It also reads each form vector's failure
     against the definition.
     """
-    folder = ROOT / "corpus" / "prop"
-    files = {path.stem: path for path in sorted(folder.glob("*.json"))}
-    for kind in KINDS:
-        problems.unless(kind in files, "corpus/prop/", f"has no {kind} vectors")
-
     total = 0
+    for kind, where, cases in _vector_files("prop", KINDS, problems):
+        total += len(cases)
+        check_vector_cases(kind, cases, where, forms, problems)
+    return total
+
+
+def check_history(models: set[str], problems: Problems) -> int:
+    """Check the history's vector files, and return the number of vectors.
+
+    `make render` writes the outputs of these vectors as it writes the
+    property engine's, so this check covers what the renderer copies from
+    the YAML: each file's kind, the ids, the typed literals, and the models
+    that the checker's vectors name. It also checks what the vectors cover.
+    Through a script and through intervals, the seam vectors record an
+    event of every kind and a pending call, and refuse an entry. The
+    checker's vectors end in every outcome, stop at every limit, and
+    include a pass and a violation of every named model.
+    """
+    total = 0
+    for kind, where, cases in _vector_files("history", history.vectors.KINDS, problems):
+        total += len(cases)
+        prefix = HISTORY_PREFIXES[kind]
+        named = (frozenset({prefix}), f"{kind} vector")
+        covered: set[str] = set()
+        for cid, _, case in _vector_cases(cases, named, where, problems):
+            if kind == "seam":
+                covered.update(_seam_covers(case))
+                continue
+            model = case.get("model")
+            problems.unless(
+                model in models,
+                f"{where} [{cid}]",
+                f"names model {model!r}, which the definition does not state",
+            )
+            covered.update(_check_covers(case))
+        ends = SEAM_ENDS
+        if kind == "linearizable":
+            both = (f"{m}:{o}" for m in sorted(models) for o in ("passed", "violated"))
+            ends = (*CHECK_ENDS, *both)
+        for end in ends:
+            problems.unless(end in covered, where, f"has no vector that covers {end!r}")
+    return total
+
+
+def _seam_covers(case: dict[str, Any]) -> list[str]:
+    """Return what one seam vector covers, each under the form of its calls.
+
+    A vector covers the kind of each event it records, pending when one of
+    its calls has no completion, and refused when the seam refuses an
+    entry.
+    """
+    form = "script" if "script" in case else "intervals"
+    events = case.get("events")
+    if not isinstance(events, list):
+        return [f"{form}:refused"]
+    recorded = [event for event in events if isinstance(event, dict)]
+    completed = {e.get("call") for e in recorded if e.get("kind") != "invoke"}
+    covered = [f"{form}:{event.get('kind')}" for event in recorded]
+    if any(
+        e.get("kind") == "invoke" and e.get("call") not in completed for e in recorded
+    ):
+        covered.append(f"{form}:pending")
+    return covered
+
+
+def _check_covers(case: dict[str, Any]) -> list[str]:
+    """Return what one vector of the checker covers.
+
+    A vector covers its outcome, its limit, and its model under its outcome.
+    """
+    detail = case.get("detail")
+    stated = detail if isinstance(detail, dict) else {}
+    outcome = stated.get("outcome")
+    return [
+        str(outcome),
+        f"limit:{stated.get('limit')}",
+        f"{case.get('model')}:{outcome}",
+    ]
+
+
+def _vector_files(
+    folder: str, kinds: Collection[str], problems: Problems
+) -> Iterator[tuple[str, str, list[Any]]]:
+    """Yield the kind, the path and the cases of each vector file in a corpus folder.
+
+    Every kind has a file, a file's name is its kind, and a file states at
+    least one case. A file that breaks a rule is reported and not yielded.
+    """
+    files = {
+        path.stem: path for path in sorted((ROOT / "corpus" / folder).glob("*.json"))
+    }
+    for kind in kinds:
+        problems.unless(kind in files, f"corpus/{folder}/", f"has no {kind} vectors")
     for stem, path in files.items():
         where = str(path.relative_to(ROOT))
         document = _load(path, problems)
@@ -969,17 +1107,14 @@ def check_vectors(forms: FormVocabulary, problems: Problems) -> int:
             kind == stem, where, f"is named {stem!r} but states kind {kind!r}"
         )
         if not problems.unless(
-            kind in KINDS, where, f"states kind {kind!r}, which no vector has"
+            kind in kinds, where, f"states kind {kind!r}, which no vector has"
         ):
             continue
         cases = document.get("cases")
-        if not problems.unless(
+        if problems.unless(
             isinstance(cases, list) and bool(cases), where, "states no cases"
         ):
-            continue
-        total += len(cases)
-        check_vector_cases(str(kind), cases, where, forms, problems)
-    return total
+            yield str(kind), where, cases
 
 
 @dataclass(frozen=True)
@@ -1358,6 +1493,47 @@ def check_overlay_records(overlay: Any, where: str, problems: Problems) -> None:
         )
 
 
+def check_overlay_limits(
+    overlay: Any,
+    where: str,
+    language: Any,
+    known: Collection[str],
+    problems: Problems,
+) -> set[Any]:
+    """Check one overlay's limits, and return the ids it limits.
+
+    A limit names an assertion or a row of the surface table, because a
+    seat without a lock is a limit on the seat and not on one assertion. It
+    states what it misses and why. A language in PARALLEL limits RECORDER.
+    """
+    limits = overlay.get("limits", [])
+    if not problems.unless(isinstance(limits, list), where, "limits is not a list"):
+        return set()
+    for entry in limits:
+        if not problems.unless(
+            isinstance(entry, dict), where, f"limit {entry!r} is not an object"
+        ):
+            continue
+        aid = entry.get("id")
+        problems.unless(
+            aid in known, where, f"limits {aid!r}, which the standard does not state"
+        )
+        for field in ("what", "why"):
+            problems.unless(
+                bool(str(entry.get(field, "")).strip()),
+                where,
+                f"limits {aid!r} with no {field}",
+            )
+    limited = {entry.get("id") for entry in limits if isinstance(entry, dict)}
+    problems.unless(
+        language not in PARALLEL or RECORDER in limited,
+        where,
+        f"states no limit on {RECORDER!r}; its threads run on more than one "
+        "core, where the history's counter can hide a missing barrier",
+    )
+    return limited
+
+
 def check_overlays(
     assertions: set[str], tables: Tables, version: str, problems: Problems
 ) -> None:
@@ -1370,7 +1546,8 @@ def check_overlays(
     A limit is the third state: the assertion is implemented, and there
     is a case it cannot see. It states an id, what it misses and why. An
     assertion cannot be both, because a divergence is absent and a limit
-    is present.
+    is present. A language whose threads run on more than one core limits
+    the history.
 
     Every overlay states the artifact that contains its language's call
     records.
@@ -1404,29 +1581,8 @@ def check_overlays(
         )
         check_overlay_surface(overlay, where, language, tables, problems)
         check_overlay_records(overlay, where, problems)
-
-        limits = overlay.get("limits", [])
-        if problems.unless(isinstance(limits, list), where, "limits is not a list"):
-            for entry in limits:
-                if not problems.unless(
-                    isinstance(entry, dict), where, f"limit {entry!r} is not an object"
-                ):
-                    continue
-                aid = entry.get("id")
-                # A limit names an assertion or a row of the surface table.
-                # A seat without a lock is a limit on the seat, not on one
-                # assertion.
-                problems.unless(
-                    aid in assertions or aid in tables.surface_ids,
-                    where,
-                    f"limits {aid!r}, which the standard does not state",
-                )
-                for field in ("what", "why"):
-                    problems.unless(
-                        bool(str(entry.get(field, "")).strip()),
-                        where,
-                        f"limits {aid!r} with no {field}",
-                    )
+        known = assertions | tables.surface_ids
+        limited = check_overlay_limits(overlay, where, language, known, problems)
 
         diverge = overlay.get("diverge", [])
         if not problems.unless(
@@ -1448,7 +1604,7 @@ def check_overlays(
             problems.unless(aid not in seen, where, f"diverges on {aid!r} twice")
             seen.add(str(aid))
             problems.unless(
-                aid not in {e.get("id") for e in limits if isinstance(e, dict)},
+                aid not in limited,
                 where,
                 f"{aid!r} is both diverged from and limited; it is one or "
                 "the other, since a divergence is absent and a limit is not",
@@ -1482,11 +1638,13 @@ def main() -> int:
         for aid, body in spec.get("assertions", {}).items()
         if isinstance(body, dict)
     }
-    subjects = check_subjects(spec, problems)
+    subjects = check_vocabulary(spec, "subjects", "subject", problems)
+    models = check_vocabulary(spec, "models", "model", problems)
     cases = check_corpus(assertions, subjects, accepted, problems)
     vectors = check_vectors(
         FormVocabulary(form_runs(spec), assertions, subjects), problems
     )
+    vectors += check_history(models, problems)
     changes = check_zones(ROOT / "spec" / "zones.json", problems)
     check_surface(naming, set(naming.get("languages", [])), problems)
     check_overlays(

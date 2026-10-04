@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@3.0.0",
+  "extends": "spec://assertions@3.1.0",
   "language": "java",
   "diverge": [
     {
@@ -26,6 +26,11 @@
       "id": "no-task-leaks",
       "what": "Sees platform threads and executor threads. A leaked virtual thread is not reported.",
       "why": "Virtual threads appear in no standard enumeration. Thread.getAllStackTraces does not contain them, and ThreadMXBean counts their carrier threads instead, which is noise rather than signal."
+    },
+    {
+      "id": "history",
+      "what": "Records every invocation and completion through one counter that all clients share, whose increment is sequentially consistent. A subject whose correctness depends on a memory barrier it lacks can pass under the recorder and fail without it.",
+      "why": "JVM threads run on more than one core at once. Each increment of the counter orders the recording client's memory operations against every other client's, and that order can supply the barrier that the subject lacks."
     }
   ],
   "surface": [

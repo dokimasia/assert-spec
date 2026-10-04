@@ -96,6 +96,27 @@ class OutcomeTest(unittest.TestCase):
             (verdict.outcome, verdict.partitions, verdict.steps), (Outcome.PASSED, 1, 6)
         )
 
+    def test_the_detail_of_a_pass_states_no_reported_partition(self) -> None:
+        """A pass reports no record, so each field of a reported partition is null."""
+        history = History()
+        write(history, 0, 1).ok(None)
+        read(history, 1).ok(1)
+        self.assertEqual(
+            check(history.events(), REGISTER).detail(),
+            {
+                "outcome": "passed",
+                "partitions": 1,
+                "steps": 2,
+                "partition": None,
+                "calls": None,
+                "concurrency": None,
+                "linearized": None,
+                "states": None,
+                "candidates": None,
+                "limit": None,
+            },
+        )
+
     def test_a_history_without_calls_passes(self) -> None:
         """No events, or only failed calls, leave no partition."""
         history = History()
