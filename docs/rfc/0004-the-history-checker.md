@@ -2,7 +2,7 @@
 rfc: 0004
 title: The linearizability checker
 author: Roy Klopper <roy.klopper@stealthscale.io>
-status: Draft
+status: Accepted
 created: 2026-08-30
 updated: 2026-10-04
 discussion: none

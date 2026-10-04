@@ -2,7 +2,7 @@
 rfc: 0003
 title: The observation seams
 author: Roy Klopper <roy.klopper@stealthscale.io>
-status: Draft
+status: Accepted
 created: 2026-08-30
 updated: 2026-10-04
 discussion: none
@@ -350,7 +350,7 @@ raises again, a reading without a gap, and a key without a typed literal.
 | Id | Go | Python | Rust | TypeScript | Java, Kotlin |
 |---|---|---|---|---|---|
 | `history` | `history.History` | `history.History` | `history::History` | `history.History` | `History` |
-| `history.new` | `history.New` | `History()` | `History::new` | `new History()` | `new History()` |
+| `history.new` | `history.New` | `History()` | `History::new` | `new History()` | `new History()` in Java, `History()` in Kotlin |
 | `history.invoke` | `History.Invoke` | `History.invoke` | `History::invoke` | `History.invoke` | `History.invoke` |
 | `history.events` | `History.Events` | `History.events` | `History::events` | `History.events` | `History.events` |
 | `history.from-intervals` | `history.FromIntervals` | `history.from_intervals` | `history::from_intervals` | `history.fromIntervals` | `History.fromIntervals` |

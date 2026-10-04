@@ -2,7 +2,7 @@
 rfc: 0017
 title: Pinning map keys
 author: Roy Klopper <roy.klopper@stealthscale.io>
-status: Draft
+status: Accepted
 created: 2026-10-04
 updated: 2026-10-04
 discussion: none
