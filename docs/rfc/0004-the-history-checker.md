@@ -4,7 +4,7 @@ title: The linearizability checker
 author: Roy Klopper <roy.klopper@stealthscale.io>
 status: Draft
 created: 2026-08-30
-updated: 2026-10-02
+updated: 2026-10-04
 discussion: none
 supersedes: none
 superseded-by: none
@@ -157,7 +157,7 @@ func TestRegisterIsLinearizable(t *testing.T) {
 		Init: func() int { return 0 },
 		Step: func(s int, op history.Op) []int {
 			if op.Operation == "write" {
-				return []int{op.Arguments[0].(int)}
+				return []int{op.Args[0].(int)}
 			}
 			if !op.Known || op.Output == s {
 				return []int{s}
@@ -187,7 +187,7 @@ The detail of a failing check:
 | `partitions` | The number of partitions |
 | `steps` | The steps spent in every partition the check searched |
 | `partition` | The keys of the reported partition. An empty list means every key |
-| `linearized` | The calls of the frontier's order, in that order. Each has its process, operation, arguments, output, and the indices of its events |
+| `linearized` | The calls of the frontier's order, in that order. Each states its `process`, `operation`, `args` and `output`, in the history's JSON form, and the indices of its events |
 | `states` | The model states after that order |
 | `candidates` | The calls that could come next, each of which the model rejected in every one of those states |
 | `limit` | For `undecided`: `steps` or `time`. Null otherwise |
@@ -209,7 +209,7 @@ Model
 
 Op
   operation    the call's operation
-  arguments    the call's arguments
+  args         the call's arguments
   known        whether the call completed with ok
   output       the call's output when known is true; absent otherwise
 ```
@@ -418,20 +418,21 @@ The corpus states a check as a history and the name of a model:
 { "id": "linearizable/a-read-after-a-completed-write-misses-it",
   "model": "register",
   "history": [
-    { "invoke": 0, "client": 0, "op": "write", "args": [{ "type": "int", "value": 1 }], "keys": ["x"] },
-    { "ok": 0, "value": { "type": "null" } },
-    { "invoke": 1, "client": 1, "op": "read", "args": [], "keys": ["x"] },
-    { "ok": 1, "value": { "type": "int", "value": 0 } }
+    { "invoke": 0, "client": 0, "operation": "write", "args": [{ "type": "int", "value": 1 }], "keys": [{ "type": "string", "value": "x" }] },
+    { "ok": 0, "output": { "type": "null" } },
+    { "invoke": 1, "client": 1, "operation": "read", "args": [], "keys": [{ "type": "string", "value": "x" }] },
+    { "ok": 1, "output": { "type": "int", "value": 0 } }
   ],
   "expect": "fail",
   "detail": { "outcome": "violated", "steps": 2 } }
 ```
 
-An entry with `invoke` opens a call, and an entry with `ok`, `fail` or
-`unknown` completes the call it names. Each implementation records the
-entries through its history seam, in order, and builds the named model
-natively, as it builds a named subject. The definition states the named
-models in a `models` section of `assertions.yaml`, beside the subjects.
+The history is a script in the history seam's JSON form. An entry with
+`invoke` opens a call, and an entry with `ok`, `fail` or `unknown`
+completes the call it names. Each implementation records the entries
+through its history seam, in order, and builds the named model natively, as
+it builds a named subject. The definition states the named models in a
+`models` section of `assertions.yaml`, beside the subjects.
 
 The named models:
 
