@@ -3,8 +3,9 @@
 The runner calls a body once per case, in four phases, and stops at the
 first failing case:
 
-1. Stored: each stored choice sequence, oldest first. These cases do not
-   enter the case tree.
+1. Examples and stored: each choice sequence of a case whose values the
+   caller states, in order, then each stored choice sequence, oldest
+   first. These cases do not enter the case tree.
 2. Simplest: one case whose every choice is its target.
 3. Random: case i of the seed, for i = 0, 1, 2, ..., until ``cases``
    valid cases have run, the domain is exhausted, or GENERATION_FACTOR
@@ -36,6 +37,12 @@ A run that found no failing case fails anyway when it rejected more than
 MAX_REJECTIONS times as many cases as were valid, when no case requested
 an input, or when a coverage requirement is refuted or unmet, checked in
 that order.
+
+A run's observer sees every call of the body with its phase: an example,
+a stored case, the simplest case, a random case before the first check
+and a coverage case after it, a prefix case, an edge case, the replay
+before shrinking, a shrink candidate, an explain run, or the case of a
+replay token.
 """
 
 from __future__ import annotations
@@ -50,7 +57,16 @@ from . import coverage, shrink
 from .case import MAX_CHOICES, Generating, Provider, Replaying
 from .choice import Choice
 from .edge import BOUNDARIES, Edge
-from .execution import Body, Divergence, Execution, Status, execute
+from .execution import (
+    Body,
+    Divergence,
+    Execution,
+    Observer,
+    Phase,
+    Status,
+    execute,
+    unobserved,
+)
 from .replay import encode
 from .source import case_source
 from .tree import Tree
@@ -99,16 +115,18 @@ class Requirement:
 class Settings:
     """What a run is asked to do.
 
-    shrink is the budget of runs that shrinking and explaining every
-    failure may spend, and 0 turns both off. replay, when set, is the
-    one case the run tries: a failure is reported as found, and a pass
-    passes.
+    examples are the choice sequences of the cases whose values the caller
+    states, which run first. shrink is the budget of runs that shrinking
+    and explaining every failure may spend, and 0 turns both off. replay,
+    when set, is the one case the run tries: a failure is reported as
+    found, and a pass passes.
     """
 
     seed: int
     cases: int = DEFAULT_CASES
     max_choices: int = MAX_CHOICES
     requirements: tuple[Requirement, ...] = ()
+    examples: tuple[tuple[Choice, ...], ...] = ()
     stored: tuple[tuple[Choice, ...], ...] = ()
     shrink: int = shrink.DEFAULT_BUDGET
     explain: bool = True
@@ -233,17 +251,21 @@ def _shortfall(
     return None, met
 
 
-def _conclude(body: Body, settings: Settings, outcome: Outcome) -> Outcome:
+def _conclude(
+    body: Body, settings: Settings, outcome: Outcome, observer: Observer
+) -> Outcome:
     """Replay, shrink and explain the failing case of a counterexample."""
     failing = outcome.failing
     if outcome.kind is not Kind.COUNTEREXAMPLE or failing is None:
         return outcome
     if settings.shrink == 0:
         return replace(outcome, token=encode(failing.case.choices))
-    divergence = shrink.confirm(body, failing, settings.max_choices)
+    divergence = shrink.confirm(body, failing, settings.max_choices, observer)
     if divergence is not None:
         return replace(outcome, kind=Kind.FLAKY, divergence=divergence)
-    shrinker = shrink.Shrinker(body, failing, settings.max_choices, settings.shrink)
+    shrinker = shrink.Shrinker(
+        body, failing, settings.max_choices, settings.shrink, observer
+    )
     shrinker.shrink_all()
     assert failing.identity is not None
     first = shrinker.failures[failing.identity]
@@ -272,29 +294,36 @@ class _Phases:
 
     The simplest case comes first. Each random case is followed by its
     prefix case and the next edge case, and the edge cases left when the
-    random cases stop run then.
+    random cases stop run then. phase is the phase of the random cases:
+    random up to the first check, and coverage after it.
     """
 
     body: Body
     settings: Settings
     tally: _Tally
+    observer: Observer
     tree: Tree = field(default_factory=Tree)
     edges: deque[Edge] = field(
         default_factory=lambda: deque(Edge(boundary) for boundary in BOUNDARIES)
     )
     index: int = 0
+    phase: Phase = Phase.RANDOM
 
-    def attempt(self, provider: Provider) -> Outcome | None:
-        """Run one case into the tree, count it, and return the outcome it ends with."""
+    def call(self, provider: Provider, phase: Phase) -> Execution:
+        """Run one case of phase into the tree, and show it to the observer."""
         execution = execute(self.body, provider, self.settings.max_choices, self.tree)
-        return self.tally.take(execution)
+        self.observer(phase, execution)
+        return execution
+
+    def attempt(self, provider: Provider, phase: Phase) -> Outcome | None:
+        """Run one case of phase, count it, and return the outcome it ends with."""
+        return self.tally.take(self.call(provider, phase))
 
     def random(self) -> Outcome | None:
         """Run the next random case, then its prefix case and the next edge case."""
         source = case_source(self.settings.seed, self.index)
         self.index += 1
-        provider = Generating(source)
-        execution = execute(self.body, provider, self.settings.max_choices, self.tree)
+        execution = self.call(Generating(source), self.phase)
         if (outcome := self.tally.take(execution)) is not None:
             return outcome
         choices = execution.case.choices
@@ -305,7 +334,8 @@ class _Phases:
         )
         if prefixed:
             cut = 1 + source.below(len(choices) - 1)
-            if (outcome := self.attempt(Replaying(tuple(choices[:cut])))) is not None:
+            prefix = Replaying(tuple(choices[:cut]))
+            if (outcome := self.attempt(prefix, Phase.PREFIX)) is not None:
                 return outcome
         return self.next_edge()
 
@@ -313,7 +343,7 @@ class _Phases:
         """Run the next edge case, unless none is left or the domain is exhausted."""
         if not self.edges or self.tree.exhausted:
             return None
-        return self.attempt(self.edges.popleft())
+        return self.attempt(self.edges.popleft(), Phase.EDGE)
 
     def run_to(self, target: int) -> Outcome | None:
         """Run random cases until target cases are valid, then the edge cases left.
@@ -334,15 +364,18 @@ class _Phases:
         return None
 
 
-def _explore(body: Body, settings: Settings) -> Outcome:
+def _explore(body: Body, settings: Settings, observer: Observer) -> Outcome:
     """Run the phases until the run ends, without concluding a counterexample."""
     tally = _Tally(settings.seed)
-    for stored in settings.stored:
-        execution = execute(body, Replaying(stored), settings.max_choices)
+    known = [(Phase.EXAMPLE, example) for example in settings.examples]
+    known += [(Phase.STORED, stored) for stored in settings.stored]
+    for phase, choices in known:
+        execution = execute(body, Replaying(choices), settings.max_choices)
+        observer(phase, execution)
         if (outcome := tally.take(execution)) is not None:
             return outcome
-    phases = _Phases(body, settings, tally)
-    if (outcome := phases.attempt(Replaying(()))) is not None:
+    phases = _Phases(body, settings, tally, observer)
+    if (outcome := phases.attempt(Replaying(()), Phase.SIMPLEST)) is not None:
         return outcome
     return _checks(phases) or tally.outcome(Kind.PASSED)
 
@@ -350,11 +383,13 @@ def _explore(body: Body, settings: Settings) -> Outcome:
 def _checks(phases: _Phases) -> Outcome | None:
     """Run the random phase to each check, and return the outcome that ends the run.
 
-    None means the run passes.
+    The random cases after the first check are the coverage phase's. None
+    means the run passes.
     """
     settings, tally = phases.settings, phases.tally
     multiples = coverage.CHECKS if settings.requirements else coverage.CHECKS[:1]
     for position, multiple in enumerate(multiples):
+        phases.phase = Phase.RANDOM if position == 0 else Phase.COVERAGE
         outcome = phases.run_to(multiple * settings.cases)
         outcome = outcome or tally.failure_without_counterexample()
         if outcome is not None or not settings.requirements:
@@ -370,10 +405,13 @@ def _checks(phases: _Phases) -> Outcome | None:
     return None
 
 
-def _replay(body: Body, settings: Settings, choices: tuple[Choice, ...]) -> Outcome:
+def _replay(
+    body: Body, settings: Settings, choices: tuple[Choice, ...], observer: Observer
+) -> Outcome:
     """Run the one case choices record, and report it as found."""
     tally = _Tally(settings.seed)
     execution = execute(body, Replaying(choices), settings.max_choices)
+    observer(Phase.TOKEN, execution)
     outcome = tally.take(execution)
     if outcome is None:
         return tally.failure_without_counterexample() or tally.outcome(Kind.PASSED)
@@ -382,12 +420,14 @@ def _replay(body: Body, settings: Settings, choices: tuple[Choice, ...]) -> Outc
     return replace(outcome, token=encode(outcome.failing.case.choices))
 
 
-def run(body: Body, settings: Settings) -> Outcome:
+def run(body: Body, settings: Settings, observer: Observer = unobserved) -> Outcome:
     """Run the phases and return the outcome.
 
     A run with replay set runs that one case instead, and neither
-    shrinks nor explains it.
+    shrinks nor explains it. observer sees every call of the body with
+    its phase, in the order of the run.
     """
     if settings.replay is not None:
-        return _replay(body, settings, settings.replay)
-    return _conclude(body, settings, _explore(body, settings))
+        return _replay(body, settings, settings.replay, observer)
+    explored = _explore(body, settings, observer)
+    return _conclude(body, settings, explored, observer)

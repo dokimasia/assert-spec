@@ -219,6 +219,32 @@ class Validator(unittest.TestCase):
         )
         self.assert_caught("extends 'spec://assertions@0.1.0'")
 
+    def test_an_overlay_without_records_is_caught(self) -> None:
+        """An overlay states the artifact that contains its call records."""
+        _edit(self.tree / "overlays" / "go.json", lambda d: d.pop("records"))
+        self.assert_caught("overlays/go.json: states no records")
+
+    def test_records_that_are_not_an_object_are_caught(self) -> None:
+        """The records entry is an object of three sentences."""
+        _edit(self.tree / "overlays" / "go.json", lambda d: d.update(records=[]))
+        self.assert_caught("overlays/go.json: records is not an object")
+
+    def test_a_records_entry_with_an_empty_key_is_caught(self) -> None:
+        """Each key of the records entry states something."""
+        _edit(
+            self.tree / "overlays" / "python.json",
+            lambda d: d["records"].update(location="  "),
+        )
+        self.assert_caught("overlays/python.json: records states no location")
+
+    def test_a_records_entry_with_a_missing_key_is_caught(self) -> None:
+        """A reader of the artifact needs where each test's status is."""
+        _edit(
+            self.tree / "overlays" / "rust.json",
+            lambda d: d["records"].pop("status"),
+        )
+        self.assert_caught("overlays/rust.json: records states no status")
+
     def test_a_divergence_from_an_unknown_assertion_is_caught(self) -> None:
         """A language cannot diverge from something nobody defined."""
         _edit(
@@ -1038,6 +1064,12 @@ class Validator(unittest.TestCase):
 
         self._vectors("draws", other_ends)
         self.assert_caught("has no vector that ends in 'label'")
+
+    def test_a_phase_that_no_recording_vector_records_is_caught(self) -> None:
+        """Every phase but fuzz has a recorded call."""
+        token = "recording/records-the-one-case-of-a-replay-token"
+        self._vectors("recording", lambda c: c["id"] != token)
+        self.assert_caught("has no vector that records a call of phase 'token'")
 
     def _forms(self, change: Callable[[Any], object]) -> None:
         """Edit the form vectors of the scratch tree."""

@@ -31,6 +31,7 @@ something nobody checked.
 | `extends` | `spec://assertions@<version>`, the version this overlay was written against |
 | `language` | The language, matching both the filename and a column in the naming table |
 | `diverge` | Every assertion this language does not supply |
+| `records` | Where this language writes the call records of a recorded run |
 
 A divergence carries `id`, `stance` and `why`. `remedy` is optional and
 says what would close the gap.
@@ -98,3 +99,26 @@ partly there: the relaxation is either offered or it is not.
 An assertion that should accept a relaxation and does not is a different
 thing, and it is a limit rather than an absence. The assertion is there
 and a case it should cover is missing.
+
+## Records
+
+`recording.md` fixes what a recorded run states. Each language writes
+its call records into the artifact that its test runner writes for a
+run. Its overlay states that artifact:
+
+```json
+"records": {
+  "artifact": "The event stream that go test -json writes for a run. go test writes the call records under -json and -v alone.",
+  "location": "One attr event per call record. Its Package and Test name the test, its Key is dokimi.assert.<seq>, and its Value is the call record's JSON. A call record whose line does not fit test2json's 4,096-byte line buffer is split over consecutive attr events of the same Key, whose Values join into the call record.",
+  "status": "The pass, fail and skip events of each test."
+}
+```
+
+| Key | States |
+|---|---|
+| `artifact` | What the runner writes for a run, and the command that writes it |
+| `location` | Where each call record is in the artifact, and how the artifact names its test |
+| `status` | Where the artifact states each test's status |
+
+The validator refuses an overlay without the entry, and an entry whose
+key is missing or empty.

@@ -13,7 +13,7 @@ how a caller writes a test, except where the two are the same thing.
 |---|---|---|
 | **Fixed** | The same in every language. No exceptions and no overlay entry | The definition |
 | **Named** | The same idea, spelled as the language spells things | The naming table |
-| **Declared** | Absent, or present and partial | The overlay, with a reason |
+| **Declared** | Absent, present and partial, or written to an artifact that the language chooses | The overlay, with a reason for each gap |
 | **Free** | The language's own business | Nowhere |
 
 A thing belongs to exactly one tier. Arguing that something should move
@@ -60,6 +60,13 @@ reports the wrong answer, and no test would see why.
 A language whose runtime has one thread meets this without doing
 anything, and says so in its overlay rather than leaving a reader to
 work out which it is.
+
+**What a recorded run states.** `recording.md` fixes the fields of a
+call record and their encoding, the verdicts, the phases of a property's
+cases, the opaque literal, the numbering, the switch and its values,
+which calls a run records, and the order of a property's call records.
+Every language states the same fields of a call, in the same encoding.
+Only the text of an opaque value is the language's own.
 
 ## Named
 
@@ -119,6 +126,12 @@ because nothing in its standard library enumerates threads.
 because its types keep an absent container and an empty one apart and its
 own equality already says NaN is unequal to itself.
 
+**The artifact that contains the call records.** A language's `records`
+entry states what its runner writes for a run. It also states where
+each call record is in that artifact, and where the artifact states each
+test's status. A `why` explains a gap. This entry states a place and has
+no `why`.
+
 An assertion is Declared absent or Declared partial, never both, because
 a divergence must be missing and a limit must be present.
 
@@ -158,6 +171,10 @@ depends on.
 ship anything it likes alongside. It may not call the extra thing an
 assertion, and the completeness gate does not know about it.
 
+**How a library writes a call record into its artifact.** The record and
+the artifact are fixed and declared. The code that writes one into the
+other is the library's.
+
 ## How each tier is checked
 
 | Tier | Checked by |
@@ -165,8 +182,9 @@ assertion, and the completeness gate does not know about it.
 | Fixed: meaning | The corpus, run against both surfaces and every call form of each |
 | Fixed: the values of a failure record | The corpus: the record of every failing case states the case's assertion and the caller's message unchanged, and it contains exactly the fields that the assertion declares |
 | Fixed: two surfaces, readable outcome | The corpus needs both to run at all |
+| Fixed: the call record | The corpus, run with recording on: the call record of every case. The recording vectors: the call records of a property's runs |
 | Named | The completeness gate, against the naming table, with each member's arity as far as the language can read it |
-| Declared | The validator, which refuses an entry with no reason |
+| Declared | The validator, which refuses an entry with no reason and an overlay that states no artifact |
 | Free | Nothing |
 
 A difference that belongs in a tier and is not recorded there is the

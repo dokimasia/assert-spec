@@ -3,7 +3,7 @@
 # A qualified name names a member of the subpackage the assertion table
 # gives it. The separator is the language's own: a dot in Go, Java,
 # Kotlin, Python and TypeScript, two colons in Rust.
-version: "2.2.0"
+version: "2.3.0"
 
 languages: [go, java, kotlin, php, python, rust, typescript]
 
@@ -696,6 +696,13 @@ surface:
       typescript: "helperCalls"
       java: "helperCalls"
       kotlin: "helperCalls"
+    "recorder-seat.records":
+      go: "Records"
+      python: "records"
+      rust: "records"
+      typescript: "records"
+      java: "records"
+      kotlin: "records"
     "collector-seat.collected":
       python: "collected"
       rust: "collected"

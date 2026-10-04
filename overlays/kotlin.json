@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@2.2.0",
+  "extends": "spec://assertions@2.3.0",
   "language": "kotlin",
   "diverge": [
     {
@@ -37,5 +37,10 @@
       "id": "case.cancellation",
       "why": "Kotlin cancels a coroutine through its Job, and honoursCancellation hands a subject no handle. A case has no handle to return that the code under test would read."
     }
-  ]
+  ],
+  "records": {
+    "artifact": "The JUnit Platform's report entries, which a Gradle test task of Gradle 9.4 or later writes to build/test-results/<task>/TEST-<class>.xml, one file per test class. kotlin.test runs on JUnit Jupiter under useJUnitPlatform(), and the Open Test Reporting XML of the JUnit Platform contains the same entries.",
+    "location": "One report entry per call record, in the order the calls report their verdicts, written as a property element under the properties element of the test's testcase element. Its name is dokimi.assert.<seq> and its value is the call record's JSON. The testcase element names the test by its classname, the test class, and its name, the test's display name.",
+    "status": "The child of each testcase element: failure for a failed test, skipped for a skipped or aborted one, and none for a pass."
+  }
 }

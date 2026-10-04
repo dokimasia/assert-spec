@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@2.2.0",
+  "extends": "spec://assertions@2.3.0",
   "language": "go",
   "diverge": [],
   "limits": [
@@ -25,8 +25,13 @@
     },
     {
       "id": "prop.of",
-      "what": "Reads int and uint as 64-bit integers on a 64-bit platform and as 32-bit integers on a 32-bit platform, so one test generates other values on each. ShapeOf writes the width the platform reads.",
-      "why": "The width of a Go int and uint is the platform's word, and a shape states the width of the type it reads."
+      "what": "Reads int and uint as 64-bit integers on a 64-bit platform and as 32-bit integers on a 32-bit platform, so one test generates other values on each. ShapeOf writes the width the platform reads. A zone resolves with the platform's time-zone database: the one that ZONEINFO names, the system's, or the copy in the Go installation, which is tzdata 2026c in Go 1.27.1. A time.Time in a zone can then show another wall time than the definition's tzdata 2026e states.",
+      "why": "The width of a Go int and uint is the platform's word, and a shape states the width of the type it reads. Go reads time zones from the platform, and Go's documentation leaves the choice to embed a database to a program's main package."
+    },
+    {
+      "id": "prop.of-shape",
+      "what": "Decodes a map to a map[any]any, so a map whose key shape decodes to a slice, a map or a record fails to read. A zone resolves with the platform's time-zone database, as the prop.of entry states.",
+      "why": "A key of a Go map must be comparable, and a slice, a map and the map[string]any of a record are not."
     }
   ],
   "surface": [
@@ -46,5 +51,10 @@
       "id": "contract.measuring",
       "why": "Go writes a benchmark body inline under testing.B, so a setup closure would take the caller out of both the loop and the chain. It marks the setup in place with Excluding instead."
     }
-  ]
+  ],
+  "records": {
+    "artifact": "The event stream that go test -json writes for a run. go test writes the call records under -json and -v alone.",
+    "location": "One attr event per call record. Its Package and Test name the test, its Key is dokimi.assert.<seq>, and its Value is the call record's JSON. A call record whose line does not fit test2json's 4,096-byte line buffer is split over consecutive attr events of the same Key, whose Values join into the call record.",
+    "status": "The pass, fail and skip events of each test."
+  }
 }

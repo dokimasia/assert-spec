@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@2.2.0",
+  "extends": "spec://assertions@2.3.0",
   "language": "python",
   "diverge": [
     {
@@ -46,5 +46,10 @@
       "id": "case.cancellation",
       "why": "Python cancels a coroutine through its task, and honours_cancellation hands a subject no handle. A case has no handle to return that the code under test would read."
     }
-  ]
+  ],
+  "records": {
+    "artifact": "The JUnit XML file that pytest --junitxml=PATH writes to PATH when the session ends.",
+    "location": "One property element per call record, in the order the calls report their verdicts, under the properties element of the test's testcase element. Its name is dokimi.assert.<seq> and its value is the call record's JSON. The testcase element names the test by its classname, the module's dotted path and the class, and its name, the function's name with its parameters.",
+    "status": "The child of each testcase element: none for a pass, failure for a failed call, error for a failed setup or teardown, and skipped for a skip or an expected failure."
+  }
 }

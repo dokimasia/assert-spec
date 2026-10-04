@@ -1,0 +1,46 @@
+# Recording: a body that asserts once per call, with true, run under
+# settings. Each case pins the verdict of the property and, in order, each
+# call of true that a recorded run writes: the call of the body that made
+# it, numbered from 1, the phase of that call, and the verdict of true.
+# The body draws one value, labelled `value`, and classifies and rejects
+# as a behaviour body does. It then calls true, which fails when a fails
+# entry holds. A call of the body that ends before true, rejected,
+# repeated, past its cap or diverging, makes no call of true. Every phase
+# but fuzz has a case. `make render` writes the outputs.
+kind: recording
+cases:
+  # Runs 10, 20 and 21 repeat earlier cases and make no call.
+  - id: recording/records-every-case-of-a-passing-run
+    body:
+      draw: {gen: list, of: {gen: integer, min: 0, max: 1000}}
+    settings: {seed: "7", cases: 20}
+
+  - id: recording/records-the-replay-shrink-and-explain-runs-of-a-failure
+    body:
+      draw: {gen: integer, min: 0, max: 10000}
+      fails: [{identity: big, when: {kind: at-least, n: 1001}}]
+    settings: {seed: "7"}
+  - id: recording/records-on-four-workers-what-it-records-on-one
+    body:
+      draw: {gen: integer, min: 0, max: 10000}
+      fails: [{identity: big, when: {kind: at-least, n: 1001}}]
+    settings: {seed: "7", workers: 4}
+
+  # The requirement that a tenth of the cases are even is undecided at 4
+  # of 10 and at 7 of 20 valid cases, and met at 16 of 40.
+  - id: recording/records-the-coverage-phase-after-the-first-check
+    body:
+      draw: {gen: integer, min: 0, max: 1000}
+      classify: {even: {kind: divisible-by, n: 2}}
+    settings: {seed: "7", cases: 10, requirements: [{label: even, share: 0.1}]}
+
+  - id: recording/records-the-one-case-of-a-replay-token
+    body:
+      draw: {gen: integer, min: 0, max: 9}
+      fails: [{identity: big, when: {kind: at-least, n: 5}}]
+    settings: {seed: "7", replay: "prop1:AAc"}
+  - id: recording/records-the-examples-then-the-stored-cases
+    body:
+      draw: {gen: integer, min: 0, max: 1000}
+      fails: [{identity: big, when: {kind: at-least, n: 900}}]
+    settings: {seed: "7", examples: [[5]], stored: [[3], [950]], shrink: 0}

@@ -4,6 +4,10 @@ The runner, the shrinker and the explain phase each call the body through
 execute(). A case that walks the case tree can end early as a repeat or a
 divergence. A case outside the tree, such as a stored case or a shrink
 candidate, cannot.
+
+Each call of a body has a phase, the part of the run that made it. An
+observer of a run sees every call with its phase, in the order a run on
+one worker makes them.
 """
 
 from __future__ import annotations
@@ -18,6 +22,28 @@ from .tree import Diverged, Ending, Repeated, Tree
 #: A body: it receives the case, draws from it, and fails it or returns.
 #: Its return value is ignored.
 Body = Callable[[Case], object]
+
+
+class Phase(StrEnum):
+    """The part of a run that called the body: the kind of a property's case.
+
+    EXAMPLE is a case whose values the caller states, through draws or
+    example. FUZZ is the case that the fuzz bridge decodes from a fuzzer's
+    input, which a fuzz target runs and a run of the phases never does.
+    """
+
+    EXAMPLE = "example"
+    STORED = "stored"
+    SIMPLEST = "simplest"
+    RANDOM = "random"
+    PREFIX = "prefix"
+    EDGE = "edge"
+    COVERAGE = "coverage"
+    REPLAY = "replay"
+    SHRINK = "shrink"
+    EXPLAIN = "explain"
+    TOKEN = "token"
+    FUZZ = "fuzz"
 
 
 class Status(StrEnum):
@@ -64,6 +90,16 @@ class Execution:
     def identity(self) -> str | None:
         """Return the failure's identity, or None when the case did not fail."""
         return None if self.failure is None else self.failure.identity
+
+
+#: What watches the calls of a run's body: the phase of each call and how
+#: it ended, in the order a run on one worker makes them.
+Observer = Callable[[Phase, Execution], object]
+
+
+def unobserved(phase: Phase, execution: Execution) -> None:
+    """Watch nothing, as a run that nobody records."""
+    del phase, execution
 
 
 def execute(

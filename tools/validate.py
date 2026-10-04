@@ -22,6 +22,7 @@ from typing import Any
 
 from prop import literal
 from prop.coverage import Verdict
+from prop.execution import Phase
 from prop.generator import IDS
 from prop.runner import Kind
 from prop.shape import SHAPES
@@ -93,6 +94,15 @@ DRAWS_ENDS = ("matched", "ran-out", "label", "value")
 #: The form that no vector runs, because no case can state an allocation
 #: count.
 UNSTATED_FORMS = frozenset({"prop-max-allocs"})
+
+#: The phase that no recording vector records, because a run of the phases
+#: decodes no fuzzer's input.
+UNRECORDED_PHASES = frozenset({Phase.FUZZ.value})
+
+#: What an overlay's records entry states: the artifact that the language's
+#: runner writes for a run, where each call record is in it, and where it
+#: states each test's status.
+RECORDS_KEYS = ("artifact", "location", "status")
 
 
 class Problems:
@@ -759,6 +769,14 @@ def _reached(kind: str, case: dict[str, Any]) -> str:
     return str(case.get("outcome") or case.get("verdict"))
 
 
+def _phases(case: dict[str, Any]) -> list[str]:
+    """Return the phase of each call that a recording vector records."""
+    calls = case.get("calls")
+    if not isinstance(calls, list):
+        return []
+    return [str(call.get("phase")) for call in calls if isinstance(call, dict)]
+
+
 def _check_form_vector(
     case: dict[str, Any],
     prefix: str,
@@ -823,7 +841,8 @@ def check_vector_cases(
     the fixture types cover every shape a type reads as and every row of
     the constraint table, and the draws vectors reach every end. Every
     form but those in UNSTATED_FORMS has a vector that fails and one that
-    passes.
+    passes. The recording vectors record a call of every phase but those
+    in UNRECORDED_PHASES.
     """
     prefixes = _prefixes(kind, forms)
     seen: set[str] = set()
@@ -851,7 +870,8 @@ def check_vector_cases(
             check_literal(value, f"{where} [{cid}] {path}", problems)
         if kind == "forms":
             _check_form_vector(case, prefix, forms, f"{where} [{cid}]", problems)
-        found.setdefault(prefix, []).append(_reached(kind, case))
+        reached = _phases(case) if kind == "recording" else [_reached(kind, case)]
+        found.setdefault(prefix, []).extend(reached)
     _check_vector_coverage(kind, found, forms, where, problems)
 
 
@@ -912,8 +932,12 @@ def _check_vector_coverage(
         "store": [v.value for v in StoreVerdict],
         "draws": list(DRAWS_ENDS),
         "fixtures": sorted(FIXTURE_COVERS),
+        "recording": [p.value for p in Phase if p.value not in UNRECORDED_PHASES],
     }
-    what = "fixture that covers" if kind == "fixtures" else "vector that ends in"
+    what = {
+        "fixtures": "fixture that covers",
+        "recording": "vector that records a call of phase",
+    }.get(kind, "vector that ends in")
     for end in ends.get(kind, []):
         problems.unless(end in found.get(kind, []), where, f"has no {what} {end!r}")
 
@@ -1313,6 +1337,27 @@ def check_overlay_relaxations(
         )
 
 
+def check_overlay_records(overlay: Any, where: str, problems: Problems) -> None:
+    """Check that one overlay states where its language writes the call records.
+
+    The records entry states each of RECORDS_KEYS, and none of them is
+    empty.
+    """
+    records = overlay.get("records")
+    if not problems.unless(records is not None, where, "states no records"):
+        return
+    if not problems.unless(
+        isinstance(records, dict), where, "records is not an object"
+    ):
+        return
+    for key in RECORDS_KEYS:
+        problems.unless(
+            bool(str(records.get(key, "")).strip()),
+            where,
+            f"records states no {key}",
+        )
+
+
 def check_overlays(
     assertions: set[str], tables: Tables, version: str, problems: Problems
 ) -> None:
@@ -1326,6 +1371,9 @@ def check_overlays(
     is a case it cannot see. It states an id, what it misses and why. An
     assertion cannot be both, because a divergence is absent and a limit
     is present.
+
+    Every overlay states the artifact that contains its language's call
+    records.
     """
     for path in sorted((ROOT / "overlays").glob("*.json")):
         where = str(path.relative_to(ROOT))
@@ -1355,6 +1403,7 @@ def check_overlays(
             overlay, where, language, tables.relaxations, problems
         )
         check_overlay_surface(overlay, where, language, tables, problems)
+        check_overlay_records(overlay, where, problems)
 
         limits = overlay.get("limits", [])
         if problems.unless(isinstance(limits, list), where, "limits is not a list"):

@@ -48,7 +48,16 @@ from .choice import (
     Value,
     float_key,
 )
-from .execution import Body, Divergence, Execution, Status, execute
+from .execution import (
+    Body,
+    Divergence,
+    Execution,
+    Observer,
+    Phase,
+    Status,
+    execute,
+    unobserved,
+)
 from .generator import Integer
 from .replay import encode
 from .source import MASK, Source
@@ -185,13 +194,16 @@ def explain_seed(seed: int, draw: int, filling: int) -> int:
     return (seed + ((draw + 1) << 32) + filling) & MASK
 
 
-def confirm(body: Body, failing: Execution, max_choices: int) -> Divergence | None:
+def confirm(
+    body: Body, failing: Execution, max_choices: int, observer: Observer = unobserved
+) -> Divergence | None:
     """Replay a failing case once, and return how the replay differed, if it did.
 
     The comparison takes the requests' bounds first, then the observed
-    fingerprints, then the way the replay ended.
+    fingerprints, then the way the replay ended. observer sees the replay.
     """
     replay = execute(body, Replaying(failing.case.choices), max_choices)
+    observer(Phase.REPLAY, replay)
     pairs = (
         (
             "request",
@@ -284,12 +296,18 @@ class Shrinker:
     """The shrink of every failure of one run, over one budget."""
 
     def __init__(
-        self, body: Body, first: Execution, max_choices: int, budget: int
+        self,
+        body: Body,
+        first: Execution,
+        max_choices: int,
+        budget: int,
+        observer: Observer = unobserved,
     ) -> None:
-        """Start from the first failing case."""
+        """Start from the first failing case; observer sees every run."""
         assert first.identity is not None
         self._body = body
         self._max_choices = max_choices
+        self._observer = observer
         self.budget = budget
         self.runs = 0
         self.failures: dict[str, Failure] = {}
@@ -325,8 +343,8 @@ class Shrinker:
         if known is None or key(nodes) < key(known.nodes):
             self.failures[identity] = Failure(identity, execution, nodes)
 
-    def run(self, choices: Sequence[Choice]) -> Execution:
-        """Run the body on choices, spending one run of the budget.
+    def run(self, choices: Sequence[Choice], phase: Phase = Phase.SHRINK) -> Execution:
+        """Run the body on choices in phase, spending one run of the budget.
 
         Raises:
             Exhausted: the budget is spent.
@@ -334,7 +352,9 @@ class Shrinker:
         if self.runs >= self.budget:
             raise Exhausted
         self.runs += 1
-        return execute(self._body, Replaying(choices), self._max_choices)
+        execution = execute(self._body, Replaying(choices), self._max_choices)
+        self._observer(phase, execution)
+        return execution
 
     def consider(self, nodes: Sequence[Node]) -> bool:
         """Run a candidate that is smaller and new; report whether it became the best.
@@ -1012,7 +1032,7 @@ def _filled(
 
 def _fails_with(shrinker: Shrinker, failure: Failure, choices: list[Choice]) -> bool:
     """Run choices and report whether they fail with the failure's identity."""
-    return shrinker.run(choices).identity == failure.identity
+    return shrinker.run(choices, Phase.EXPLAIN).identity == failure.identity
 
 
 def _nearest(
@@ -1027,4 +1047,5 @@ def _nearest(
         return None
     stepped = value - 1 if value > target else value + 1
     choices = [node.choice for node in _replace(nodes, span.start, stepped)]
-    return stepped if shrinker.run(choices).status is Status.PASSED else None
+    passed = shrinker.run(choices, Phase.EXPLAIN).status is Status.PASSED
+    return stepped if passed else None

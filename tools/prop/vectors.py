@@ -21,7 +21,7 @@ from typing import Any, Final
 from . import coverage, literal, replay, store
 from .body import build_body
 from .bridge import Bridging
-from .case import Case, Generating, Generator, Rejected, Replaying
+from .case import Case, Failed, Generating, Generator, Rejected, Replaying
 from .choice import (
     Bounds,
     Choice,
@@ -29,7 +29,7 @@ from .choice import (
     IntegerBounds,
     SequenceBounds,
 )
-from .execution import Divergence, Execution
+from .execution import Divergence, Execution, Phase
 from .forms import FormError, run_form
 from .generator import build
 from .inverse import CannotInvert, invert
@@ -318,6 +318,44 @@ def behaviour(case: Mapping[str, Any]) -> Vector:
     return {"detail": detail(run(body, _settings(case.get("settings", {}))))}
 
 
+def recording(case: Mapping[str, Any]) -> Vector:
+    """Run a body that asserts once at its end, and return what a recorded run states.
+
+    The body is a behaviour body followed by one call of true, which fails
+    exactly when the body fails. A call of the body that ends before its
+    end, rejected, repeated, past its cap or diverging, makes no call. The
+    outputs are the property's verdict and, for each call in order, the
+    call of the body that made it, numbered from 1, its phase and its
+    verdict.
+    """
+    body = build_body(case["body"])
+    made: list[str] = []
+
+    def asserting(called: Case) -> None:
+        try:
+            body(called)
+        except Failed:
+            made.append("fail")
+            raise
+        made.append("pass")
+
+    calls: list[Vector] = []
+    runs = 0
+
+    def observe(phase: Phase, execution: Execution) -> None:
+        nonlocal runs
+        del execution
+        runs += 1
+        calls.extend(
+            {"run": runs, "phase": phase.value, "verdict": verdict} for verdict in made
+        )
+        made.clear()
+
+    outcome = run(asserting, _settings(case.get("settings", {})), observe)
+    verdict = "pass" if outcome.kind is Kind.PASSED else "fail"
+    return {"verdict": verdict, "calls": calls}
+
+
 def form_run(case: Mapping[str, Any]) -> Vector:
     """Run a property form, and return the detail of the run.
 
@@ -369,6 +407,7 @@ def _settings(written: Mapping[str, Any]) -> Settings:
             Requirement(str(r["label"]), float(r["share"]))
             for r in written.get("requirements", [])
         ),
+        examples=tuple(tuple(_parse_choices(e)) for e in written.get("examples", [])),
         stored=tuple(tuple(_parse_choices(s)) for s in written.get("stored", [])),
         shrink=int(written.get("shrink", DEFAULT_BUDGET)),
         replay=None if replayed is None else tuple(replay.decode(str(replayed))),
@@ -500,6 +539,7 @@ KINDS: Final[dict[str, Callable[[Mapping[str, Any]], Vector]]] = {
     "fixtures": fixture,
     "draws": draws,
     "forms": form_run,
+    "recording": recording,
 }
 
 

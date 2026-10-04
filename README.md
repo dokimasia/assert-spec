@@ -38,6 +38,7 @@ spec/manifest.json     a digest of everything an implementation vendors
 spec/zones.json        the zone list and its offset changes, from tzdata
 spec/encoding.md       how a corpus case states a value
 spec/overlays.md       how a language declares it cannot comply
+spec/recording.md      what a recorded run writes for each call
 corpus/*.json          the cases, one file per assertion they cover
 corpus/prop/*.yaml     the property engine's vector inputs  edited by people
 corpus/prop/*.json     the vectors with their outputs       read by libraries
@@ -47,7 +48,7 @@ tools/validate.py      the rules, checked
 tools/prop/            the property engine's executable reference
 tools/spec-sync.sh     how an implementation vendors the definition
 tools/spec-check.sh    how an implementation checks its copy
-VERSION                2.2.0
+VERSION                2.3.0
 ```
 
 People edit the YAML. `make render` produces the JSON, which is
@@ -129,12 +130,13 @@ arguments. The other 21 name a behaviour instead, because what they
 take is a callable and no encoding states one. The remaining 18 take an
 error value, a predicate, a callable that no subject describes, a golden
 file, a benchmark measurement or a property's body, and none of those is
-data either. The property engine itself is data in and data out, so 413
+data either. The property engine itself is data in and data out, so 419
 vectors under `corpus/prop/` pin its decoding, generation, shrinking,
 coverage test, fuzz bridge, replay token, run detail and store. They
 also pin the values each shape generates, the choices that produce a
-value, the shape each fixture type reads as, and a passing and a failing
-run of every property form but `prop-max-allocs`.
+value, the shape each fixture type reads as, a passing and a failing
+run of every property form but `prop-max-allocs`, and the call records
+of a property's runs.
 
 **The completeness gate** checks membership. Every assertion must be
 present under the name the naming table gives it, with the arity the
@@ -150,6 +152,17 @@ decision someone can argue with.
 
 Which of these a given difference belongs to, and which differences need
 no recording at all, is stated in `spec/conformance.md`.
+
+## Recording every call
+
+A run with `DOKIMI_ASSERT_RECORD=1` writes a call record for every
+assertion call, pass or fail, into the artifact that the language's test
+runner already writes for a run. In Go, that artifact is the event
+stream of `go test -json`. A call record states the assertion, the
+contract, the verdict and the detail of a failure. The calls in a
+property's cases appear under the property's own call, with the phase
+of each case. `spec/recording.md` fixes the record, and each overlay
+names its language's artifact.
 
 ## Keeping the implementations in step
 
@@ -217,7 +230,9 @@ assertion names all of them, that a qualified name names a member of the
 package its assertion declares, that every corpus case names a defined
 assertion with a unique id, decodable literals and options its assertion
 accepts, and that an overlay extends this version and diverges only from
-assertions that exist. It reports everything it finds in one run.
+assertions that exist. It also checks that each overlay states where its
+language writes the call records. It reports everything it finds in one
+run.
 
 `make test` breaks each rule of the validator in a scratch copy and
 requires the validator to report it, and breaks a vendored copy each way
@@ -249,7 +264,7 @@ differently.
 | TypeScript | [assert-typescript](https://github.com/dokimasia/assert-typescript) | 91 of 95 |
 
 Each count is what the language's overlay declares against version
-2.2.0. An implementation that has not synced to it yet has a drift issue
+2.3.0. An implementation that has not synced to it yet has a drift issue
 open until it does.
 
 Java and Kotlin ship from one repository and are named identically, so

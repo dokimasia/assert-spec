@@ -1352,6 +1352,14 @@
                 "rust": "messages",
                 "typescript": "messages"
             },
+            "recorder-seat.records": {
+                "go": "Records",
+                "java": "records",
+                "kotlin": "records",
+                "python": "records",
+                "rust": "records",
+                "typescript": "records"
+            },
             "seat.clock": {
                 "go": "Clock",
                 "java": "clock",
@@ -1514,5 +1522,5 @@
             }
         }
     },
-    "version": "2.2.0"
+    "version": "2.3.0"
 }

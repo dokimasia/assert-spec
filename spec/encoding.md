@@ -58,6 +58,23 @@ A `variant` is one variant of an enum. It states its `name`, and its
 payload states no `payload` key. A variant whose payload is optional
 and absent states a `null` payload, so the two differ.
 
+## Opaque values
+
+The detail of a call record, which `recording.md` states, can contain a
+value of any type, and the typed literals state data alone. A call
+record states every other value as an opaque literal:
+
+```json
+{ "type": "opaque", "text": "func(int) bool" }
+```
+
+`text` is the language's own rendering of the value, as its failure
+sentence prints it. A function, a channel, a cancellation handle and an
+error value are opaque. A value whose literal would nest more than 61
+levels is opaque too: the store bounds an entry at 64 levels, which
+leaves 61 to the value of a draw. A reader shows an opaque value and
+does not compare it. A corpus case never states one.
+
 ## Options
 
 A case of an assertion that accepts relaxations may name them:

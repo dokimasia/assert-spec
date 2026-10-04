@@ -360,6 +360,43 @@ class ComputeTest(unittest.TestCase):
         with self.assertRaisesRegex(VectorError, "is no form of the definition"):
             compute("forms", case)
 
+    def test_a_recording_vector_states_each_call_with_its_run_and_phase(self) -> None:
+        """A failing token: one call of true, in the one call of the body."""
+        body = {
+            "draw": {"gen": "integer", "min": 0, "max": 9},
+            "fails": [{"identity": "big", "when": {"kind": "at-least", "n": 5}}],
+        }
+        settings = {"seed": "7", "replay": "prop1:AAc"}
+        got = compute("recording", {"body": body, "settings": settings})
+        call = {"run": 1, "phase": "token", "verdict": "fail"}
+        self.assertEqual(got, {"verdict": "fail", "calls": [call]})
+
+    def test_a_recording_vector_numbers_each_call_of_the_body(self) -> None:
+        """An example and a stored case pass, and the second stored case fails."""
+        body = {
+            "draw": {"gen": "integer", "min": 0, "max": 1000},
+            "fails": [{"identity": "big", "when": {"kind": "at-least", "n": 900}}],
+        }
+        settings = {"seed": "7", "examples": [[5]], "stored": [[3], [950]], "shrink": 0}
+        got = compute("recording", {"body": body, "settings": settings})
+        self.assertEqual(
+            got["calls"],
+            [
+                {"run": 1, "phase": "example", "verdict": "pass"},
+                {"run": 2, "phase": "stored", "verdict": "pass"},
+                {"run": 3, "phase": "stored", "verdict": "fail"},
+            ],
+        )
+
+    def test_a_body_that_ends_before_true_makes_no_call(self) -> None:
+        """Every case is rejected, so the run fails and true is never called."""
+        body = {
+            "draw": {"gen": "integer", "min": 0, "max": 9},
+            "rejects-when": {"kind": "always"},
+        }
+        got = compute("recording", {"body": body, "settings": {"seed": "7"}})
+        self.assertEqual(got, {"verdict": "fail", "calls": []})
+
     def test_an_unknown_kind_or_missing_input_raises(self) -> None:
         """No such kind; a decoding vector without choices."""
         with self.assertRaises(VectorError):

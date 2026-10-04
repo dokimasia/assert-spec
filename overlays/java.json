@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@2.2.0",
+  "extends": "spec://assertions@2.3.0",
   "language": "java",
   "diverge": [
     {
@@ -33,5 +33,10 @@
       "id": "contract.excluding",
       "why": "The harness owns the loop here, so setup goes in a second closure, handed to measuring, that the harness runs outside the measurement. Marking the setup in place would need the body to reach the contract it was handed to."
     }
-  ]
+  ],
+  "records": {
+    "artifact": "The JUnit Platform's report entries, which a Gradle test task of Gradle 9.4 or later writes to build/test-results/<task>/TEST-<class>.xml, one file per test class. The Open Test Reporting XML of the JUnit Platform contains the same entries.",
+    "location": "One report entry per call record, in the order the calls report their verdicts, written as a property element under the properties element of the test's testcase element. Its name is dokimi.assert.<seq> and its value is the call record's JSON. The testcase element names the test by its classname, the test class, and its name, the test's display name.",
+    "status": "The child of each testcase element: failure for a failed test, skipped for a skipped or aborted one, and none for a pass."
+  }
 }

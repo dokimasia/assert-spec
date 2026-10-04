@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@2.2.0",
+  "extends": "spec://assertions@2.3.0",
   "language": "rust",
   "diverge": [],
   "relaxations": [
@@ -60,5 +60,10 @@
       "id": "that",
       "why": "equal takes two references of one type parameter, so a mismatched pair is already a compile error. A chain would hold a borrow of the subject across every method for no check the static form is missing."
     }
-  ]
+  ],
+  "records": {
+    "artifact": "A file of the library's own beside each test binary that cargo test runs, named after the binary with the suffix .dokimi-assert.jsonl, such as target/debug/deps/it-0a1b2c3d4e5f6a7b.dokimi-assert.jsonl. A run of the binary that records a call writes the file anew. libtest offers no stable channel for data of a test's own, and a doctest's binary is a temporary file whose call records are not kept.",
+    "location": "One line per call record, in the order the calls report their verdicts. The lines of tests that run on parallel threads interleave. Each call record names its test in test, as libtest names the test's thread: the test's path without the crate's name, such as nested::fails. The file's name names the binary.",
+    "status": "The line that libtest prints for each test on the test binary's standard output: test <name> ... ok, test <name> ... FAILED, or test <name> ... ignored."
+  }
 }

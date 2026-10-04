@@ -50,8 +50,9 @@ from a seed, the shrinking, the coverage test, the fuzz bridge, the
 replay token, the detail of a run, and the store's entries, file names
 and verdicts. They also pin the values each shape generates, the
 choices that produce a value, the shape each fixture type reads as, the
-case that known draws state, and a passing and a failing run of each
-property form. `prop-max-allocs` has no vector, because no case can state
-an allocation count. People write each vector's inputs in
+case that known draws state, a passing and a failing run of each
+property form, and the call records of a property's runs.
+`prop-max-allocs` has no vector, because no case can state an allocation
+count. People write each vector's inputs in
 `corpus/prop/<kind>.yaml`. `make render` computes the outputs with the
 executable reference in `tools/prop/` and writes the JSON beside them.

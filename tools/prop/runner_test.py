@@ -8,7 +8,7 @@ from typing import Any, final
 from .case import Case, Generating
 from .choice import Choice
 from .coverage import Verdict
-from .execution import Body, Status, execute
+from .execution import Body, Execution, Phase, Status, execute
 from .generator import build
 from .runner import Kind, Requirement, Settings, prefix_cases, rejects_too_many, run
 from .source import case_source
@@ -20,6 +20,9 @@ PINNED_GENERATION = 10
 
 #: prefix_cases() of 100, 500, 1000 and 9 cases.
 PINNED_PREFIX = [10, 50, 50, 0]
+
+#: The random fillings the explain phase tries for each draw.
+PINNED_FILLINGS = 4
 
 SEED = 7
 
@@ -54,6 +57,37 @@ class Calls:
         """Count the call, then run the wrapped body."""
         self.count += 1
         self.body(case)
+
+
+@final
+class Seen:
+    """An observer that keeps the phase and the status of every call."""
+
+    def __init__(self) -> None:
+        """Start with no call seen."""
+        self.calls: list[tuple[Phase, Status]] = []
+
+    def __call__(self, phase: Phase, execution: Execution) -> None:
+        """Keep one call."""
+        self.calls.append((phase, execution.status))
+
+    @property
+    def phases(self) -> list[Phase]:
+        """Return the phase of every call, in order."""
+        return [phase for phase, _ in self.calls]
+
+
+#: The values above_million and the explain test's body fail above.
+MILLION = 10**6
+THOUSAND = 1000
+
+
+def above_million(case: Case) -> None:
+    """Draw a wide integer and fail above 10^6."""
+    n = case.draw(WIDE, "n")
+    assert isinstance(n, int)
+    if n > MILLION:
+        case.fail("big")
 
 
 @final
@@ -317,6 +351,110 @@ class CoverageTest(unittest.TestCase):
         shortfall = outcome.shortfall
         self.assertEqual((shortfall.counted, shortfall.valid), (43, 400))
         self.assertIs(shortfall.verdict, Verdict.UNMET)
+
+
+@final
+class ObserverTest(unittest.TestCase):
+    """The phase of every call of the body, in the order of the run."""
+
+    def test_a_run_of_one_case_calls_the_simplest_case_then_the_edges(self) -> None:
+        """No random case runs once the simplest case is valid."""
+        seen = Seen()
+        run(lambda case: case.draw(WIDE, "n"), Settings(SEED, cases=1), seen)
+        self.assertEqual(seen.phases, [Phase.SIMPLEST, *[Phase.EDGE] * 4])
+
+    def test_the_examples_and_the_stored_cases_come_first(self) -> None:
+        """An example, two stored cases, then the simplest case."""
+        seen = Seen()
+        examples = ((Choice("integer", 5),),)
+        stored = ((Choice("integer", 3),), (Choice("integer", 4),))
+        settings = Settings(SEED, cases=1, examples=examples, stored=stored)
+        body = Calls(lambda case: case.draw(WIDE, "n"))
+        run(body, settings, seen)
+        known = [Phase.EXAMPLE, Phase.STORED, Phase.STORED, Phase.SIMPLEST]
+        self.assertEqual(seen.phases[:4], known)
+        self.assertEqual(len(seen.calls), body.count)
+
+    def test_a_random_case_is_followed_by_its_prefix_case(self) -> None:
+        """Random case 0 of two wide integers has a prefix case."""
+        seen = Seen()
+
+        def body(case: Case) -> None:
+            case.draw(WIDE, "n")
+            case.draw(WIDE, "m")
+
+        run(body, Settings(SEED), seen)
+        self.assertEqual(seen.phases[1:3], [Phase.RANDOM, Phase.PREFIX])
+
+    def test_random_cases_after_the_first_check_are_coverage_cases(self) -> None:
+        """The first check is at 50 valid cases, and the rest are coverage cases."""
+        seen = Seen()
+
+        def body(case: Case) -> None:
+            n = case.draw(WIDE, "n")
+            assert isinstance(n, int)
+            if n % 10 == 0:
+                case.classify("tenth")
+
+        requirement = (Requirement("tenth", 0.1),)
+        run(body, Settings(SEED, cases=50, requirements=requirement), seen)
+        first = seen.phases.index(Phase.COVERAGE)
+        valid = [status for _, status in seen.calls[:first] if status is Status.PASSED]
+        self.assertEqual(len(valid), 50)
+        later = set(seen.phases[first:])
+        self.assertEqual(later, {Phase.COVERAGE})
+
+    def test_a_failure_is_replayed_shrunk_and_explained_in_that_order(self) -> None:
+        """The shrink and explain runs are the runs the outcome counts."""
+        seen = Seen()
+        outcome = run(above_million, Settings(SEED), seen)
+        replay = seen.phases.index(Phase.REPLAY)
+        self.assertEqual(seen.calls[replay - 1][1], Status.FAILED)
+        after = seen.phases[replay + 1 :]
+        shrinks = after.count(Phase.SHRINK)
+        explains = len(after) - shrinks
+        self.assertEqual(after, [Phase.SHRINK] * shrinks + [Phase.EXPLAIN] * explains)
+        self.assertGreater(explains, 0)
+        self.assertEqual(len(after), outcome.runs)
+
+    def test_each_filling_of_a_draw_is_an_explain_run(self) -> None:
+        """Every value fails: the simplest case, its replay, a shrink, four fillings."""
+
+        def body(case: Case) -> None:
+            case.draw(WIDE, "n")
+            case.fail("always")
+
+        seen = Seen()
+        run(body, Settings(SEED), seen)
+        concluded = [Phase.REPLAY, Phase.SHRINK, *[Phase.EXPLAIN] * PINNED_FILLINGS]
+        self.assertEqual(seen.phases, [Phase.SIMPLEST, *concluded])
+
+    def test_the_step_to_the_nearest_passing_value_is_an_explain_run(self) -> None:
+        """Above 1000 fails, so the explain phase ends by passing 1000."""
+
+        def body(case: Case) -> None:
+            n = case.draw(build({"gen": "integer", "min": 0, "max": 10000}), "n")
+            assert isinstance(n, int)
+            if n > THOUSAND:
+                case.fail("big")
+
+        seen = Seen()
+        run(body, Settings(SEED), seen)
+        self.assertEqual(seen.calls[-1], (Phase.EXPLAIN, Status.PASSED))
+
+    def test_a_run_without_shrinking_replays_nothing(self) -> None:
+        """The first failing case is the last call."""
+        seen = Seen()
+        run(above_million, Settings(SEED, shrink=0), seen)
+        self.assertEqual(seen.calls[-1][1], Status.FAILED)
+        self.assertNotIn(Phase.REPLAY, seen.phases)
+
+    def test_a_replayed_token_is_one_token_case(self) -> None:
+        """The case of the token, and nothing else."""
+        seen = Seen()
+        replayed = (Choice("integer", MILLION + 1),)
+        run(above_million, Settings(SEED, replay=replayed), seen)
+        self.assertEqual(seen.calls, [(Phase.TOKEN, Status.FAILED)])
 
 
 @final
