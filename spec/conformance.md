@@ -69,8 +69,10 @@ Every language states the same fields of a call, in the same encoding.
 Only the text of an opaque value is the language's own.
 
 **What a history records, and how a check decides.** A history records
-every call in one order. The checker searches it by one procedure within
-one budget. The history vectors pin the events, the entries that the
+every call in one order. The linearizability checker searches it by one
+procedure within one budget. Each isolation check derives the
+dependencies between transactions and searches their cycles by one
+procedure. The history vectors pin the events, the entries that the
 history refuses, and the verdict, the steps and the record of each
 check. One history then gives one outcome and one record in every
 language.
@@ -196,7 +198,7 @@ other is the library's.
 | Fixed: the values of a failure record | The corpus: the record of every failing case states the case's assertion and the caller's message unchanged, and it contains exactly the fields that the assertion declares |
 | Fixed: two surfaces, readable outcome | The corpus needs both to run at all |
 | Fixed: the call record | The corpus, run with recording on: the call record of every case. The recording vectors: the call records of a property's runs |
-| Fixed: the history and the checker | The history vectors: the events of a script or of intervals, the entry that the history refuses, and the verdict, the steps and the detail of each check |
+| Fixed: the history and the checkers | The history vectors: the events of a script or of intervals, the entry that the history refuses, and the verdict, the steps and the detail of each linearizability and isolation check |
 | Named | The completeness gate, against the naming table, with each member's arity as far as the language can read it |
 | Declared | The validator, which refuses an entry with no reason and an overlay that states no artifact |
 | Free | Nothing |

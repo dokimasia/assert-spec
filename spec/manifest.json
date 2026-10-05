@@ -1,7 +1,7 @@
 {
-    "digest": "sha256:a5e9000a9bf3cd27242827de0242720ef93ce952ed21a6890db23f94268b5998",
+    "digest": "sha256:d05585e2be775018cee1323d2bf7c4c881b874be661fcbc576132d584490413c",
     "files": {
-        "VERSION": "sha256:b2f44d3b6e29f8b1b73ea4735f006affc4d198e1fd9c7d50e736159b1ef636c6",
+        "VERSION": "sha256:33bdaf9e2d6bcbde2e4e613e865e403f8fe21fc621078d34c30b0bdc7f68d903",
         "corpus/accumulates.json": "sha256:9ac2967d84157a9b57d3fb59ef75378e60495ced35194ba170bf216deb0e3daf",
         "corpus/after-close.json": "sha256:c7df47d3ef812973763b2191caa55180c1d2536710873bb420ff8d4e79da6506",
         "corpus/associative.json": "sha256:41169311a5d852966b84a14702a528a8f99591e82c734d32017fc6586bae56e9",
@@ -19,6 +19,8 @@
         "corpus/has-suffix.json": "sha256:ee23deeed9804651f26c0a6be8fdb655acec52d003521de5498c1181caec646d",
         "corpus/history/linearizable.json": "sha256:bfda87dff69fc6491ce98f98bf81959d17bf6c9a1bb67cea591912403f6491fb",
         "corpus/history/seam.json": "sha256:d5e727ea967d185ebfb433db1cfa75e42cd2df88ab30e586ba9b141a60145dab",
+        "corpus/history/serializable.json": "sha256:a43d2cdff72a16e22a57e1c4632e93153f4984664c517257b92f25e8728cc396",
+        "corpus/history/snapshot-isolation.json": "sha256:e97309fe271e2f4dc8bd6810fc328318ce7b59f29d772759a2d8620efc94bb9c",
         "corpus/honours-cancellation.json": "sha256:81fc9e6a6b721a0140cfe4e3d68847e36fc45463ec4baa25499613f26b6dc48f",
         "corpus/honours-deadline.json": "sha256:0bd133592bbdfbb145cabacdc1360904da546e9e3f000670c08222f3694ebe32",
         "corpus/idempotent.json": "sha256:f78e287c54ef7033ceff0148d71844c32085e5e61f1a0929d21e1708ec1a8f7f",
@@ -57,17 +59,17 @@
         "corpus/throws.json": "sha256:40dd385108c7ada8c0ce236a79c13db2da23e8e142f2fa5947fcce1623e7e365",
         "corpus/total.json": "sha256:ee76e6bd97358d2576dd24dc9d32949cdce5b46484635237a1a4c0e043322cb3",
         "corpus/true.json": "sha256:43e01f045228fd01449d2abad5c07b50b8d700fd6c986e6877a4f192ff86b616",
-        "overlays/go.json": "sha256:152a9ff8d6ff7bfca369f54e51ece22b9c0faddca4e57ca0ec9e92fb634b23aa",
-        "overlays/java.json": "sha256:ee17ca33e2f4e60f0b96a101dfce3b4a1815c5390559f4250ad32d4bd11e76b8",
-        "overlays/kotlin.json": "sha256:b9c91908ac733953102d010e40ffbe361f29337d72f8e907ef5e230493b1b24a",
-        "overlays/python.json": "sha256:16aee8b8b7d082c11670dbe615891aba572f3af6b52876f14b85e98a36bd44bb",
-        "overlays/rust.json": "sha256:2a49b112ffaf14a381068912a7a38a7d7554c093b9a4e3e0b17dd254991d7fbf",
-        "overlays/typescript.json": "sha256:c977c6ab6f5246c68ece52f2f589a34710eac1aef4e9447d3d19d82a9ff3f530",
-        "spec/assertions.json": "sha256:20a4d6bf054b03c4a8b600bbd9640525cf0413a19a15580034a737f11442ed24",
-        "spec/naming.json": "sha256:98db4f6fbcc82f1f7f01ceda852e7a4dcb8d04363c9c2eba5605566de5877544",
+        "overlays/go.json": "sha256:fd409f9235db3c89785d0196e742b79e779657df43c2af844e86e1cdfb89f586",
+        "overlays/java.json": "sha256:c87ce537765e02389c941795c4a952a25236761d3a2e79ae2601581700b6bc57",
+        "overlays/kotlin.json": "sha256:6dfef0110acfdd587a926956b01b6e5bbd43b86ae4633f4f23904951f5ec17de",
+        "overlays/python.json": "sha256:84993d7b693e7dc956c89144a528b2dab55e48d963c4d3c0ec42209c23b60602",
+        "overlays/rust.json": "sha256:ab8873ea17ba79f2e2b84c07c602b92b7c0deb256e285cb4f8e978e4b55b224b",
+        "overlays/typescript.json": "sha256:7d3552fe7020001a19e218f44fbb43789ef83c746d8d49f02258b86cdb3c57a9",
+        "spec/assertions.json": "sha256:a20f9d41b229cc2dd92ce12ce6fa9333770b41f8e841a6b39422682807e61310",
+        "spec/naming.json": "sha256:32a095a025d42266767c16e549c1a8d37d20fedc4bd54ac9afbd2cfee60f8350",
         "spec/zones.json": "sha256:6eb1d994a1e2d727161582e20dee8cd429073fa561c06f8eb7442c20f810f6c6",
         "tools/spec-check.sh": "sha256:82ec954bdf6601288f7d6231cb8e5c62330bf8c904c9dbd5910d85d9fdafe08c",
         "tools/spec-sync.sh": "sha256:39cca27ce28f1c403b9833780295082ca29ca38326b798c269f10dd3aa6b8d12"
     },
-    "version": "3.1.0"
+    "version": "3.2.0"
 }

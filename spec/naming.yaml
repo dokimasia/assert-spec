@@ -3,7 +3,7 @@
 # A qualified name names a member of the subpackage the assertion table
 # gives it. The separator is the language's own: a dot in Go, Java,
 # Kotlin, Python and TypeScript, two colons in Rust.
-version: "3.1.0"
+version: "3.2.0"
 
 languages: [go, java, kotlin, php, python, rust, typescript]
 
@@ -414,6 +414,20 @@ names:
     typescript: "history.isLinearizable"
     java: "History.isLinearizable"
     kotlin: "History.isLinearizable"
+  "serializable":
+    go: "history.Serializable"
+    python: "history.is_serializable"
+    rust: "history::is_serializable"
+    typescript: "history.isSerializable"
+    java: "History.isSerializable"
+    kotlin: "History.isSerializable"
+  "snapshot-isolation":
+    go: "history.HasSnapshotIsolation"
+    python: "history.has_snapshot_isolation"
+    rust: "history::has_snapshot_isolation"
+    typescript: "history.hasSnapshotIsolation"
+    java: "History.hasSnapshotIsolation"
+    kotlin: "History.hasSnapshotIsolation"
 
 # What each language calls the relaxations. A language declaring one
 # absent in its overlay carries no name for it.

@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@3.1.0",
+  "extends": "spec://assertions@3.2.0",
   "language": "typescript",
   "diverge": [
     {

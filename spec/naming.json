@@ -760,6 +760,22 @@
             "rust": "round_trip",
             "typescript": "roundTrip"
         },
+        "serializable": {
+            "go": "history.Serializable",
+            "java": "History.isSerializable",
+            "kotlin": "History.isSerializable",
+            "python": "history.is_serializable",
+            "rust": "history::is_serializable",
+            "typescript": "history.isSerializable"
+        },
+        "snapshot-isolation": {
+            "go": "history.HasSnapshotIsolation",
+            "java": "History.hasSnapshotIsolation",
+            "kotlin": "History.hasSnapshotIsolation",
+            "python": "history.has_snapshot_isolation",
+            "rust": "history::has_snapshot_isolation",
+            "typescript": "history.hasSnapshotIsolation"
+        },
         "stable-order": {
             "go": "StableOrder",
             "java": "hasStableOrder",
@@ -1706,5 +1722,5 @@
             }
         }
     },
-    "version": "3.1.0"
+    "version": "3.2.0"
 }

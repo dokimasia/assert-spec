@@ -1161,6 +1161,28 @@ class Validator(unittest.TestCase):
         self._history("linearizable", lambda c: c["detail"]["limit"] != "memo")
         self.assert_caught("has no vector that covers 'limit:memo'")
 
+    def test_a_forbidden_kind_that_no_vector_reports_is_caught(self) -> None:
+        """Each kind that serializability forbids is the anomaly of a vector."""
+        self._history("serializable", lambda c: c["detail"]["anomaly"] != "G0")
+        self.assert_caught("has no vector that covers 'anomaly:G0'")
+
+    def test_an_isolation_level_without_a_pass_is_caught(self) -> None:
+        """Each level has a vector that passes."""
+        self._history(
+            "snapshot-isolation", lambda c: c["detail"]["anomaly"] is not None
+        )
+        self.assert_caught("has no vector that covers 'passed'")
+
+    def test_an_isolation_vector_named_for_another_level_is_caught(self) -> None:
+        """A vector's id begins with the assertion of its file."""
+        _edit(
+            self.tree / "corpus" / "history" / "snapshot-isolation.json",
+            lambda d: d["cases"][0].update(id="serializable/renamed"),
+        )
+        self.assert_caught(
+            "begins with 'serializable', which names no snapshot-isolation vector"
+        )
+
     def test_a_parallel_language_without_the_recorder_limit_is_caught(self) -> None:
         """The counter can hide a missing barrier where threads run on many cores."""
         _edit(

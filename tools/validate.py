@@ -20,6 +20,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import history.isolation
 import history.linearizable
 import history.seam
 import history.vectors
@@ -108,8 +109,12 @@ UNRECORDED_PHASES = frozenset({Phase.FUZZ.value})
 RECORDS_KEYS = ("artifact", "location", "status")
 
 #: What the ids of each kind of history vector begin with: the seam's
-#: vectors are named for the history, and the checker's for its assertion.
-HISTORY_PREFIXES = {"seam": "history", "linearizable": "linearizable"}
+#: vectors are named for the history, and each checker's for its assertion.
+HISTORY_PREFIXES = {
+    "seam": "history",
+    "linearizable": "linearizable",
+    **{level.value: level.value for level in history.isolation.Level},
+}
 
 #: What the seam vectors cover between them, through a script and through
 #: intervals: an event of every kind, a pending call, and a refused entry.
@@ -125,6 +130,16 @@ CHECK_ENDS = (
     *(outcome.value for outcome in history.linearizable.Outcome),
     *(f"limit:{limit.value}" for limit in history.linearizable.Limit),
 )
+
+#: What the vectors of each isolation level cover between them: each kind
+#: that the level forbids, as the anomaly of a record, and a pass.
+ISOLATION_ENDS = {
+    level.value: (
+        *(f"anomaly:{kind.value}" for kind in history.isolation.FORBIDS[level]),
+        "passed",
+    )
+    for level in history.isolation.Level
+}
 
 #: The languages whose threads run on more than one core. The history's
 #: counter synchronizes the clients of such a language, which can hide a
@@ -1020,32 +1035,48 @@ def check_history(models: set[str], problems: Problems) -> int:
     Through a script and through intervals, the seam vectors record an
     event of every kind and a pending call, and refuse an entry. The
     checker's vectors end in every outcome, stop at every limit, and
-    include a pass and a violation of every named model.
+    include a pass and a violation of every named model. The vectors of
+    each isolation level report every kind that the level forbids, and
+    include a pass.
     """
     total = 0
     for kind, where, cases in _vector_files("history", history.vectors.KINDS, problems):
         total += len(cases)
-        prefix = HISTORY_PREFIXES[kind]
-        named = (frozenset({prefix}), f"{kind} vector")
+        named = (frozenset({HISTORY_PREFIXES[kind]}), f"{kind} vector")
         covered: set[str] = set()
         for cid, _, case in _vector_cases(cases, named, where, problems):
             if kind == "seam":
                 covered.update(_seam_covers(case))
-                continue
-            model = case.get("model")
-            problems.unless(
-                model in models,
-                f"{where} [{cid}]",
-                f"names model {model!r}, which the definition does not state",
-            )
-            covered.update(_check_covers(case))
-        ends = SEAM_ENDS
-        if kind == "linearizable":
-            both = (f"{m}:{o}" for m in sorted(models) for o in ("passed", "violated"))
-            ends = (*CHECK_ENDS, *both)
-        for end in ends:
+            elif kind == "linearizable":
+                model = case.get("model")
+                problems.unless(
+                    model in models,
+                    f"{where} [{cid}]",
+                    f"names model {model!r}, which the definition does not state",
+                )
+                covered.update(_check_covers(case))
+            else:
+                covered.add(_isolation_covers(case))
+        for end in _history_ends(kind, models):
             problems.unless(end in covered, where, f"has no vector that covers {end!r}")
     return total
+
+
+def _history_ends(kind: str, models: set[str]) -> tuple[str, ...]:
+    """Return what the history vectors of one kind cover between them."""
+    if kind == "seam":
+        return SEAM_ENDS
+    if kind == "linearizable":
+        both = (f"{m}:{o}" for m in sorted(models) for o in ("passed", "violated"))
+        return (*CHECK_ENDS, *both)
+    return ISOLATION_ENDS[kind]
+
+
+def _isolation_covers(case: dict[str, Any]) -> str:
+    """Return what one isolation vector covers: the anomaly it reports, or a pass."""
+    detail = case.get("detail")
+    anomaly = detail.get("anomaly") if isinstance(detail, dict) else None
+    return "passed" if anomaly is None else f"anomaly:{anomaly}"
 
 
 def _seam_covers(case: dict[str, Any]) -> list[str]:

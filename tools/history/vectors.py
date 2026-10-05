@@ -14,6 +14,10 @@ kind and an end together, or neither for a pending call.
 A linearizable vector names a model and states its history as a script,
 with an optional budget, memo limit and number of workers. Its outputs are
 whether the check passes and the detail of its record.
+
+A serializable or snapshot-isolation vector states a history of list-append
+transactions as a script. Its outputs are whether the check at the level of
+its kind passes, and the detail of its record.
 """
 
 from __future__ import annotations
@@ -24,6 +28,7 @@ from typing import Any, Final
 from prop.literal import decode
 from prop.vectors import Vector, VectorError
 
+from . import isolation
 from .linearizable import BUDGET, MEMO_LIMIT, Outcome, check
 from .model import NAMED
 from .seam import (
@@ -114,6 +119,30 @@ def linearizable(case: Mapping[str, Any]) -> Vector:
     return {"expect": expect, "detail": verdict.detail()}
 
 
+def at_level(level: isolation.Level) -> Callable[[Mapping[str, Any]], Vector]:
+    """Return the function that checks a vector's history at one isolation level."""
+
+    def checked(case: Mapping[str, Any]) -> Vector:
+        """Check a list-append history, and return the verdict and its detail.
+
+        Raises:
+            VectorError: the history's script is refused, or the history is no
+                history of list-append transactions.
+        """
+        try:
+            events = record(case["history"])
+        except ScriptError as refused:
+            raise VectorError(str(refused)) from refused
+        try:
+            verdict = isolation.check(events, level)
+        except isolation.TransactionError as bad:
+            raise VectorError(str(bad)) from bad
+        expect = "pass" if verdict.passed else "fail"
+        return {"expect": expect, "detail": verdict.detail()}
+
+    return checked
+
+
 def _positive(case: Mapping[str, Any], name: str, default: int) -> int:
     """Return a positive integer that a vector states, or default when it states none.
 
@@ -130,6 +159,7 @@ def _positive(case: Mapping[str, Any], name: str, default: int) -> int:
 KINDS: Final[dict[str, Callable[[Mapping[str, Any]], Vector]]] = {
     "seam": seam,
     "linearizable": linearizable,
+    **{level.value: at_level(level) for level in isolation.Level},
 }
 
 

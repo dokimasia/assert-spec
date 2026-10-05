@@ -159,6 +159,90 @@ class LinearizableTest(unittest.TestCase):
             compute("linearizable", {"model": "register", "history": refused})
 
 
+def mop(function: str, key: str, value: dict[str, Any] | int | None) -> dict[str, Any]:
+    """Return the typed literal of a micro-operation on a key.
+
+    value is an appended int, a read's list as a typed literal, or None for a
+    read that states no list.
+    """
+    if value is None:
+        stated = NULL
+    elif isinstance(value, int):
+        stated = {"type": "int", "value": value}
+    else:
+        stated = value
+    return {
+        "type": "list",
+        "items": [
+            {"type": "string", "value": function},
+            {"type": "string", "value": key},
+            stated,
+        ],
+    }
+
+
+def txn(call: int, client: int, *mops: dict[str, Any]) -> dict[str, Any]:
+    """Return the script entry that invokes a transaction of mops on x and y."""
+    keys = [{"type": "string", "value": key} for key in ("x", "y")]
+    return {
+        "invoke": call,
+        "client": client,
+        "operation": "txn",
+        "args": list(mops),
+        "keys": keys,
+    }
+
+
+def done(call: int, *mops: dict[str, Any]) -> dict[str, Any]:
+    """Return the script entry that completes a transaction ok with mops."""
+    return {"ok": call, "output": {"type": "list", "items": list(mops)}}
+
+
+#: The typed literal of the empty list.
+EMPTY: dict[str, Any] = {"type": "list", "items": []}
+
+#: A write skew: each of two transactions reads the key the other appends to.
+WRITE_SKEW: list[dict[str, Any]] = [
+    txn(0, 0, mop("read", "x", None), mop("append", "y", 1)),
+    txn(1, 1, mop("read", "y", None), mop("append", "x", 2)),
+    done(0, mop("read", "x", EMPTY), mop("append", "y", 1)),
+    done(1, mop("read", "y", EMPTY), mop("append", "x", 2)),
+]
+
+
+@final
+class IsolationTest(unittest.TestCase):
+    """serializable and snapshot-isolation: the verdict of each level and its detail."""
+
+    def test_a_write_skew_fails_serializable_with_the_detail_of_its_record(
+        self,
+    ) -> None:
+        """The record reports G2, a cycle of two rw edges."""
+        got = compute("serializable", {"history": WRITE_SKEW})
+        self.assertEqual(got["expect"], "fail")
+        self.assertEqual(
+            (got["detail"]["anomaly"], got["detail"]["kinds"]), ("G2", ["G2"])
+        )
+
+    def test_a_write_skew_passes_snapshot_isolation(self) -> None:
+        """Snapshot isolation permits two adjacent rw edges."""
+        got = compute("snapshot-isolation", {"history": WRITE_SKEW})
+        self.assertEqual(got["expect"], "pass")
+        self.assertEqual((got["detail"]["anomaly"], got["detail"]["kinds"]), (None, []))
+
+    def test_refuses_a_history_whose_script_raises(self) -> None:
+        """A second completion of call 0 is refused at entry 4."""
+        refused = [*WRITE_SKEW, WRITE_SKEW[2]]
+        with self.assertRaisesRegex(VectorError, "script entry 4"):
+            compute("serializable", {"history": refused})
+
+    def test_refuses_a_history_that_is_no_list_append_history(self) -> None:
+        """A transaction states micro-operations."""
+        broken = [txn(0, 0, mop("write", "x", 1)), done(0, mop("write", "x", 1))]
+        with self.assertRaisesRegex(VectorError, "argument 0 of call 0"):
+            compute("snapshot-isolation", {"history": broken})
+
+
 @final
 class ComputeTest(unittest.TestCase):
     """compute(): the kind and the inputs of a vector."""

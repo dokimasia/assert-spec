@@ -17,7 +17,7 @@
 # assertion carries exactly these. got is what the assertion observed
 # and want is what it required, so an assertion whose failure holds
 # neither states no fields and reports the caller's message alone.
-version: "3.1.0"
+version: "3.2.0"
 
 # What a caller may relax, for one call.
 #
@@ -655,6 +655,26 @@ assertions:
       undecided history fails.
     detail_fields: [outcome, partitions, steps, partition, calls, concurrency, linearized, states, candidates, limit]
 
+  "serializable":
+    arity: 2
+    package: history
+    summary: >
+      A history of list-append transactions exhibits no anomaly that
+      serializability forbids, among the dependencies its reads reveal: no
+      inconsistent observation, no aborted or intermediate read, and no cycle
+      of write, read and anti-dependencies.
+    detail_fields: [anomaly, kinds, transactions, cycle, explanation]
+
+  "snapshot-isolation":
+    arity: 2
+    package: history
+    summary: >
+      A history of list-append transactions exhibits no anomaly that
+      snapshot isolation forbids, among the dependencies its reads reveal: no
+      inconsistent observation, no aborted or intermediate read, and no cycle
+      in which no two anti-dependencies are adjacent.
+    detail_fields: [anomaly, kinds, transactions, cycle, explanation]
+
 # The property form of an assertion runs it on every case of a run, as
 # prop-for-all runs a body. Rendering adds one entry for each form,
 # "prop-" and the assertion's id, by this rule:
@@ -669,7 +689,7 @@ assertions:
 # - The form of a relation generates the arguments that the relation
 #   takes. Its arity is the relation's less those arguments.
 #
-# The other 20 assertions have no form: they retry over time, measure
+# The other 22 assertions have no form: they retry over time, measure
 # time, scope a block, compare a file or a measurement, drive a check,
 # check a recorded history, are prop-for-all itself, or read state without
 # taking an input. total has none either, because generating its domain is
