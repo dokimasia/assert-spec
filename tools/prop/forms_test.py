@@ -60,17 +60,19 @@ class RuleTest(unittest.TestCase):
         self.assertEqual(rule()["prop-equal"], ("equal", ("input",)))
         self.assertEqual(rule()["prop-associative"], ("associative", ("a", "b", "c")))
 
-    def test_every_form_but_max_allocs_has_a_judge(self) -> None:
-        """Every other form reads its subjects, and max-allocs has no judge.
+    def test_every_form_but_the_allocation_ceilings_has_a_judge(self) -> None:
+        """Every other form reads its subjects, and two forms have no judge.
 
-        No case can state an allocation count.
+        The forms of max-allocs and max-allocs-with-setup have none, because
+        no case can state an allocation count.
         """
         for form, (assertion, _) in rule().items():
             with self.subTest(form=form), self.assertRaises(FormError) as raised:
                 build({"form": form, "subjects": None})
-            if assertion == "max-allocs":
+            if assertion in {"max-allocs", "max-allocs-with-setup"}:
                 self.assertIn(
-                    "no case can state the form of 'max-allocs'", str(raised.exception)
+                    f"no case can state the form of {assertion!r}",
+                    str(raised.exception),
                 )
             else:
                 self.assertIn("subjects, not None", str(raised.exception))

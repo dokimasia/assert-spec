@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@3.3.0",
+  "extends": "spec://assertions@4.0.0",
   "language": "java",
   "diverge": [
     {
@@ -18,6 +18,18 @@
       "id": "prop-max-allocs",
       "stance": "blocked",
       "why": "The form runs max-allocs on each input, and max-allocs is absent for the reason its entry gives.",
+      "remedy": "The counter beside getThreadAllocatedBytes that bench-max-allocs needs."
+    },
+    {
+      "id": "max-allocs-with-setup",
+      "stance": "blocked",
+      "why": "The JVM reports bytes allocated per thread and no count of allocations, for the reason the bench-max-allocs entry gives, so there is no count per call to hold to a ceiling, with a setup or without one.",
+      "remedy": "The counter beside getThreadAllocatedBytes that bench-max-allocs needs."
+    },
+    {
+      "id": "prop-max-allocs-with-setup",
+      "stance": "blocked",
+      "why": "The form runs max-allocs-with-setup on each input, and max-allocs-with-setup is absent for the reason its entry gives.",
       "remedy": "The counter beside getThreadAllocatedBytes that bench-max-allocs needs."
     }
   ],

@@ -133,6 +133,36 @@ class Step:
     drain: bool = False
 
 
+@dataclass(frozen=True)
+class Place:
+    """The part of a machine's steps that was running, and its step.
+
+    part is swarm, setup, sequential, concurrent, drain or settle. position
+    is the step's position in its part, from 0, and in the swarm the
+    position of the action whose keep choice it is. It is None in setup,
+    in settle, and while a concurrent section runs the steps it listed.
+    action is the swarm choice's action or the step's action, and None
+    before the step has chosen its action and where position is None.
+    """
+
+    part: str
+    position: int | None = None
+    action: str | None = None
+
+
+@dataclass(frozen=True)
+class Where:
+    """Where a case made a request or observed a fingerprint.
+
+    label is the label of the innermost draw that was running, and None
+    outside a draw. place is the machine's part and step, and None outside
+    a machine's steps.
+    """
+
+    label: str | None = None
+    place: Place | None = None
+
+
 @final
 class Generating:
     """A provider that draws every value from a random source.
@@ -233,6 +263,10 @@ def _cost(value: Value) -> int:
 class Case:
     """The record of one call of a body.
 
+    wheres states where the case made each recorded request, and observed
+    where it observed each fingerprint. A machine's steps set place while
+    they run.
+
     A case is not safe for concurrent use.
     """
 
@@ -262,6 +296,14 @@ class Case:
         self.notes: list[str] = []
         self.fingerprints: list[int] = []
         self.history = History()
+        self.place: Place | None = None
+        self.wheres: list[Where] = []
+        self.observed: list[Where] = []
+        self._drawing: list[str] = []
+
+    def where(self) -> Where:
+        """Return where the case is: the open draw's label and the machine's place."""
+        return Where(self._drawing[-1] if self._drawing else None, self.place)
 
     def choose(self, request: Request) -> Value:
         """Return the value for request and record it.
@@ -275,6 +317,7 @@ class Case:
             raise Overrun
         self.choices.append(Choice(request.bounds.kind, value))
         self.requests.append(request)
+        self.wheres.append(self.where())
         if self._observer is not None:
             self._observer.step(len(self.choices) - 1, request, value)
         return value
@@ -340,6 +383,7 @@ class Case:
         """
         del self.choices[mark.choices :]
         del self.requests[mark.choices :]
+        del self.wheres[mark.choices :]
         del self.spans[mark.spans :]
         del self.draws[mark.draws :]
 
@@ -348,12 +392,16 @@ class Case:
 
         The draw's span is the first span the generator opens. Two draws
         may share a label. A case with a tracer lets it prepare the draw's
-        values first.
+        values first. Every request of the draw is made under its label.
         """
         if self.tracer is not None:
             self.tracer.drawing(generator, label)
         span = len(self.spans)
-        value = generator.decode(self)
+        self._drawing.append(label)
+        try:
+            value = generator.decode(self)
+        finally:
+            self._drawing.pop()
         self.draws.append(Drawn(label, value, span, generator))
         return value
 
@@ -381,6 +429,7 @@ class Case:
     def observe(self, fingerprint: int) -> None:
         """Record a fingerprint of the subject's state, for a replay to compare."""
         self.fingerprints.append(fingerprint)
+        self.observed.append(self.where())
 
     def random(self) -> int:
         """Return an integer choice over the whole unsigned 64-bit range.

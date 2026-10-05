@@ -5,7 +5,7 @@ from __future__ import annotations
 import unittest
 from typing import final
 
-from .case import Case, Replaying
+from .case import Case, Place, Replaying
 from .choice import Choice
 from .execution import Status, execute
 from .generator import build
@@ -66,15 +66,32 @@ class ExecuteTest(unittest.TestCase):
         self.assertIs(again.status, Status.REPEATED)
 
     def test_a_case_that_requests_other_bounds_diverges(self) -> None:
-        """The divergence names the request and the position."""
+        """The divergence names the request, the position and the draw's label."""
         tree = Tree()
         execute(draws, Replaying([]), 8192, tree)
         other = execute(lambda case: case.draw(BOOLEAN, "b"), Replaying([]), 8192, tree)
         self.assertIs(other.status, Status.DIVERGED)
         assert other.divergence is not None
-        self.assertEqual(
-            (other.divergence.what, other.divergence.index), ("request", 0)
+        got = (
+            other.divergence.what,
+            other.divergence.index,
+            other.divergence.label,
+            other.divergence.step,
         )
+        self.assertEqual(got, ("request", 0, "b", None))
+
+    def test_a_divergence_states_the_place_of_its_request(self) -> None:
+        """A request that a machine's step made names the step."""
+        tree = Tree()
+        execute(draws, Replaying([]), 8192, tree)
+
+        def stepping(case: Case) -> None:
+            case.place = Place("sequential", 3)
+            case.draw(BOOLEAN, "b")
+
+        other = execute(stepping, Replaying([]), 8192, tree)
+        assert other.divergence is not None
+        self.assertEqual(other.divergence.step, Place("sequential", 3))
 
     def test_a_case_that_ends_where_another_drew_diverges(self) -> None:
         """An end where the tree recorded a request is a divergence too."""
@@ -83,7 +100,8 @@ class ExecuteTest(unittest.TestCase):
         other = execute(lambda case: None, Replaying([]), 8192, tree)
         self.assertIs(other.status, Status.DIVERGED)
         assert other.divergence is not None
-        self.assertIsNone(other.divergence.replayed)
+        got = (other.divergence.replayed, other.divergence.label, other.divergence.step)
+        self.assertEqual(got, (None, None, None))
 
     def test_a_case_marks_its_leaf_with_how_it_ended(self) -> None:
         """A rejected case leaves a rejected leaf."""

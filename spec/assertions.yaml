@@ -17,7 +17,7 @@
 # assertion carries exactly these. got is what the assertion observed
 # and want is what it required, so an assertion whose failure holds
 # neither states no fields and reports the caller's message alone.
-version: "3.3.0"
+version: "4.0.0"
 
 # What a caller may relax, for one call.
 #
@@ -226,7 +226,8 @@ models:
 # natively: the subject, its machine, its draws and its model.
 #
 # A machine lists its actions in the order its summary states. Each call
-# that an action records names no key and completes as ok with its output.
+# that an action records names no key and completes as ok with its output,
+# unless the subject's summary states another completion.
 # The steps take the options the vector's setup states, and a machine of
 # two clients or more runs its clients as tasks of a scheduler with the
 # setup's strategy, two clients and the uniform strategy by default.
@@ -279,6 +280,18 @@ machines:
     summary: >
       The machine of racy-counter over an increment that adds one to the
       count and returns it without yielding.
+  "counter-refuses-every-third":
+    summary: >
+      A counter, initially 0, that refuses every third increment, counted
+      over every case of the run. A refused increment completes with fail
+      and the error refused, and leaves the count. Any other increment
+      adds one to the count and returns it, and read returns the count.
+      The actions are increment, enabled while the model's count is below
+      3, and read, each of which records its one call with no arguments.
+      The model is a counter: increment outputs the count plus one and
+      leaves it, and read outputs the count and leaves it. The machine's
+      enabled reads a count that the subject's refusals change, so a case
+      that repeats an earlier case's choices can list other actions.
 
 assertions:
   "equal":
@@ -634,6 +647,15 @@ assertions:
       the calls after it, rounded down.
     detail_fields: [want, got]
 
+  "max-allocs-with-setup":
+    arity: 4
+    summary: >
+      A callable makes at most a stated number of heap allocations per
+      call on an input that a setup builds before each call. The setup is
+      not counted. One setup and one call warm both first, and the count
+      is the average over the calls after them, rounded down.
+    detail_fields: [want, got]
+
   "golden-match":
     arity: 3
     package: golden
@@ -743,8 +765,10 @@ assertions:
 # - The relaxations are the assertion's.
 # - A form over a function takes a function of the generated input where
 #   the assertion takes the value it examines, and a callable that also
-#   takes the input where the assertion takes a callable. Its arity is
-#   the assertion's, and it generates one argument, input.
+#   takes the input where the assertion takes a callable. A form whose
+#   assertion takes a setup passes the input to the setup, and the setup's
+#   result to the callable. Its arity is the assertion's, and it generates
+#   one argument, input.
 # - The form of a relation generates the arguments that the relation
 #   takes. Its arity is the relation's less those arguments.
 #
@@ -787,6 +811,7 @@ forms:
     - "honours-cancellation"
     - "honours-deadline"
     - "max-allocs"
+    - "max-allocs-with-setup"
   relations:
     "idempotent": ["input"]
     "accumulates": ["input"]

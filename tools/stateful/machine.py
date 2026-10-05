@@ -57,6 +57,13 @@ choices of one step. A step entry that the machine cannot take at its
 position raises TraceError: an action that the step's list lacks, a step
 past the section's maximum, a client outside the clients, a concurrent
 step for a machine with one client, and a drain step after the drain.
+
+While the parts run, the case's place states the part and the step, so a
+divergence names the step at which a replay differed. A sequential,
+concurrent or drain step is at its position in its part, from 0, and its
+place gains the action once its index has chosen it. A swarm choice is at
+the position of its action. Setup, settle and the run of a concurrent
+section's steps have no position.
 """
 
 from __future__ import annotations
@@ -70,7 +77,7 @@ from typing import Final, final
 from history.linearizable import Outcome, whole
 from history.model import Model
 from prop import draw
-from prop.case import Case, Request, Step
+from prop.case import Case, Place, Request, Step
 from prop.choice import IntegerBounds
 from prop.collection import Sizes, more
 from prop.trace import Tracing
@@ -207,16 +214,23 @@ class _Run:
         self._states: tuple[object, ...] = (None,)
 
     def run(self) -> None:
-        """Run the six parts in order."""
-        kept = self._swarm()
-        self._check()
-        self._invariant()
-        self._sequential(kept)
-        self._concurrent(kept)
-        self._drain()
-        if self._machine.settle is not None:
-            self._machine.settle(self._case, self._states[0])
-        self._invariant()
+        """Run the six parts in order, and restore the case's place after them."""
+        case = self._case
+        before = case.place
+        try:
+            kept = self._swarm()
+            case.place = Place("setup")
+            self._check()
+            self._invariant()
+            self._sequential(kept)
+            self._concurrent(kept)
+            self._drain()
+            case.place = Place("settle")
+            if self._machine.settle is not None:
+                self._machine.settle(case, self._states[0])
+            self._invariant()
+        finally:
+            case.place = before
 
     def _swarm(self) -> list[Action]:
         """Return the actions the case keeps, in order."""
@@ -227,6 +241,7 @@ class _Run:
         named = frozenset[str]() if trace is None else trace.actions()
         kept: list[Action] = []
         for position, action in enumerate(actions):
+            self._case.place = Place("swarm", position, action.name)
             if trace is not None:
                 trace.prepare(1 if action.name in named else 0)
             if self._case.choose(_keep(bool(kept), len(actions) - position)):
@@ -238,6 +253,7 @@ class _Run:
         case, options = self._case, self._options
         count = 0
         while True:
+            case.place = Place("sequential", count)
             available = self._available(kept)
             start = len(case.choices)
             if self._trace is not None:
@@ -247,6 +263,7 @@ class _Run:
             if not more(case, count, Sizes(0, options.max), average=options.mean):
                 return
             action = available[self._index(available)]
+            case.place = Place("sequential", count, action.name)
             with case.span(action.name, start):
                 case.step(Step(action.name))
                 _finish(action.run(case, 0, self._input(action)))
@@ -267,6 +284,7 @@ class _Run:
         ]
         count = 0
         while True:
+            case.place = Place("concurrent", count)
             start = len(case.choices)
             if self._trace is not None:
                 self._follow_concurrent(self._trace, eligible, count)
@@ -274,10 +292,12 @@ class _Run:
                 break
             client = self._client()
             action = eligible[self._index(eligible)]
+            case.place = Place("concurrent", count, action.name)
             with case.span(action.name, start):
                 case.step(Step(action.name, client=client))
                 planned[client].append((action, self._input(action)))
             count += 1
+        case.place = Place("concurrent")
         for action, value in planned[0]:
             _finish(action.run(case, 0, value))
         scheduler = options.scheduler
@@ -301,6 +321,7 @@ class _Run:
         drains = [action for action in self._machine.actions if action.drain]
         count = 0
         while True:
+            case.place = Place("drain", count)
             available = self._available(drains) if count < self._options.max else []
             if self._trace is not None:
                 self._follow_drain(self._trace, available)
@@ -308,6 +329,7 @@ class _Run:
                 return
             start = len(case.choices)
             action = available[self._index(available)]
+            case.place = Place("drain", count, action.name)
             with case.span(action.name, start):
                 case.step(Step(action.name, drain=True))
                 _finish(action.run(case, 0, self._input(action)))

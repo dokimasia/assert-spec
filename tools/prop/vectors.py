@@ -507,12 +507,17 @@ def _other(execution: Execution) -> Vector:
 
 
 def _divergence(divergence: Divergence) -> Vector:
-    """Return a divergence with its two versions in corpus form."""
+    """Return a divergence in corpus form: its versions, its label and its step."""
+    step = divergence.step
     return {
         "what": divergence.what,
         "index": divergence.index,
         "recorded": _version(divergence.recorded),
         "replayed": _version(divergence.replayed),
+        "label": divergence.label,
+        "step": None
+        if step is None
+        else {"part": step.part, "position": step.position, "action": step.action},
     }
 
 

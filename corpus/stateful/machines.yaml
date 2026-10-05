@@ -66,6 +66,14 @@ cases:
     subject: correct-counter
     settings: {seed: "1"}
 
+  # A refusal changes which actions a step lists, so a case that repeats an
+  # earlier case's choices requests an index with other bounds. The run is
+  # flaky, and its divergence names the sequential step of the index.
+  - id: counter-refuses-every-third/a-refusal-changes-the-actions-a-step-lists
+    subject: counter-refuses-every-third
+    setup: {swarm: false}
+    settings: {seed: "1"}
+
   # Traces: the minimal steps of a failure fail again, a step that is not
   # enabled at its position fails before any case runs, and a concurrent
   # step states its client.

@@ -16,7 +16,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
 
-from .case import Case, Failed, Overrun, Provider, Rejected
+from .case import Case, Failed, Overrun, Place, Provider, Rejected, Where
 from .tree import Diverged, Ending, Repeated, Tree
 
 #: A body: it receives the case, draws from it, and fails it or returns.
@@ -69,12 +69,27 @@ class Divergence:
     index is the position of the request or the fingerprint that differs.
     For a verdict, it is the number of choices the recorded case made,
     the position where the case ended.
+
+    label and step state where the replay made the request or observed the
+    fingerprint: the label of the draw that was running, and the part and
+    step of a machine. Each is None where the replay was outside a draw or
+    a machine's steps, where it made no request or observed no
+    fingerprint at the position, and for a verdict.
     """
 
     what: str
     index: int
     recorded: object
     replayed: object
+    label: str | None = None
+    step: Place | None = None
+
+    @classmethod
+    def at(
+        cls, what: str, index: int, recorded: object, replayed: object, where: Where
+    ) -> Divergence:
+        """Return a divergence whose label and step are those of where."""
+        return cls(what, index, recorded, replayed, where.label, where.place)
 
 
 @dataclass(frozen=True)
@@ -118,7 +133,8 @@ def execute(
     except Repeated:
         return Execution(case, Status.REPEATED)
     except Diverged as diverged:
-        return Execution(case, Status.DIVERGED, divergence=_divergence(diverged))
+        divergence = _divergence(diverged, case)
+        return Execution(case, Status.DIVERGED, divergence=divergence)
     except Overrun:
         return Execution(case, Status.REJECTED)
     except Rejected:
@@ -131,10 +147,19 @@ def execute(
         try:
             walker.end(ending)
         except Diverged as diverged:
-            return Execution(case, Status.DIVERGED, divergence=_divergence(diverged))
+            divergence = _divergence(diverged, case)
+            return Execution(case, Status.DIVERGED, divergence=divergence)
     return Execution(case, Status(ending.value), failure)
 
 
-def _divergence(diverged: Diverged) -> Divergence:
-    """Return the tree's divergence as a request divergence."""
-    return Divergence("request", diverged.index, diverged.recorded, diverged.requested)
+def _divergence(diverged: Diverged, case: Case) -> Divergence:
+    """Return the tree's divergence as a request divergence of case.
+
+    A request that diverged is the case's last recorded request, and the
+    divergence takes its label and step. A case that ended where an earlier
+    case made a request made no request there.
+    """
+    where = Where() if diverged.requested is None else case.wheres[diverged.index]
+    return Divergence.at(
+        "request", diverged.index, diverged.recorded, diverged.requested, where
+    )

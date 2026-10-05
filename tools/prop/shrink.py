@@ -38,7 +38,17 @@ from functools import partial
 from itertools import pairwise
 from typing import Final, final
 
-from .case import Case, Drawn, Failed, Generating, Rejected, Replaying, Request, Span
+from .case import (
+    Case,
+    Drawn,
+    Failed,
+    Generating,
+    Rejected,
+    Replaying,
+    Request,
+    Span,
+    Where,
+)
 from .choice import (
     INTEGRAL_LIMIT,
     Choice,
@@ -200,7 +210,9 @@ def confirm(
     """Replay a failing case once, and return how the replay differed, if it did.
 
     The comparison takes the requests' bounds first, then the observed
-    fingerprints, then the way the replay ended. observer sees the replay.
+    fingerprints, then the way the replay ended. A request or a fingerprint
+    that differs takes the label and the step of the replay's request or
+    fingerprint at its position. observer sees the replay.
     """
     replay = execute(body, Replaying(failing.case.choices), max_choices)
     observer(Phase.REPLAY, replay)
@@ -209,15 +221,22 @@ def confirm(
             "request",
             [r.bounds for r in failing.case.requests],
             [r.bounds for r in replay.case.requests],
+            replay.case.wheres,
         ),
-        ("fingerprint", failing.case.fingerprints, replay.case.fingerprints),
+        (
+            "fingerprint",
+            failing.case.fingerprints,
+            replay.case.fingerprints,
+            replay.case.observed,
+        ),
     )
-    for what, recorded, replayed in pairs:
+    for what, recorded, replayed, wheres in pairs:
         for index in range(max(len(recorded), len(replayed))):
             before = recorded[index] if index < len(recorded) else None
             after = replayed[index] if index < len(replayed) else None
             if before != after:
-                return Divergence(what, index, before, after)
+                where = wheres[index] if index < len(wheres) else Where()
+                return Divergence.at(what, index, before, after, where)
     if replay.identity != failing.identity:
         index = len(failing.case.choices)
         return Divergence("verdict", index, failing.identity, replay.identity)

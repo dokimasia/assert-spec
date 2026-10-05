@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from typing import final
 
 from history.model import Model, Op
-from prop.case import Case, Failed, Generating, Replaying, Span, Step
+from prop.case import Case, Failed, Generating, Place, Replaying, Span, Step, Where
 from prop.choice import Choice, IntegerBounds
 from prop.generator import Integer
 from prop.source import Source
@@ -581,6 +581,115 @@ class TraceTest(unittest.TestCase):
         with self.assertRaises(TraceError) as caught:
             steps(Case(Tracing(trace)), machine)
         self.assertEqual((caught.exception.entry, caught.exception.name), (2, "d"))
+
+
+@final
+class PlaceTest(unittest.TestCase):
+    """The part and the step that the case states while each part runs."""
+
+    def test_a_swarm_choice_states_the_position_and_the_name_of_its_action(
+        self,
+    ) -> None:
+        """Two actions make two choices, each at its action."""
+        log = Log()
+        case = replay(1, 1)
+        steps(case, Machine((log.action("a"), log.action("b"))), Options(max=0))
+        self.assertEqual(
+            [where.place for where in case.wheres[:2]],
+            [Place("swarm", 0, "a"), Place("swarm", 1, "b")],
+        )
+
+    def test_a_sequential_step_states_its_position_and_then_its_action(self) -> None:
+        """The flag and the index state the step, and its input its action too."""
+        log = Log()
+        case = replay(1, 1, 7, 1, 0, 3, 0)
+        machine = Machine((log.action("a", draws=True), log.action("b", draws=True)))
+        steps(case, machine, Options(swarm=False))
+        first, second = Place("sequential", 0), Place("sequential", 1)
+        self.assertEqual(
+            case.wheres,
+            [
+                Where(None, first),
+                Where(None, first),
+                Where("v", Place("sequential", 0, "b")),
+                Where(None, second),
+                Where(None, second),
+                Where("v", Place("sequential", 1, "a")),
+                Where(None, Place("sequential", 2)),
+            ],
+        )
+
+    def test_a_drain_step_states_its_position_and_then_its_action(self) -> None:
+        """The index states the drain step, and the draw of its run its action too."""
+        pending = [1]
+
+        def deliver(case: Case, client: int, value: object) -> None:
+            del client, value
+            case.draw(DIGIT, "w")
+            pending[0] = 0
+
+        machine = Machine(
+            (Action("d", deliver, enabled=lambda state: pending[0] > 0, drain=True),)
+        )
+        case = replay(0, 0, 4)
+        steps(case, machine, Options(swarm=False))
+        self.assertEqual(
+            case.wheres,
+            [
+                Where(None, Place("sequential", 0)),
+                Where(None, Place("drain", 0)),
+                Where("w", Place("drain", 0, "d")),
+            ],
+        )
+
+    def test_a_concurrent_step_states_its_position_and_its_run_none(self) -> None:
+        """The listing states each step, and the release while the steps run none."""
+
+        def observed(case: Case, client: int, value: object) -> None:
+            del client, value
+            case.observe(9)
+
+        case = replay(0, 1, 1, 0, 0, 0)
+        options = Options(
+            max=0, swarm=False, clients=2, scheduler=Scheduler(case, Uniform())
+        )
+        steps(case, Machine((Action("a", observed),)), options)
+        listed = Where(None, Place("concurrent", 0))
+        self.assertEqual(
+            case.wheres,
+            [
+                Where(None, Place("sequential", 0)),
+                listed,
+                listed,
+                listed,
+                Where(None, Place("concurrent", 1)),
+                Where(None, Place("concurrent")),
+            ],
+        )
+        self.assertEqual(case.observed, [Where(None, Place("concurrent"))])
+
+    def test_setup_and_settle_state_their_parts_and_the_steps_restore_none(
+        self,
+    ) -> None:
+        """The invariant observes in setup and settle, and settle in settle."""
+
+        def invariant(case: Case, state: object) -> None:
+            del state
+            case.observe(0)
+
+        def settle(case: Case, state: object) -> None:
+            del state
+            case.observe(1)
+
+        log = Log()
+        machine = Machine((log.action("a"),), invariant=invariant, settle=settle)
+        case = replay(0)
+        steps(case, machine, Options(swarm=False))
+        self.assertEqual(
+            [where.place for where in case.observed],
+            [Place("setup"), Place("settle"), Place("settle")],
+        )
+        self.assertIsNone(case.place)
 
 
 @final

@@ -289,6 +289,48 @@
       "error": null
     },
     {
+      "id": "counter-refuses-every-third/a-refusal-changes-the-actions-a-step-lists",
+      "subject": "counter-refuses-every-third",
+      "setup": {
+        "swarm": false
+      },
+      "settings": {
+        "seed": "1"
+      },
+      "detail": {
+        "outcome": "flaky",
+        "cases": 7,
+        "rejected": 0,
+        "seed": "1",
+        "counterexample": null,
+        "failure": null,
+        "choices": null,
+        "others": null,
+        "divergence": {
+          "what": "request",
+          "index": 9,
+          "recorded": {
+            "kind": "integer",
+            "min": 0,
+            "max": 0
+          },
+          "replayed": {
+            "kind": "integer",
+            "min": 0,
+            "max": 1
+          },
+          "label": null,
+          "step": {
+            "part": "sequential",
+            "position": 4,
+            "action": null
+          }
+        },
+        "coverage": null
+      },
+      "error": null
+    },
+    {
       "id": "queue-loses-on-wrap/the-minimal-steps-as-a-trace-fail",
       "subject": "queue-loses-on-wrap",
       "settings": {

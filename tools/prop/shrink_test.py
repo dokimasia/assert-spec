@@ -6,7 +6,7 @@ import unittest
 from functools import partial
 from typing import Any, final
 
-from .case import Case, Replaying, Request
+from .case import Case, Place, Replaying, Request
 from .choice import Bounds, Choice, FloatBounds, IntegerBounds, SequenceBounds
 from .execution import Body, Execution, Status, execute
 from .generator import build
@@ -291,15 +291,48 @@ class ConfirmTest(unittest.TestCase):
 
         divergence = confirm(shifting, failing(shifting, *integers(5)), MAX_CHOICES)
         assert divergence is not None
-        self.assertEqual((divergence.what, divergence.index), ("request", 0))
+        got = (divergence.what, divergence.index, divergence.label, divergence.step)
+        self.assertEqual(got, ("request", 0, "n", None))
+
+    def test_a_request_divergence_states_the_step_of_the_replays_request(
+        self,
+    ) -> None:
+        """The replay's request was made in a sequential step of put."""
+        calls: list[Case] = []
+
+        def stepping(case: Case) -> None:
+            calls.append(case)
+            case.place = Place("sequential", 1, "put")
+            case.draw(WIDE if len(calls) == 1 else SMALL, "n")
+            case.fail("always")
+
+        divergence = confirm(stepping, failing(stepping, *integers(5)), MAX_CHOICES)
+        assert divergence is not None
+        self.assertEqual(divergence.step, Place("sequential", 1, "put"))
+
+    def test_a_replay_that_ends_before_a_request_states_no_label(self) -> None:
+        """The replay made no request at the position, so no draw was running."""
+        calls: list[Case] = []
+
+        def shortening(case: Case) -> None:
+            calls.append(case)
+            if len(calls) == 1:
+                case.draw(WIDE, "n")
+            case.fail("always")
+
+        divergence = confirm(shortening, failing(shortening, *integers(5)), MAX_CHOICES)
+        assert divergence is not None
+        got = (divergence.replayed, divergence.label, divergence.step)
+        self.assertEqual(got, (None, None, None))
 
     def test_a_replay_that_observes_another_fingerprint_diverges(self) -> None:
-        """The fingerprints are compared after the requests."""
+        """The fingerprints are compared after the requests, and name their step."""
         calls: list[Case] = []
 
         def observing(case: Case) -> None:
             calls.append(case)
             case.draw(WIDE, "n")
+            case.place = Place("drain", 0, "flush")
             case.observe(len(calls))
             case.fail("always")
 
@@ -307,6 +340,24 @@ class ConfirmTest(unittest.TestCase):
         assert divergence is not None
         got = (divergence.what, divergence.recorded, divergence.replayed)
         self.assertEqual(got, ("fingerprint", 1, 2))
+        self.assertEqual(
+            (divergence.label, divergence.step), (None, Place("drain", 0, "flush"))
+        )
+
+    def test_a_verdict_divergence_states_no_label_and_no_step(self) -> None:
+        """A verdict differs where the case ended."""
+        calls: list[Case] = []
+
+        def once(case: Case) -> None:
+            calls.append(case)
+            case.place = Place("settle")
+            case.draw(WIDE, "n")
+            if len(calls) == 1:
+                case.fail("once")
+
+        divergence = confirm(once, failing(once, *integers(5)), MAX_CHOICES)
+        assert divergence is not None
+        self.assertEqual((divergence.label, divergence.step), (None, None))
 
 
 @final

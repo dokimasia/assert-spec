@@ -312,6 +312,14 @@
             "rust": "max_allocs",
             "typescript": "maxAllocs"
         },
+        "max-allocs-with-setup": {
+            "go": "MaxAllocsWithSetup",
+            "java": "maxAllocsWithSetup",
+            "kotlin": "maxAllocsWithSetup",
+            "python": "max_allocs_with_setup",
+            "rust": "max_allocs_with_setup",
+            "typescript": "maxAllocsWithSetup"
+        },
         "monotonic": {
             "go": "Monotonic",
             "java": "isMonotonic",
@@ -623,6 +631,14 @@
             "python": "prop.max_allocs",
             "rust": "prop::max_allocs",
             "typescript": "prop.maxAllocs"
+        },
+        "prop-max-allocs-with-setup": {
+            "go": "prop.MaxAllocsWithSetup",
+            "java": "Prop.maxAllocsWithSetup",
+            "kotlin": "Prop.maxAllocsWithSetup",
+            "python": "prop.max_allocs_with_setup",
+            "rust": "prop::max_allocs_with_setup",
+            "typescript": "prop.maxAllocsWithSetup"
         },
         "prop-nil": {
             "go": "prop.Nil",
@@ -1512,6 +1528,20 @@
                 "rust": "measuring",
                 "typescript": "measuring"
             },
+            "contract.run-parallel": {
+                "go": "RunParallel",
+                "java": "runParallel",
+                "kotlin": "runParallel",
+                "rust": "run_parallel"
+            },
+            "contract.warmup": {
+                "go": "Warmup",
+                "java": "warmup",
+                "kotlin": "warmup",
+                "python": "warmup",
+                "rust": "warmup",
+                "typescript": "warmup"
+            },
             "controlled-clock.advance": {
                 "go": "Advance",
                 "java": "advance",
@@ -1952,5 +1982,5 @@
             }
         }
     },
-    "version": "3.3.0"
+    "version": "4.0.0"
 }

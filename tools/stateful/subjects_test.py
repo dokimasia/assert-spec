@@ -6,7 +6,7 @@ import unittest
 from typing import final
 
 from history.model import Op
-from prop.case import Step
+from prop.case import Place, Step
 from prop.execution import Status, execute
 from prop.runner import Kind, Settings, run
 from prop.trace import Draw, Entry, Tracing, entries
@@ -16,14 +16,17 @@ from .subjects import (
     CORRECT_COUNTER,
     CORRECT_QUEUE,
     COUNTER_OVERFLOWS,
+    COUNTER_REFUSES_EVERY_THIRD,
     LOST,
     QUEUE_LOSES_ON_WRAP,
     RACY_COUNTER,
     STORE_LOSES_ON_CRASH,
     Ring,
+    Setup,
     body,
     bounded_queue,
     counter,
+    reading_counter,
 )
 
 #: The seeds each failing subject is run with.
@@ -101,6 +104,16 @@ class ModelTest(unittest.TestCase):
         self.assertEqual(model.step(3, Op("increment", (), True, 3)), [])
         self.assertEqual(model.step(3, Op("reset", (), True, None)), [0])
 
+    def test_a_reading_counter_reads_the_count_and_increments_it(self) -> None:
+        """A read of 3 returns 3, and an increment of 3 returns 4."""
+        model = reading_counter()
+        self.assertEqual(model.init(), 0)
+        self.assertEqual(model.step(3, Op("read", (), True, 3)), [3])
+        self.assertEqual(model.step(3, Op("read", (), True, 4)), [])
+        self.assertEqual(model.step(3, Op("read", (), False)), [3])
+        self.assertEqual(model.step(3, Op("increment", (), True, 4)), [4])
+        self.assertEqual(model.step(3, Op("increment", (), True, 3)), [])
+
 
 @final
 class SubjectTest(unittest.TestCase):
@@ -135,3 +148,25 @@ class SubjectTest(unittest.TestCase):
         minimal = MINIMAL[QUEUE_LOSES_ON_WRAP][1]
         execution = execute(body(QUEUE_LOSES_ON_WRAP), Tracing(minimal[:-1]), 8192)
         self.assertEqual(execution.status, Status.PASSED)
+
+    def test_a_refusing_counter_diverges_at_the_index_of_a_sequential_step(
+        self,
+    ) -> None:
+        """A refusal changes the list of a step, and the run names that step."""
+        for seed in SEEDS:
+            setup = Setup(swarm=False)
+            outcome = run(body(COUNTER_REFUSES_EVERY_THIRD, setup), Settings(seed=seed))
+            self.assertEqual(outcome.kind, Kind.FLAKY, seed)
+            assert outcome.divergence is not None
+            step = outcome.divergence.step
+            assert step is not None
+            self.assertEqual((step.part, step.action), ("sequential", None), seed)
+
+    def test_each_body_of_a_refusing_counter_counts_from_0(self) -> None:
+        """Two runs of the same seed report the same divergence."""
+        setup = Setup(swarm=False)
+        first = run(body(COUNTER_REFUSES_EVERY_THIRD, setup), Settings(seed=1))
+        second = run(body(COUNTER_REFUSES_EVERY_THIRD, setup), Settings(seed=1))
+        self.assertEqual(first.divergence, second.divergence)
+        assert first.divergence is not None
+        self.assertEqual(first.divergence.step, Place("sequential", 4))

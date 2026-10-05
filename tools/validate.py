@@ -96,9 +96,9 @@ FIXTURE_COVERS = (SHAPES - {"wall-time"}) | frozenset(
 #: entries ran out first, a label differed, and a value no choices produce.
 DRAWS_ENDS = ("matched", "ran-out", "label", "value")
 
-#: The form that no vector runs, because no case can state an allocation
+#: The forms that no vector runs, because no case can state an allocation
 #: count.
-UNSTATED_FORMS = frozenset({"prop-max-allocs"})
+UNSTATED_FORMS = frozenset({"prop-max-allocs", "prop-max-allocs-with-setup"})
 
 #: The phase that no recording vector records, because a run of the phases
 #: decodes no fuzzer's input.

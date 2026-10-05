@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@3.3.0",
+  "extends": "spec://assertions@4.0.0",
   "language": "go",
   "diverge": [],
   "limits": [
@@ -32,6 +32,16 @@
       "id": "prop-max-allocs",
       "what": "Checks the ceiling for each generated input in an ordinary build. In the builds the max-allocs entry names, it calls the callable for each input and checks no ceiling.",
       "why": "The form runs max-allocs on each input, and those builds allocate differently from the one that ships, as the max-allocs entry states."
+    },
+    {
+      "id": "max-allocs-with-setup",
+      "what": "Checks the ceiling in an ordinary build. In the builds the max-allocs entry names, it calls the setup and the callable as an ordinary build does and checks no ceiling.",
+      "why": "Those builds allocate differently from the one that ships, as the max-allocs entry states."
+    },
+    {
+      "id": "prop-max-allocs-with-setup",
+      "what": "Checks the ceiling for each generated input in an ordinary build. In the builds the max-allocs entry names, it calls the setup and the callable for each input and checks no ceiling.",
+      "why": "The form runs max-allocs-with-setup on each input, and those builds allocate differently from the one that ships, as the max-allocs entry states."
     },
     {
       "id": "prop.of",

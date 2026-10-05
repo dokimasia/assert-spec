@@ -771,7 +771,9 @@
             "kind": "integer",
             "min": 0,
             "max": 1
-          }
+          },
+          "label": "value",
+          "step": null
         },
         "coverage": null
       }
@@ -807,7 +809,9 @@
           "what": "verdict",
           "index": 1,
           "recorded": "once",
-          "replayed": null
+          "replayed": null,
+          "label": null,
+          "step": null
         },
         "coverage": null
       }

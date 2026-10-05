@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@3.3.0",
+  "extends": "spec://assertions@4.0.0",
   "language": "python",
   "diverge": [
     {
@@ -19,6 +19,18 @@
       "stance": "blocked",
       "why": "The form runs max-allocs on each input, and max-allocs is absent for the reason its entry gives.",
       "remedy": "The cumulative allocation counter that bench-max-allocs needs."
+    },
+    {
+      "id": "max-allocs-with-setup",
+      "stance": "blocked",
+      "why": "CPython counts no allocations, for the reason the bench-max-allocs entry gives, so there is no count per call to hold to a ceiling, with a setup or without one.",
+      "remedy": "The cumulative allocation counter that bench-max-allocs needs."
+    },
+    {
+      "id": "prop-max-allocs-with-setup",
+      "stance": "blocked",
+      "why": "The form runs max-allocs-with-setup on each input, and max-allocs-with-setup is absent for the reason its entry gives.",
+      "remedy": "The cumulative allocation counter that bench-max-allocs needs."
     }
   ],
   "surface": [
@@ -33,6 +45,10 @@
     {
       "id": "contract.measuring",
       "why": "A benchmark body here is inline, driven by a generator, so a setup closure would take the caller out of the loop they are already writing. It marks the setup in place with excluding instead."
+    },
+    {
+      "id": "contract.run-parallel",
+      "why": "The default build of CPython runs Python code on one thread at a time under the global interpreter lock, so a worker's latency includes its wait for that lock. tracemalloc reports one level of traced memory for the whole process, so no measurement attributes bytes to concurrent iterations."
     },
     {
       "id": "assertion",

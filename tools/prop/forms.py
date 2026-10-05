@@ -491,8 +491,9 @@ def _round_trip(subjects: object, given: Sequence[object]) -> Judge:
     return judge
 
 
-#: The builder of each assertion's judge. max-allocs has none, because no
-#: case can state an allocation count.
+#: The builder of each assertion's judge. max-allocs and
+#: max-allocs-with-setup have none, because no case can state an
+#: allocation count.
 ROOTS: Final[dict[str, Builder]] = {
     "equal": _over(_equal, 2),
     "not-equal": _over(_not_equal, 2),

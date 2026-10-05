@@ -12,11 +12,13 @@ from .case import (
     Generating,
     Generator,
     Overrun,
+    Place,
     Rejected,
     Replaying,
     Request,
     Span,
     Step,
+    Where,
 )
 from .choice import INT64_MAX, INT64_MIN, Choice, IntegerBounds, SequenceBounds, Value
 from .source import Source
@@ -60,6 +62,29 @@ class _Digit:
     def decode(self, case: Case) -> object:
         """Return the case's next digit."""
         return case.choose(_digit())
+
+
+@final
+class _Outer:
+    """A generator that requests a digit and then draws a digit under inner."""
+
+    def decode(self, case: Case) -> object:
+        """Return the two digits."""
+        return (case.choose(_digit()), case.draw(_Digit(), "inner"))
+
+
+@final
+class _Refusing:
+    """A generator that requests a digit and then rejects the case."""
+
+    def decode(self, case: Case) -> object:
+        """Request a digit, then reject.
+
+        Raises:
+            Rejected: always.
+        """
+        case.choose(_digit())
+        raise Rejected
 
 
 @final
@@ -370,3 +395,54 @@ class RecordTest(unittest.TestCase):
     def test_a_provider_that_hears_of_no_draw_is_no_tracer(self) -> None:
         """A replaying case has no tracer."""
         self.assertIsNone(Case(Replaying([])).tracer)
+
+
+@final
+class WhereTest(unittest.TestCase):
+    """Where a case made each request and observed each fingerprint."""
+
+    def test_each_request_states_the_label_of_its_draw(self) -> None:
+        """A request inside a draw takes its label, and one outside takes none."""
+        case = Case(Replaying([]))
+        case.draw(_Digit(), "v")
+        case.choose(_digit())
+        self.assertEqual(case.wheres, [Where("v"), Where()])
+
+    def test_a_request_of_a_nested_draw_states_the_innermost_label(self) -> None:
+        """The outer draw's own request takes outer, and the inner draw's inner."""
+        case = Case(Replaying([]))
+        case.draw(_Outer(), "outer")
+        self.assertEqual(case.wheres, [Where("outer"), Where("inner")])
+
+    def test_a_request_states_the_place_that_the_case_states(self) -> None:
+        """A machine's steps set the place, and each request records it."""
+        case = Case(Replaying([]))
+        case.place = Place("sequential", 2, "put")
+        case.draw(_Digit(), "v")
+        self.assertEqual(case.wheres, [Where("v", Place("sequential", 2, "put"))])
+
+    def test_rewind_removes_the_wheres_of_the_removed_choices(self) -> None:
+        """A request after the mark leaves its where with it."""
+        case = Case(Replaying([]))
+        case.choose(_digit())
+        mark = case.mark()
+        case.draw(_Digit(), "v")
+        case.rewind(mark)
+        self.assertEqual(case.wheres, [Where()])
+
+    def test_each_fingerprint_states_where_the_case_observed_it(self) -> None:
+        """A fingerprint takes the place of the step that observed it."""
+        case = Case(Replaying([]))
+        case.observe(1)
+        case.place = Place("drain", 0, "flush")
+        case.observe(2)
+        self.assertEqual(
+            case.observed, [Where(), Where(None, Place("drain", 0, "flush"))]
+        )
+
+    def test_a_draw_that_raises_closes_its_label(self) -> None:
+        """After a rejected draw, the case is outside every draw."""
+        case = Case(Replaying([]))
+        with self.assertRaises(Rejected):
+            case.draw(_Refusing(), "v")
+        self.assertEqual((case.wheres, case.where()), ([Where("v")], Where()))

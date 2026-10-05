@@ -32,6 +32,17 @@ an empty list of keys, and completes it as ok with its output.
   scheduler.
 - correct-counter: the same machine over an increment that adds one and
   returns the count without yielding.
+- counter-refuses-every-third: a counter that refuses every third
+  increment, counted over every case of the run. A refused increment
+  completes with fail and the error REFUSED, and leaves the count. Any
+  other increment adds one and returns the count, and read returns the
+  count. The actions are increment, enabled while the model's count is
+  below LIMIT, and read. Its model is a counter that reads. The enabled
+  list of a step depends on the refusals, so a case that repeats an
+  earlier case's choices can request other bounds, and the run is flaky.
+
+Each subject is built anew for every run, so a subject that counts over
+the cases of a run starts each run at 0.
 """
 
 from __future__ import annotations
@@ -57,12 +68,22 @@ COUNTER_OVERFLOWS: Final = "counter-overflows"
 STORE_LOSES_ON_CRASH: Final = "store-loses-on-crash"
 RACY_COUNTER: Final = "racy-counter"
 CORRECT_COUNTER: Final = "correct-counter"
+COUNTER_REFUSES_EVERY_THIRD: Final = "counter-refuses-every-third"
 
 #: The identity of store-loses-on-crash's settle failure.
 LOST: Final = "lost-write"
 
 #: The count at which counter-overflows sets its count to 0.
 OVERFLOW: Final = 3
+
+#: counter-refuses-every-third refuses each increment whose number, counted
+#: over the run, is a multiple of REFUSAL, with the error REFUSED.
+REFUSAL: Final = 3
+REFUSED: Final = "refused"
+
+#: counter-refuses-every-third enables increment while the model's count is
+#: below LIMIT.
+LIMIT: Final = 3
 
 #: The draws of the subjects.
 CAPACITIES: Final = Integer(IntegerBounds(1, 8))
@@ -166,6 +187,25 @@ def counter() -> Model:
         assert isinstance(state, int)
         if op.operation == "reset":
             return [0]
+        if op.known and not equality.equal(op.output, state + 1):
+            return []
+        return [state + 1]
+
+    return Model(lambda: 0, step)
+
+
+def reading_counter() -> Model:
+    """Return the model of a counter that reads.
+
+    increment returns the new count, and read returns the count.
+    """
+
+    def step(state: object, op: Op) -> list[object]:
+        assert isinstance(state, int)
+        if op.operation == "read":
+            if op.known and not equality.equal(op.output, state):
+                return []
+            return [state]
         if op.known and not equality.equal(op.output, state + 1):
             return []
         return [state + 1]
@@ -286,23 +326,65 @@ def _shared_counter(case: Case, setup: Setup, *, racy: bool) -> None:
     steps(case, machine, setup.concurrent_in(case))
 
 
-#: The subjects, keyed by name.
-SUBJECTS: Final[dict[str, Subject]] = {
-    QUEUE_LOSES_ON_WRAP: lambda case, setup: _queue(case, setup, loses_on_wrap=True),
-    CORRECT_QUEUE: lambda case, setup: _queue(case, setup, loses_on_wrap=False),
-    COUNTER_OVERFLOWS: _counter_overflows,
-    STORE_LOSES_ON_CRASH: _store_loses_on_crash,
-    RACY_COUNTER: lambda case, setup: _shared_counter(case, setup, racy=True),
-    CORRECT_COUNTER: lambda case, setup: _shared_counter(case, setup, racy=False),
+def _refusing_counter() -> Subject:
+    """Return counter-refuses-every-third, with no increment counted yet."""
+    increments = [0]
+
+    def subject(case: Case, setup: Setup) -> None:
+        count = [0]
+
+        def increment(case: Case, client: int, value: object) -> None:
+            del value
+            call = case.history.invoke(client, "increment", (), ())
+            increments[0] += 1
+            if increments[0] % REFUSAL == 0:
+                call.fail(REFUSED)
+                return
+            count[0] += 1
+            call.ok(count[0])
+
+        def read(case: Case, client: int, value: object) -> None:
+            del value
+            case.history.invoke(client, "read", (), ()).ok(count[0])
+
+        def below_limit(state: object) -> bool:
+            assert isinstance(state, int)
+            return state < LIMIT
+
+        machine = Machine(
+            (
+                Action("increment", increment, enabled=below_limit),
+                Action("read", read),
+            ),
+            reading_counter(),
+        )
+        steps(case, machine, setup.sequential())
+
+    return subject
+
+
+#: The subjects, keyed by name. Each entry returns a subject for one run.
+SUBJECTS: Final[dict[str, Callable[[], Subject]]] = {
+    QUEUE_LOSES_ON_WRAP: lambda: (
+        lambda case, setup: _queue(case, setup, loses_on_wrap=True)
+    ),
+    CORRECT_QUEUE: lambda: lambda case, setup: _queue(case, setup, loses_on_wrap=False),
+    COUNTER_OVERFLOWS: lambda: _counter_overflows,
+    STORE_LOSES_ON_CRASH: lambda: _store_loses_on_crash,
+    RACY_COUNTER: lambda: lambda case, setup: _shared_counter(case, setup, racy=True),
+    CORRECT_COUNTER: lambda: (
+        lambda case, setup: _shared_counter(case, setup, racy=False)
+    ),
+    COUNTER_REFUSES_EVERY_THIRD: _refusing_counter,
 }
 
 
 def body(name: str, setup: Setup | None = None) -> Callable[[Case], None]:
-    """Return the body that runs the named subject with setup, or the defaults.
+    """Return the body that runs a new subject of the name with setup, or the defaults.
 
     Raises:
         KeyError: no subject has the name.
     """
-    subject = SUBJECTS[name]
+    subject = SUBJECTS[name]()
     chosen = setup or Setup()
     return lambda case: subject(case, chosen)

@@ -54,7 +54,7 @@ tools/history/         the history's and the checkers' executable reference
 tools/stateful/        the machines' and the scheduler's executable reference
 tools/spec-sync.sh     how an implementation vendors the definition
 tools/spec-check.sh    how an implementation checks its copy
-VERSION                3.3.0
+VERSION                4.0.0
 ```
 
 People edit the YAML. `make render` produces the JSON, which is
@@ -91,7 +91,7 @@ one definition.
 
 ## The set
 
-60 assertions: 49 in the root namespace, 3 for golden files, 4 for
+61 assertions: 50 in the root namespace, 3 for golden files, 4 for
 benchmark ceilings, 1 property check and 3 checks of a recorded history.
 They cover equality, truth, nullity, length, containment, text, numbers,
 ordering, errors, raising, cancellation and deadlines, retrying,
@@ -100,9 +100,9 @@ subject, recorded output, performance ceilings, properties over generated
 inputs, the linearizability of concurrent calls, and the isolation of
 transactions.
 
-38 of them also have a property form, which runs the assertion on every
+39 of them also have a property form, which runs the assertion on every
 input that a property generates. Rendering adds the forms to the `prop`
-package by one rule, so the assertion table states 98 entries.
+package by one rule, so the assertion table states 100 entries.
 
 An assertion earns its place by answering two questions. Does it state
 something that must be true, and fail when it is not? Does it mean the
@@ -133,9 +133,9 @@ what the failure must mention:
 ```
 
 Typed literals cross a language boundary only as data, so the corpus
-covers 39 of the 60 assertions. Eighteen of those state their
+covers 39 of the 61 assertions. Eighteen of those state their
 arguments. The other 21 name a behaviour instead, because what they
-take is a callable and no encoding states one. The remaining 21 take an
+take is a callable and no encoding states one. The remaining 22 take an
 error value, a predicate, a callable that no subject describes, a golden
 file, a benchmark measurement, a property's body, a model or a recorded
 history, and none of those is a typed literal either. The property engine
@@ -149,15 +149,17 @@ and the checkers are data in and data out too. 80 vectors under
 `corpus/history/` pin the events that calls record, the entries that the
 history refuses, the verdict, steps and record of a check against each
 named model, and the verdict and record of each isolation check. So are
-the steps of a machine. 13 vectors under `corpus/stateful/` pin the run of
-each machine subject, the minimal steps of each fault, and the traces that
-a run follows or refuses.
+the steps of a machine. 14 vectors under `corpus/stateful/` pin the run of
+each machine subject, the minimal steps of each fault, the traces that a
+run follows or refuses, and the step at which a replay of a subject whose
+refusals change its actions diverges.
 
 **The completeness gate** checks membership. Every assertion must be
 present under the name the naming table gives it, with the arity the
 definition states as far as the language can read it. The gate covers
-the 21 assertions that the corpus cannot state, and `prop-max-allocs`,
-whose allocation count no vector can state. The standard checks a
+the 22 assertions that the corpus cannot state, and `prop-max-allocs` and
+`prop-max-allocs-with-setup`, whose allocation counts no vector can
+state. The standard checks a
 library's meaning where meaning can be stated, and its membership
 everywhere else.
 
@@ -275,15 +277,15 @@ differently.
 
 | Language | Repository | Assertions |
 |---|---|---|
-| Go | [assert-go](https://github.com/dokimasia/assert-go) | 98 of 98 |
-| Java | [assert-java](https://github.com/dokimasia/assert-java) | 95 of 98 |
-| Kotlin | [assert-java](https://github.com/dokimasia/assert-java) | 95 of 98 |
-| Python | [assert-python](https://github.com/dokimasia/assert-python) | 95 of 98 |
-| Rust | [assert-rust](https://github.com/dokimasia/assert-rust) | 98 of 98 |
-| TypeScript | [assert-typescript](https://github.com/dokimasia/assert-typescript) | 94 of 98 |
+| Go | [assert-go](https://github.com/dokimasia/assert-go) | 100 of 100 |
+| Java | [assert-java](https://github.com/dokimasia/assert-java) | 95 of 100 |
+| Kotlin | [assert-java](https://github.com/dokimasia/assert-java) | 95 of 100 |
+| Python | [assert-python](https://github.com/dokimasia/assert-python) | 95 of 100 |
+| Rust | [assert-rust](https://github.com/dokimasia/assert-rust) | 100 of 100 |
+| TypeScript | [assert-typescript](https://github.com/dokimasia/assert-typescript) | 94 of 100 |
 
 Each count is what the language's overlay declares against version
-3.3.0. An implementation that has not synced to it yet has a drift issue
+4.0.0. An implementation that has not synced to it yet has a drift issue
 open until it does.
 
 Java and Kotlin ship from one repository and are named identically, so
@@ -296,13 +298,13 @@ allocation ceilings, because V8 reports allocation only as a heap-usage
 delta that moves with whether the collector ran. Each gap is in that
 language's overlay with the measurement behind it.
 
-Go and Rust state all ninety-eight and declare nothing absent. Go checks no
+Go and Rust state all 100 and declare nothing absent. Go checks no
 allocation ceiling in a build with the race detector, msan or asan, or
 in one whose `-gcflags` turn off optimisation or inlining, because those
 builds allocate differently from the one that ships. Go also reads an
 `int` at the platform's width, which is 32 bits on a 32-bit platform. A
-property over an `int` generates other values there. In Rust five are
-partial: the four
+property over an `int` generates other values there. In Rust seven are
+partial: the six
 allocation ceilings need a counting allocator installed as the test
 binary's global allocator, and no-task-leaks sees tasks on a runtime but
 not a thread, because nothing in Rust's standard library enumerates

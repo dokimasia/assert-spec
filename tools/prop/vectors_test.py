@@ -152,6 +152,14 @@ class ComputeTest(unittest.TestCase):
         self.assertEqual((detail["outcome"], detail["cases"]), ("vacuous", 1))
         self.assertIsNone(detail["counterexample"])
 
+    def test_a_divergence_states_the_label_and_the_step_of_its_request(self) -> None:
+        """The diverging body's draw is labelled value, and it runs no machine."""
+        got = compute(
+            "behaviour", {"body": {"kind": "diverges"}, "settings": {"seed": "7"}}
+        )
+        divergence = got["detail"]["divergence"]
+        self.assertEqual((divergence["label"], divergence["step"]), ("value", None))
+
     def test_a_counterexample_states_the_nearest_passing_value(self) -> None:
         """Above 1000 fails, so 1001 fails and 1000 passes."""
         body = {

@@ -320,6 +320,14 @@
             ],
             "summary": "A callable makes at most a stated number of heap allocations per call. One call warms it first, and the count is the average over the calls after it, rounded down.\n"
         },
+        "max-allocs-with-setup": {
+            "arity": 4,
+            "detail_fields": [
+                "want",
+                "got"
+            ],
+            "summary": "A callable makes at most a stated number of heap allocations per call on an input that a setup builds before each call. The setup is not counted. One setup and one call warm both first, and the count is the average over the calls after them, rounded down.\n"
+        },
         "monotonic": {
             "arity": 4,
             "detail_fields": [
@@ -1062,6 +1070,30 @@
             "package": "prop",
             "summary": "The property form of max-allocs. Each case of a run generates the input, and max-allocs runs on it as prop-for-all runs a body.\n"
         },
+        "prop-max-allocs-with-setup": {
+            "arity": 4,
+            "detail_fields": [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage"
+            ],
+            "form": {
+                "generates": [
+                    "input"
+                ],
+                "kind": "function",
+                "of": "max-allocs-with-setup"
+            },
+            "package": "prop",
+            "summary": "The property form of max-allocs-with-setup. Each case of a run generates the input, and max-allocs-with-setup runs on it as prop-for-all runs a body.\n"
+        },
         "prop-nil": {
             "arity": 2,
             "detail_fields": [
@@ -1539,7 +1571,8 @@
             "nil-context-safe",
             "honours-cancellation",
             "honours-deadline",
-            "max-allocs"
+            "max-allocs",
+            "max-allocs-with-setup"
         ],
         "relations": {
             "accumulates": [
@@ -1574,6 +1607,9 @@
         },
         "counter-overflows": {
             "summary": "A counter, initially 0. increment adds one to the count, sets the count to 0 when the sum is 3, and returns the count. reset sets the count to 0 and returns null. The actions are increment and reset, each of which records its one call with no arguments. The model is a counter: increment outputs the count plus one and leaves it, and reset leaves 0.\n"
+        },
+        "counter-refuses-every-third": {
+            "summary": "A counter, initially 0, that refuses every third increment, counted over every case of the run. A refused increment completes with fail and the error refused, and leaves the count. Any other increment adds one to the count and returns it, and read returns the count. The actions are increment, enabled while the model's count is below 3, and read, each of which records its one call with no arguments. The model is a counter: increment outputs the count plus one and leaves it, and read outputs the count and leaves it. The machine's enabled reads a count that the subject's refusals change, so a case that repeats an earlier case's choices can list other actions.\n"
         },
         "queue-loses-on-wrap": {
             "summary": "A queue in a ring of slots, of a capacity drawn under \"capacity\" as an integer in [1, 8]. put(v) returns false when the queue is full. Otherwise it writes v at the write index, or into the first slot when the write index is at the last slot, moves the index on to the next slot, from the last to the first, and returns true. get() removes and returns the oldest value, or returns null when the queue is empty. The actions are put, whose input is drawn under \"v\" as an integer in [0, 1000], and get, each of which records its one call. The model is a queue of the capacity: put outputs whether the queue had room and adds v when it had, and get outputs the head and removes it, or outputs null.\n"
@@ -1711,5 +1747,5 @@
             "summary": "Yields the integers 1 to 5 in order, on every iteration.\n"
         }
     },
-    "version": "3.3.0"
+    "version": "4.0.0"
 }

@@ -32,13 +32,13 @@ simpler than a list of exceptions.
 ## Corpus coverage by assertion
 
 A case states its arguments as typed literals, or names a subject from a
-small vocabulary that each implementation builds natively. 39 of the 60
+small vocabulary that each implementation builds natively. 39 of the 61
 assertions have corpus cases:
 
 - 18 take data.
 - 21 take a callable that a subject describes.
 
-The other 21 take an error value, a predicate, a callable that no
+The other 22 take an error value, a predicate, a callable that no
 subject describes, a golden file, a benchmark, a property's body, a
 model or a recorded history. Each language tests them itself, and the
 completeness gate checks only that they are present. The standard checks
@@ -53,8 +53,8 @@ and verdicts. They also pin the values each shape generates, the
 choices that produce a value, the shape each fixture type reads as, the
 case that known draws state, a passing and a failing run of each
 property form, and the call records of a property's runs.
-`prop-max-allocs` has no vector, because no case can state an allocation
-count. People write each vector's inputs in
+`prop-max-allocs` and `prop-max-allocs-with-setup` have no vector,
+because no case can state an allocation count. People write each vector's inputs in
 `corpus/prop/<kind>.yaml`. `make render` computes the outputs with the
 executable reference in `tools/prop/` and writes the JSON beside them.
 
@@ -75,7 +75,7 @@ too. A vector under `corpus/stateful/` names a machine subject from the
 `machines` section of `assertions.yaml`, and each implementation builds
 every machine subject natively: the subject, its machine, its draws and
 its model. The vectors pin the detail of a run of each subject, the
-minimal steps of each fault, and the traces that a run follows or
-refuses. People write the inputs in `corpus/stateful/machines.yaml`, and
+minimal steps of each fault, the traces that a run follows or refuses,
+and the label and the step that a divergence names. People write the inputs in `corpus/stateful/machines.yaml`, and
 `make render` computes the outputs with the executable reference in
 `tools/stateful/`.

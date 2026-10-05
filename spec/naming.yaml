@@ -3,7 +3,7 @@
 # A qualified name names a member of the subpackage the assertion table
 # gives it. The separator is the language's own: a dot in Go, Java,
 # Kotlin, Python and TypeScript, two colons in Rust.
-version: "3.3.0"
+version: "4.0.0"
 
 languages: [go, java, kotlin, php, python, rust, typescript]
 
@@ -344,6 +344,13 @@ names:
     typescript: "maxAllocs"
     java: "maxAllocs"
     kotlin: "maxAllocs"
+  "max-allocs-with-setup":
+    go: "MaxAllocsWithSetup"
+    python: "max_allocs_with_setup"
+    rust: "max_allocs_with_setup"
+    typescript: "maxAllocsWithSetup"
+    java: "maxAllocsWithSetup"
+    kotlin: "maxAllocsWithSetup"
   "golden-match":
     go: "golden.Match"
     python: "golden.match"
@@ -470,6 +477,13 @@ relaxations:
 # for the setup and name that measuring. Each declines the other's,
 # because adopting it would make its own benchmarks read worse than they
 # do now.
+#
+# Every language spells a contract's warm-up as one word, as JMH spells
+# its Warmup annotation. A parallel body takes the name of Go's
+# testing.B.RunParallel, whose kind of body Go's member takes, and Rust
+# names it run_parallel after its run. Python and TypeScript decline it:
+# CPython's default build runs Python code on one thread at a time, and
+# JavaScript runs every worker on one thread.
 #
 # A seat answers a clock, and a failing assertion hands it a record. Four
 # languages state both on the seat itself and give them a default, so a
@@ -839,6 +853,18 @@ surface:
       typescript: "check"
       java: "check"
       kotlin: "check"
+    "contract.warmup":
+      go: "Warmup"
+      python: "warmup"
+      rust: "warmup"
+      typescript: "warmup"
+      java: "warmup"
+      kotlin: "warmup"
+    "contract.run-parallel":
+      go: "RunParallel"
+      rust: "run_parallel"
+      java: "runParallel"
+      kotlin: "runParallel"
     "case.draw":
       go: "Draw"
       python: "draw"
