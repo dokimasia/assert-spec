@@ -299,9 +299,10 @@ delta that moves with whether the collector ran. Each gap is in that
 language's overlay with the measurement behind it.
 
 Go and Rust state all 100 and declare nothing absent. Go checks no
-allocation ceiling in a build with the race detector, msan or asan, or
-in one whose `-gcflags` turn off optimisation or inlining, because those
-builds allocate differently from the one that ships. Go also reads an
+allocation ceiling in a build with the race detector, msan or asan, in
+one whose `-gcflags` turn off optimisation or inlining, or in a test
+binary that a mutation run instrumented, because those builds allocate
+differently from the one that ships. Go also reads an
 `int` at the platform's width, which is 32 bits on a 32-bit platform. A
 property over an `int` generates other values there. In Rust seven are
 partial: the six
