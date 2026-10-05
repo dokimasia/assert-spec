@@ -1469,7 +1469,7 @@
         "rejects": {
             "arity": 2,
             "detail_fields": [],
-            "summary": "A check fails against an implementation it is meant to reject. Yields the failure message.\n"
+            "summary": "A check fails against an implementation it is meant to reject. Yields the failure records of the check, in call order.\n"
         },
         "round-trip": {
             "arity": 4,
@@ -1747,5 +1747,5 @@
             "summary": "Yields the integers 1 to 5 in order, on every iteration.\n"
         }
     },
-    "version": "4.0.0"
+    "version": "5.0.0"
 }

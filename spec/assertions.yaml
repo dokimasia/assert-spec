@@ -17,7 +17,7 @@
 # assertion carries exactly these. got is what the assertion observed
 # and want is what it required, so an assertion whose failure holds
 # neither states no fields and reports the caller's message alone.
-version: "4.0.0"
+version: "5.0.0"
 
 # What a caller may relax, for one call.
 #
@@ -710,7 +710,7 @@ assertions:
     arity: 2
     summary: >
       A check fails against an implementation it is meant to reject.
-      Yields the failure message.
+      Yields the failure records of the check, in call order.
     detail_fields: []
 
   "prop-for-all":

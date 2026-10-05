@@ -590,6 +590,8 @@ and stores every distinct failure it finds, and fails the test at the
 end with all. `DOKIMI_ASSERT_PROP_BUDGET` states the budget in whole
 seconds, as a decimal number above 0. The budget reads the platform clock
 on purpose: it limits the job and is not part of what a property means.
+A `hermetic` run ignores both variables, and a run in a mutation run's
+process ignores the `campaign` profile. Each runs as an ordinary run.
 
 The case gains one member for it:
 

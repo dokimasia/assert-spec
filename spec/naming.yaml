@@ -3,7 +3,7 @@
 # A qualified name names a member of the subpackage the assertion table
 # gives it. The separator is the language's own: a dot in Go, Java,
 # Kotlin, Python and TypeScript, two colons in Rust.
-version: "4.0.0"
+version: "5.0.0"
 
 languages: [go, java, kotlin, php, python, rust, typescript]
 
@@ -1328,6 +1328,13 @@ surface:
       typescript: "prop.workers"
       java: "Prop.workers"
       kotlin: "Prop.workers"
+    "prop.hermetic":
+      go: "prop.Hermetic"
+      python: "prop.hermetic"
+      rust: "prop::hermetic"
+      typescript: "prop.hermetic"
+      java: "Prop.hermetic"
+      kotlin: "Prop.hermetic"
     "prop.fuzz":
       go: "prop.Fuzz"
       python: "prop.fuzz"

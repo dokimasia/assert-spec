@@ -180,8 +180,10 @@ file in place.
 reject, and fails if the check passes. Without it, a check whose every
 statement is `err-absent` passes against a subject whose methods do
 nothing and return null. That check reads as coverage and tests nothing.
-`rejects` returns the failure message, so a caller can assert the check
-failed for the reason it was written to catch.
+`rejects` returns the check's failure records, in call order, so a
+caller can assert that the check failed for the reason it was written
+to catch. A record states the assertion that failed, its contract and
+its detail, which every language reports alike.
 
 ### Both call styles, with the same names
 

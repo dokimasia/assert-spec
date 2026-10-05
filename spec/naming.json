@@ -1027,6 +1027,14 @@
                 "rust": "prop::fuzz",
                 "typescript": "prop.fuzz"
             },
+            "prop.hermetic": {
+                "go": "prop.Hermetic",
+                "java": "Prop.hermetic",
+                "kotlin": "Prop.hermetic",
+                "python": "prop.hermetic",
+                "rust": "prop::hermetic",
+                "typescript": "prop.hermetic"
+            },
             "prop.integer": {
                 "go": "prop.Integer",
                 "java": "Prop.integer",
@@ -1982,5 +1990,5 @@
             }
         }
     },
-    "version": "4.0.0"
+    "version": "5.0.0"
 }

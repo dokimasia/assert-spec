@@ -54,7 +54,7 @@ tools/history/         the history's and the checkers' executable reference
 tools/stateful/        the machines' and the scheduler's executable reference
 tools/spec-sync.sh     how an implementation vendors the definition
 tools/spec-check.sh    how an implementation checks its copy
-VERSION                4.0.0
+VERSION                5.0.0
 ```
 
 People edit the YAML. `make render` produces the JSON, which is
@@ -285,7 +285,7 @@ differently.
 | TypeScript | [assert-typescript](https://github.com/dokimasia/assert-typescript) | 94 of 100 |
 
 Each count is what the language's overlay declares against version
-4.0.0. An implementation that has not synced to it yet has a drift issue
+5.0.0. An implementation that has not synced to it yet has a drift issue
 open until it does.
 
 Java and Kotlin ship from one repository and are named identically, so

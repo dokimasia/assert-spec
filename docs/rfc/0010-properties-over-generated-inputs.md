@@ -767,10 +767,10 @@ found no failing case in this order:
 3. A run with a refuted or unmet coverage requirement ends as
    `coverage-unmet`.
 
-The seed is random for each run unless the caller states one or the
-`DOKIMI_ASSERT_PROP_SEED` environment variable sets it. The failure
-reports the seed, so a failing run is reproducible from the seed alone
-under the same definition version.
+The seed is random for each run unless the caller states one, a variable
+sets it, or the run derives it from its contract, in the order that the
+options section lists. The failure reports the seed, so a failing run is
+reproducible from the seed alone under the same definition version.
 
 ### The case tree
 
@@ -860,6 +860,7 @@ Options                        each optional; the default follows the name
   store(path)                  the store's directory; none turns the store off
   explain(enabled)             whether the counterexample is explained; on
   workers(n)                   cases and shrink candidates run at once; 1
+  hermetic()                   the run reads none of the engine's variables; off
 ```
 
 `DOKIMI_ASSERT_PROP_PROFILE` selects a set of defaults for a whole test
@@ -880,6 +881,40 @@ differently by environment name gives a local run that does not
 reproduce the CI run. Hypothesis activates its own `ci` profile when the
 `CI` environment variable is set, and derives that profile's seed from a
 digest of the test function's source.
+
+A test states `hermetic` when it runs a property to check something
+other than a subject:
+
+- A pin runs a seeded property and compares the values of its cases
+  with a golden file.
+- A test of a property harness runs the harness against a wrong
+  implementation, and expects the property to fail.
+
+Under the `campaign` profile such a test runs for the whole budget, and
+under the replay variable it runs a case that another property
+recorded. A `hermetic` run reads none of the engine's four variables:
+`DOKIMI_ASSERT_PROP_SEED`, `DOKIMI_ASSERT_PROP_PROFILE`,
+`DOKIMI_ASSERT_PROP_BUDGET` and `DOKIMI_ASSERT_PROP_REPLAY`. It runs as
+the `default` profile runs, and replays only a token that `replay`
+states.
+
+A mutation run sets `DOKIMI_MUTATE_MUTANT` in every run of a test binary
+that it instrumented, its control runs included. A run in such a process
+derives its seed from the contract as the `ci` profile does, whatever
+`DOKIMI_ASSERT_PROP_PROFILE` names, and runs no campaign. A misspelled
+profile still fails the run, as it fails every other run. The control
+runs and every mutant's run then try the same cases, and a mutant's
+verdict does not change between two runs of one tree. Such a run adds no
+entry to the store.
+
+A run takes the first seed of this list:
+
+1. The seed that `seed` states.
+2. The seed that `DOKIMI_ASSERT_PROP_SEED` states, in a run that is not
+   `hermetic`.
+3. The seed derived from the contract, in a mutation run, and under the
+   `ci` profile in a run that is not `hermetic`.
+4. A random seed.
 
 ### The failure identity
 
@@ -1123,7 +1158,9 @@ test.
 
 The runner adds an entry when a run ends as `counterexample` and never
 removes one. When a file of the entry's name exists, the runner leaves
-it unchanged. An entry that passes is a regression case that now passes,
+it unchanged. A run in a mutation run's process tries every stored case
+and adds no entry. A counterexample of one mutant would otherwise enter
+the module under test, and every later mutant's run would try it first. An entry that passes is a regression case that now passes,
 and deleting it is a person's decision, as updating a golden file is.
 A store that cannot be written, on a read-only checkout for example,
 is reported as a note and does not fail the test.
@@ -1202,8 +1239,9 @@ after it has the same file name in every language.
 
 A caller replays one case by passing the token as the `replay` option,
 or by setting `DOKIMI_ASSERT_PROP_REPLAY` and running the one test. A
-property with a replay token runs that case and nothing else, and does
-not shrink it further unless asked.
+`hermetic` run replays only the token that `replay` states. A property
+with a replay token runs that case and nothing else, and does not shrink
+it further unless asked.
 
 ### Coverage requirements
 
@@ -1303,7 +1341,7 @@ the JVM and in JavaScript.
 
 | Tier | What it covers here |
 |---|---|
-| Fixed | The three choice kinds, their targets, keys and replay rules. The decoding of every generator from choices, and which of its choices are structure. The random source and every draw algorithm, including how `rand()` maps to choices. The phases and their order, the prefix cases and their limit, and the four edge cases. The case tree's three rules, what enters it, its limit of 2^20 nodes, and the cap of ten times `cases` generated cases. That a run on more than one worker reports what a run on one reports. The `ci` seed. The defaults: 100 cases, ten rejections per valid case, 8,192 choices, a 2,000-run shrink budget shared by every failure of a run, a 30-second shrink time, one worker, 100 leaves for `recursive`. The shortlex order, the shrink passes and their order, and the order in which failures are shrunk. The four fillings that explain a draw, and the step that finds a boundary. The coverage test, its constants and its checks. The fuzz bridge's decoding. The replay token. The store's format, its file names, the verdict on each file a runner reads, and the order of the stored phase. The outcomes and the detail fields |
+| Fixed | The three choice kinds, their targets, keys and replay rules. The decoding of every generator from choices, and which of its choices are structure. The random source and every draw algorithm, including how `rand()` maps to choices. The phases and their order, the prefix cases and their limit, and the four edge cases. The case tree's three rules, what enters it, its limit of 2^20 nodes, and the cap of ten times `cases` generated cases. That a run on more than one worker reports what a run on one reports. The `ci` seed, the order in which a run takes its seed, and how a `hermetic` run and a mutation run treat the variables. The defaults: 100 cases, ten rejections per valid case, 8,192 choices, a 2,000-run shrink budget shared by every failure of a run, a 30-second shrink time, one worker, 100 leaves for `recursive`. The shortlex order, the shrink passes and their order, and the order in which failures are shrunk. The four fillings that explain a draw, and the step that finds a boundary. The coverage test, its constants and its checks. The fuzz bridge's decoding. The replay token. The store's format, its file names, the verdict on each file a runner reads, the order of the stored phase, and that a mutation run adds no entry. The outcomes and the detail fields |
 | Named | `prop-for-all`, every generator, the case and its members, the options, the bridge, the profiles and the environment variables |
 | Declared | Integer bounds above 2^63 − 1 in PHP, whose integers are signed. A fuzzer the language does not have. A store location the language has no convention for. `workers` in a language whose bodies cannot run in parallel |
 | Free | How a counterexample renders. Whether a body is a closure, a decorator or an annotated method. How a language states a generator's parameters: keyword arguments, an options object, a range or functional options, each meaning what its key in the generator table means. Generators derived from types. Whether the bridge is a function or an attribute. Whether workers are threads or processes. How a language computes the random source's 64-bit arithmetic, such as PHP on 32-bit halves |
@@ -1421,9 +1459,9 @@ in the plural and fast-check in the singular. The naming rule allows a
 difference only where a language requires one, so the standard takes
 the id.
 
-The preceding table shows 6 of 41 rows. The full set is the assertion,
+The preceding table shows 6 of 42 rows. The full set is the assertion,
 15 generators, 4 combinators, 2 types (the generator and the case), the
-case's 8 members, 10 options and the bridge. Every row names 6
+case's 8 members, 11 options and the bridge. Every row names 6
 languages, except `case.cancellation`, which Python and Kotlin decline.
 `map`, `filter` and `bind` are members of the generator, and
 `composite` is a function of the package.
@@ -1794,7 +1832,8 @@ failures and the case tree, and fixes a smaller set of them by version.
   CI by testing the same inputs every time, and with it the chance of
   finding anything new there.
 - **The store writes into the source tree.** A failing run leaves a
-  file to review, as a golden-file update does.
+  file to review, as a golden-file update does. A mutation run writes
+  none.
 
 ## Unresolved and future work
 
