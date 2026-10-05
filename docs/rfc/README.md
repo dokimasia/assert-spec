@@ -23,3 +23,6 @@ they record why not.
 | [0015](0015-isolation-checks-over-transaction-histories.md) | Isolation checks over transaction histories | Accepted |
 | [0016](0016-recording-every-assertion-call.md) | Recording every assertion call | Accepted |
 | [0017](0017-pinning-map-keys.md) | Pinning map keys | Accepted |
+| [0018](0018-warm-up-iterations-in-a-benchmark-contract.md) | Warm-up iterations in a benchmark contract | Accepted |
+| [0019](0019-parallel-bodies-in-a-benchmark-contract.md) | Parallel bodies in a benchmark contract | Accepted |
+| [0020](0020-an-allocation-ceiling-that-leaves-out-setup.md) | An allocation ceiling that leaves out setup | Accepted |
