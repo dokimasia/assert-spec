@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@3.2.0",
+  "extends": "spec://assertions@3.3.0",
   "language": "go",
   "diverge": [],
   "limits": [
@@ -62,6 +62,7 @@
       "why": "Go writes a benchmark body inline under testing.B, so a setup closure would take the caller out of both the loop and the chain. It marks the setup in place with Excluding instead."
     }
   ],
+  "sections": ["tasks", "threads"],
   "records": {
     "artifact": "The event stream that go test -json writes for a run. go test writes the call records under -json and -v alone.",
     "location": "One attr event per call record. Its Package and Test name the test, its Key is dokimi.assert.<seq>, and its Value is the call record's JSON. A call record whose line does not fit test2json's 4,096-byte line buffer is split over consecutive attr events of the same Key, whose Values join into the call record.",

@@ -69,3 +69,13 @@ isolation level states a history of list-append transactions, and every
 history appears once at each level. People write the inputs in
 `corpus/history/<kind>.yaml`, and `make render` computes the outputs with
 the executable reference in `tools/history/`.
+
+The steps of a machine and the task scheduler are data in and data out
+too. A vector under `corpus/stateful/` names a machine subject from the
+`machines` section of `assertions.yaml`, and each implementation builds
+every machine subject natively: the subject, its machine, its draws and
+its model. The vectors pin the detail of a run of each subject, the
+minimal steps of each fault, and the traces that a run follows or
+refuses. People write the inputs in `corpus/stateful/machines.yaml`, and
+`make render` computes the outputs with the executable reference in
+`tools/stateful/`.

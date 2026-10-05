@@ -3,9 +3,12 @@
 The runner calls a body once per case, in four phases, and stops at the
 first failing case:
 
-1. Examples and stored: each choice sequence of a case whose values the
-   caller states, in order, then each stored choice sequence, oldest
-   first. These cases do not enter the case tree.
+1. Traces, examples and stored: each trace of a case whose draws and
+   steps the caller states, then each choice sequence of a case whose
+   values the caller states, in order, then each stored choice sequence,
+   oldest first. These cases do not enter the case tree. A trace that the
+   body cannot follow raises TraceError, which ends the run before any
+   other case runs.
 2. Simplest: one case whose every choice is its target.
 3. Random: case i of the seed, for i = 0, 1, 2, ..., until ``cases``
    valid cases have run, the domain is exhausted, or GENERATION_FACTOR
@@ -69,6 +72,7 @@ from .execution import (
 )
 from .replay import encode
 from .source import case_source
+from .trace import Entry, Tracing
 from .tree import Tree
 
 #: The valid cases a run aims for when the caller states no number.
@@ -115,17 +119,19 @@ class Requirement:
 class Settings:
     """What a run is asked to do.
 
-    examples are the choice sequences of the cases whose values the caller
-    states, which run first. shrink is the budget of runs that shrinking
-    and explaining every failure may spend, and 0 turns both off. replay,
-    when set, is the one case the run tries: a failure is reported as
-    found, and a pass passes.
+    traces are the cases whose draws and machine steps the caller states,
+    which run first, and examples the choice sequences of the cases whose
+    values the caller states, which run next. shrink is the budget of runs
+    that shrinking and explaining every failure may spend, and 0 turns
+    both off. replay, when set, is the one case the run tries: a failure is
+    reported as found, and a pass passes.
     """
 
     seed: int
     cases: int = DEFAULT_CASES
     max_choices: int = MAX_CHOICES
     requirements: tuple[Requirement, ...] = ()
+    traces: tuple[tuple[Entry, ...], ...] = ()
     examples: tuple[tuple[Choice, ...], ...] = ()
     stored: tuple[tuple[Choice, ...], ...] = ()
     shrink: int = shrink.DEFAULT_BUDGET
@@ -365,12 +371,19 @@ class _Phases:
 
 
 def _explore(body: Body, settings: Settings, observer: Observer) -> Outcome:
-    """Run the phases until the run ends, without concluding a counterexample."""
+    """Run the phases until the run ends, without concluding a counterexample.
+
+    Raises:
+        TraceError: a trace states an entry that the body cannot follow.
+    """
     tally = _Tally(settings.seed)
-    known = [(Phase.EXAMPLE, example) for example in settings.examples]
-    known += [(Phase.STORED, stored) for stored in settings.stored]
-    for phase, choices in known:
-        execution = execute(body, Replaying(choices), settings.max_choices)
+    known: list[tuple[Phase, Provider]] = [
+        (Phase.EXAMPLE, Tracing(trace)) for trace in settings.traces
+    ]
+    known += [(Phase.EXAMPLE, Replaying(example)) for example in settings.examples]
+    known += [(Phase.STORED, Replaying(stored)) for stored in settings.stored]
+    for phase, provider in known:
+        execution = execute(body, provider, settings.max_choices)
         observer(phase, execution)
         if (outcome := tally.take(execution)) is not None:
             return outcome
@@ -426,6 +439,9 @@ def run(body: Body, settings: Settings, observer: Observer = unobserved) -> Outc
     A run with replay set runs that one case instead, and neither
     shrinks nor explains it. observer sees every call of the body with
     its phase, in the order of the run.
+
+    Raises:
+        TraceError: a trace states an entry that the body cannot follow.
     """
     if settings.replay is not None:
         return _replay(body, settings, settings.replay, observer)

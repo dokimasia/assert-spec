@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@3.2.0",
+  "extends": "spec://assertions@3.3.0",
   "language": "typescript",
   "diverge": [
     {
@@ -76,6 +76,7 @@
       "why": "equal and notEqual hold want to the type of got through NoInfer, so the static form already rejects a mismatched pair at compile time. A chain would be a second way to write what is checked either way."
     }
   ],
+  "sections": ["tasks"],
   "records": {
     "artifact": "The JSON report that vitest run --reporter=json --outputFile.json=PATH writes to PATH when the run ends. Vitest's JUnit report states test annotations and no task meta, and an annotation cannot be written after a test's function returns.",
     "location": "The array under the key dokimi.assert of the meta object of the test's entry in testResults[].assertionResults[], one call record per element, in the order the calls report their verdicts. The entry's ancestorTitles and title name the test inside the file that testResults[].name names.",

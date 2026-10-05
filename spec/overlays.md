@@ -32,6 +32,7 @@ something nobody checked.
 | `language` | The language, matching both the filename and a column in the naming table |
 | `diverge` | Every assertion this language does not supply |
 | `records` | Where this language writes the call records of a recorded run |
+| `sections` | How this language runs the concurrent section of a machine |
 
 A divergence carries `id`, `stance` and `why`. `remedy` is optional and
 says what would close the gap.
@@ -127,3 +128,22 @@ run. Its overlay states that artifact:
 
 The validator refuses an overlay without the entry, and an entry whose
 key is missing or empty.
+
+## Sections
+
+A machine with two clients or more runs a concurrent section. A language
+runs it as tasks of the task scheduler, which takes every release from the
+case and replays, or on real threads, which the platform schedules. Its
+overlay lists the ways it offers:
+
+```json
+"sections": ["tasks", "threads"]
+```
+
+| Value | States |
+|---|---|
+| `tasks` | A section can run as tasks of the task scheduler |
+| `threads` | A section can run on real threads, and repeats each case |
+
+The validator refuses an overlay without the entry, an empty list, a value
+outside the two, and a value listed twice.

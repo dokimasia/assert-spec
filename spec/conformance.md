@@ -77,6 +77,16 @@ history refuses, and the verdict, the steps and the record of each
 check. One history then gives one outcome and one record in every
 language.
 
+**How a machine takes its steps, and how the task scheduler releases
+tasks.** Every decision of a machine is a choice of the case: the swarm
+choices, the continue flags, the indices by weight, the clients of a
+concurrent section, and the drain's indices. The task scheduler takes each
+release from a choice, under one of two strategies. The machines vectors
+pin the run of each machine subject, the minimal steps of each fault, and
+the traces that a run follows or refuses. One seed then gives one sequence
+of steps in every language, and one schedule wherever a concurrent section
+runs as tasks.
+
 ## Named
 
 The same idea, spelled the way the language spells things. Each has a row
@@ -89,7 +99,7 @@ divergence.
 **Every relaxation.** Two of them, named the same way.
 
 **Every type a caller touches**, and every member on it. The seats, the
-scrubbers, the benchmark contract.
+scrubbers, the benchmark contract, the machine and the task scheduler.
 
 **Who supplies a capability.** A row may name something the language's
 own test framework provides rather than something this library ships. Go
@@ -147,6 +157,12 @@ each call record is in that artifact, and where the artifact states each
 test's status. A `why` explains a gap. This entry states a place and has
 no `why`.
 
+**How a language runs the concurrent section of a machine.** A language's
+`sections` entry lists `tasks`, `threads` or both. A section that runs as
+tasks of the task scheduler replays from the case. A section on real
+threads repeats each case instead, because the platform schedules the
+threads. This entry states a capability and has no `why`.
+
 An assertion is Declared absent or Declared partial, never both, because
 a divergence must be missing and a limit must be present.
 
@@ -199,8 +215,9 @@ other is the library's.
 | Fixed: two surfaces, readable outcome | The corpus needs both to run at all |
 | Fixed: the call record | The corpus, run with recording on: the call record of every case. The recording vectors: the call records of a property's runs |
 | Fixed: the history and the checkers | The history vectors: the events of a script or of intervals, the entry that the history refuses, and the verdict, the steps and the detail of each linearizability and isolation check |
+| Fixed: machines and the task scheduler | The machines vectors: the detail of a run of each machine subject, the minimal steps of each fault, and the traces that a run follows or refuses |
 | Named | The completeness gate, against the naming table, with each member's arity as far as the language can read it |
-| Declared | The validator, which refuses an entry with no reason and an overlay that states no artifact |
+| Declared | The validator, which refuses an entry with no reason, an overlay that states no artifact, and an overlay that states no way to run a concurrent section |
 | Free | Nothing |
 
 A difference that belongs in a tier and is not recorded there is the

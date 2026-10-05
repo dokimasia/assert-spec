@@ -12,6 +12,7 @@ from .execution import Body, Execution, Phase, Status, execute
 from .generator import build
 from .runner import Kind, Requirement, Settings, prefix_cases, rejects_too_many, run
 from .source import case_source
+from .trace import Draw, TraceError
 
 #: The definition's run constants, pinned rather than read from the code.
 PINNED_CASES = 100
@@ -374,6 +375,30 @@ class ObserverTest(unittest.TestCase):
         known = [Phase.EXAMPLE, Phase.STORED, Phase.STORED, Phase.SIMPLEST]
         self.assertEqual(seen.phases[:4], known)
         self.assertEqual(len(seen.calls), body.count)
+
+    def test_a_trace_runs_before_the_examples(self) -> None:
+        """The trace's draw takes its entry, and an example follows it."""
+        values: list[object] = []
+        seen = Seen()
+        settings = Settings(
+            SEED,
+            cases=1,
+            traces=((Draw("n", 5),),),
+            examples=((Choice("integer", 3),),),
+        )
+        run(lambda case: values.append(case.draw(WIDE, "n")), settings, seen)
+        self.assertEqual(
+            seen.phases[:3], [Phase.EXAMPLE, Phase.EXAMPLE, Phase.SIMPLEST]
+        )
+        self.assertEqual(values[:2], [5, 3])
+
+    def test_a_trace_the_body_cannot_follow_ends_the_run(self) -> None:
+        """A draw under another label than its entry's raises before any case."""
+        seen = Seen()
+        settings = Settings(SEED, traces=((Draw("m", 5),),))
+        with self.assertRaises(TraceError):
+            run(lambda case: case.draw(WIDE, "n"), settings, seen)
+        self.assertEqual(seen.calls, [])
 
     def test_a_random_case_is_followed_by_its_prefix_case(self) -> None:
         """Random case 0 of two wide integers has a prefix case."""

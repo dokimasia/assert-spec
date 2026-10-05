@@ -28,7 +28,9 @@ from .draw import (
     float_value,
     integer,
     integer_edges,
+    keep,
     sequence,
+    weighted,
 )
 from .source import Source
 
@@ -203,6 +205,67 @@ class BooleanDrawTest(unittest.TestCase):
             self.assertEqual(
                 boolean(source, Fraction(1, 3)), 1 if twin.coin(1, 3) else 0
             )
+
+
+@final
+class WeightedDrawTest(unittest.TestCase):
+    """weighted(): an index in proportion to its weight."""
+
+    def test_one_weight_returns_0_and_consumes_nothing(self) -> None:
+        """A list of one action draws nothing, whatever its weight."""
+        source, twin = Source(4), Source(4)
+        self.assertEqual(weighted(source, [3]), 0)
+        self.assertEqual(source.next(), twin.next())
+
+    def test_the_index_is_the_first_whose_running_sum_exceeds_the_draw(self) -> None:
+        """Weights 1, 2 and 1 split below(4) into [0], [1, 2] and [3]."""
+        source, twin = Source(6), Source(6)
+        for _ in range(DRAWS):
+            point = twin.below(4)
+            self.assertEqual(weighted(source, [1, 2, 1]), [0, 1, 1, 2][point])
+
+
+@final
+class KeepDrawTest(unittest.TestCase):
+    """keep(): swarm's choice for one action, given the choices before it."""
+
+    def test_after_a_kept_action_one_coin_decides(self) -> None:
+        """The draw is the coin of the probability."""
+        source, twin = Source(8), Source(8)
+        half = Fraction(1, 2)
+        for remaining in (1, 3):
+            for _ in range(50):
+                self.assertEqual(
+                    keep(source, half, True, remaining), boolean(twin, half)
+                )
+
+    def test_the_last_action_after_none_kept_is_kept_without_a_draw(self) -> None:
+        """Nothing is consumed."""
+        source, twin = Source(8), Source(8)
+        self.assertEqual(keep(source, Fraction(1, 2), False, 1), 1)
+        self.assertEqual(source.next(), twin.next())
+
+    def test_before_a_kept_action_coins_repeat_until_one_comes_up(self) -> None:
+        """One coin per remaining action, and the draw is the first coin."""
+        half = Fraction(1, 2)
+        for seed in range(100):
+            source, twin = Source(seed), Source(seed)
+            while not any(coins := [boolean(twin, half) for _ in range(3)]):
+                pass
+            self.assertEqual(keep(source, half, False, 3), coins[0], seed)
+            self.assertEqual(source.next(), twin.next(), seed)
+
+    def test_every_non_empty_set_of_two_actions_is_as_likely(self) -> None:
+        """Each of first, second and both is kept about a third of the time."""
+        source = Source(10)
+        half = Fraction(1, 2)
+        counts = {(1, 0): 0, (0, 1): 0, (1, 1): 0}
+        for _ in range(DRAWS * 3):
+            first = keep(source, half, False, 2)
+            second = keep(source, half, first == 1, 1)
+            counts[first, second] += 1
+        for kept, count in counts.items():
+            self.assertAlmostEqual(count / (DRAWS * 3), 1 / 3, delta=0.03, msg=kept)
 
 
 @final

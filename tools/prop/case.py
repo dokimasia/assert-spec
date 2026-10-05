@@ -8,7 +8,8 @@ the bridge. The case records every value with its request and the spans of
 the generators that asked for it. The shrinker edits that record.
 
 A body receives the case and uses draw(), assume(), classify(), note(),
-observe(), random() and fail(). The signals those members raise, Rejected
+observe(), random() and fail(), and records the calls it makes to a
+subject in the case's history. The signals those members raise, Rejected
 and Failed, and the signals of the case tree end the body, which must let
 them pass.
 """
@@ -19,7 +20,9 @@ import collections.abc
 from collections.abc import Callable, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Final, Protocol, final
+from typing import Final, Protocol, final, runtime_checkable
+
+from history.seam import History
 
 from . import draw
 from .choice import UINT64_MAX, Bounds, Choice, IntegerBounds, SequenceBounds, Value
@@ -106,6 +109,28 @@ class Generator(Protocol):
             Rejected: the choices decode to no value of the domain.
         """
         ...
+
+
+@runtime_checkable
+class Tracer(Protocol):
+    """A provider that serves a trace, which each draw consults before it decodes."""
+
+    def drawing(self, generator: Generator, label: str) -> None:
+        """Prepare the values of the draw of generator under label."""
+        ...
+
+
+@dataclass(frozen=True)
+class Step:
+    """One step a machine took: its action's name, and where it ran.
+
+    client is set for a step of a concurrent section, and drain for a step
+    of the drain.
+    """
+
+    action: str
+    client: int | None = None
+    drain: bool = False
 
 
 @final
@@ -220,19 +245,23 @@ class Case:
         """Start an empty case whose values come from provider.
 
         observer, when given, sees every choice after the case records it.
+        A provider that is a Tracer is the case's tracer.
         """
         self._provider = provider
         self._max_choices = max_choices
         self._observer = observer
         self._cost = 0
+        self.tracer: Tracer | None = provider if isinstance(provider, Tracer) else None
         self.choices: list[Choice] = []
         self.requests: list[Request] = []
         self.spans: list[Span] = []
         self._open: list[int] = []
         self.draws: list[Drawn] = []
+        self.steps: list[tuple[int, Step]] = []
         self.labels: set[str] = set()
         self.notes: list[str] = []
         self.fingerprints: list[int] = []
+        self.history = History()
 
     def choose(self, request: Request) -> Value:
         """Return the value for request and record it.
@@ -318,12 +347,19 @@ class Case:
         """Return a value of generator and record it under label.
 
         The draw's span is the first span the generator opens. Two draws
-        may share a label.
+        may share a label. A case with a tracer lets it prepare the draw's
+        values first.
         """
+        if self.tracer is not None:
+            self.tracer.drawing(generator, label)
         span = len(self.spans)
         value = generator.decode(self)
         self.draws.append(Drawn(label, value, span, generator))
         return value
+
+    def step(self, taken: Step) -> None:
+        """Record a step a machine took, after every draw recorded so far."""
+        self.steps.append((len(self.draws), taken))
 
     def assume(self, condition: bool) -> None:
         """Reject the case when condition is false.

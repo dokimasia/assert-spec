@@ -197,6 +197,40 @@ def check(
     return undecided or Verdict(Outcome.PASSED, len(partitions), steps)
 
 
+def whole(
+    events: Sequence[Event],
+    model: Model,
+    budget: int = BUDGET,
+    memo_limit: int = MEMO_LIMIT,
+) -> tuple[Verdict, tuple[object, ...]]:
+    """Check a history as one partition, whatever keys its calls declare.
+
+    A machine checks its case's history this way, because its model is one
+    state of the whole subject. The result is the verdict, and for a pass
+    the states after the order the search found: the initial state for a
+    history without calls.
+    """
+    calls = _calls(events)
+    if not calls:
+        return Verdict(Outcome.PASSED, 0, 0), (model.init(),)
+    ending = _Search(calls, model, budget, memo_limit).run()
+    if ending.outcome is Outcome.PASSED:
+        return Verdict(Outcome.PASSED, 1, ending.steps), ending.states
+    verdict = Verdict(
+        ending.outcome,
+        1,
+        ending.steps,
+        (),
+        len(calls),
+        concurrency(calls),
+        ending.linearized,
+        ending.states,
+        ending.candidates,
+        ending.limit,
+    )
+    return verdict, ()
+
+
 def concurrency(calls: Sequence[Call]) -> int:
     """Return the most calls that are open at one event.
 
@@ -358,13 +392,16 @@ class _Search:
         self._at_frontier = True
 
     def run(self) -> _Ending:
-        """Search the partition, and return how the search ended."""
+        """Search the partition, and return how the search ended.
+
+        A search that passed states the states after the order it found.
+        """
         try:
             outcome = self._search()
         except _Stopped as stopped:
             return self._ending(Outcome.UNDECIDED, stopped.limit)
         if outcome is Outcome.PASSED:
-            return _Ending(outcome, self._steps)
+            return _Ending(outcome, self._steps, states=tuple(self._states))
         return self._ending(outcome, None)
 
     def _ending(self, outcome: Outcome, limit: Limit | None) -> _Ending:

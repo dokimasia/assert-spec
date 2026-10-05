@@ -245,6 +245,34 @@ class Validator(unittest.TestCase):
         )
         self.assert_caught("overlays/rust.json: records states no status")
 
+    def test_an_overlay_without_sections_is_caught(self) -> None:
+        """An overlay states how its language runs a concurrent section."""
+        _edit(self.tree / "overlays" / "go.json", lambda d: d.pop("sections"))
+        self.assert_caught("overlays/go.json: states no sections")
+
+    def test_sections_that_name_no_way_are_caught(self) -> None:
+        """An overlay's sections list at least one way to run a section."""
+        _edit(self.tree / "overlays" / "go.json", lambda d: d.update(sections=[]))
+        self.assert_caught("overlays/go.json: sections is [], not a list")
+
+    def test_an_unknown_way_to_run_a_section_is_caught(self) -> None:
+        """A section runs as tasks of the scheduler or on threads."""
+        _edit(
+            self.tree / "overlays" / "rust.json",
+            lambda d: d.update(sections=["fibers"]),
+        )
+        self.assert_caught(
+            "runs a section as 'fibers', which is none of ['tasks', 'threads']"
+        )
+
+    def test_a_way_to_run_a_section_named_twice_is_caught(self) -> None:
+        """Each way is named once."""
+        _edit(
+            self.tree / "overlays" / "typescript.json",
+            lambda d: d.update(sections=["tasks", "tasks"]),
+        )
+        self.assert_caught("typescript.json: names a way to run a section twice")
+
     def test_a_divergence_from_an_unknown_assertion_is_caught(self) -> None:
         """A language cannot diverge from something nobody defined."""
         _edit(
@@ -1182,6 +1210,76 @@ class Validator(unittest.TestCase):
         self.assert_caught(
             "begins with 'serializable', which names no snapshot-isolation vector"
         )
+
+    def _machines(self, keep: Callable[[Any], bool]) -> None:
+        """Keep only the machines vectors that keep accepts."""
+        _edit(
+            self.tree / "corpus" / "stateful" / "machines.json",
+            lambda d: d.update(cases=[c for c in d["cases"] if keep(c)]),
+        )
+
+    def test_a_definition_with_no_machine_subjects_is_caught(self) -> None:
+        """The machine subjects are what the machines vectors name."""
+        _edit(self.tree / "spec" / "assertions.json", lambda d: d.update(machines={}))
+        self.assert_caught("spec/assertions.json: states no machine vocabulary")
+
+    def test_a_machine_subject_with_no_summary_is_caught(self) -> None:
+        """Each implementation builds a machine subject from its summary."""
+        _edit(
+            self.tree / "spec" / "assertions.json",
+            lambda d: d["machines"]["racy-counter"].update(summary="  "),
+        )
+        self.assert_caught("machine racy-counter: states no summary")
+
+    def test_a_missing_machines_vector_file_is_caught(self) -> None:
+        """The machines vectors have a file."""
+        (self.tree / "corpus" / "stateful" / "machines.json").unlink()
+        self.assert_caught("corpus/stateful/: has no machines vectors")
+
+    def test_a_machines_vector_named_for_no_subject_is_caught(self) -> None:
+        """A machines vector's id begins with a machine subject."""
+        _edit(
+            self.tree / "corpus" / "stateful" / "machines.json",
+            lambda d: d["cases"][0].update(id="stack/renamed"),
+        )
+        self.assert_caught("begins with 'stack', which names no machine subject")
+
+    def test_a_machines_vector_that_runs_another_subject_is_caught(self) -> None:
+        """A machines vector runs the subject its id names."""
+        _edit(
+            self.tree / "corpus" / "stateful" / "machines.json",
+            lambda d: d["cases"][0].update(subject="correct-queue"),
+        )
+        self.assert_caught(
+            "runs 'correct-queue', and its id names 'queue-loses-on-wrap'"
+        )
+
+    def test_a_machine_subject_without_a_vector_is_caught(self) -> None:
+        """Every machine subject runs in a vector."""
+        self._machines(lambda c: c["subject"] != "correct-counter")
+        self.assert_caught("has no vector that covers 'subject:correct-counter'")
+
+    def test_machines_without_a_pass_are_caught(self) -> None:
+        """A run of a machine passes in a vector."""
+        self._machines(
+            lambda c: c["detail"] is None or c["detail"]["outcome"] != "passed"
+        )
+        self.assert_caught("has no vector that covers 'passed'")
+
+    def test_traces_that_never_fail_are_caught(self) -> None:
+        """A trace that a run follows fails in a vector."""
+        self._machines(lambda c: "trace" not in c or c["error"] is not None)
+        self.assert_caught("has no vector that covers 'trace:counterexample'")
+
+    def test_a_trace_without_a_client_is_caught(self) -> None:
+        """A concurrent step entry states its client in a vector."""
+        self._machines(lambda c: c["subject"] != "racy-counter" or "trace" not in c)
+        self.assert_caught("has no vector that covers 'trace:client'")
+
+    def test_a_refused_trace_that_no_vector_states_is_caught(self) -> None:
+        """A step entry that a run cannot take is the error of a vector."""
+        self._machines(lambda c: c["error"] is None)
+        self.assert_caught("has no vector that covers 'refused:step'")
 
     def test_a_parallel_language_without_the_recorder_limit_is_caught(self) -> None:
         """The counter can hide a missing barrier where threads run on many cores."""

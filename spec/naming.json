@@ -1211,6 +1211,94 @@
                 "rust": "prop::workers",
                 "typescript": "prop.workers"
             },
+            "scheduler.new": {
+                "go": "stateful.NewScheduler",
+                "java": "new Scheduler()",
+                "kotlin": "Scheduler()",
+                "python": "stateful.Scheduler()",
+                "rust": "stateful::Scheduler::new",
+                "typescript": "new stateful.Scheduler()"
+            },
+            "scheduler.pct": {
+                "go": "stateful.PCT",
+                "java": "Stateful.pct",
+                "kotlin": "Stateful.pct",
+                "python": "stateful.pct",
+                "rust": "stateful::pct",
+                "typescript": "stateful.pct"
+            },
+            "scheduler.uniform": {
+                "go": "stateful.Uniform",
+                "java": "Stateful.uniform",
+                "kotlin": "Stateful.uniform",
+                "python": "stateful.uniform",
+                "rust": "stateful::uniform",
+                "typescript": "stateful.uniform"
+            },
+            "stateful.steps": {
+                "go": "stateful.Steps",
+                "java": "Stateful.steps",
+                "kotlin": "Stateful.steps",
+                "python": "stateful.steps",
+                "rust": "stateful::steps",
+                "typescript": "stateful.steps"
+            },
+            "steps.clients": {
+                "go": "stateful.Clients",
+                "java": "Stateful.clients",
+                "kotlin": "Stateful.clients",
+                "python": "stateful.clients",
+                "rust": "stateful::clients",
+                "typescript": "stateful.clients"
+            },
+            "steps.concurrent": {
+                "go": "stateful.Concurrent",
+                "java": "Stateful.concurrent",
+                "kotlin": "Stateful.concurrent",
+                "python": "stateful.concurrent",
+                "rust": "stateful::concurrent",
+                "typescript": "stateful.concurrent"
+            },
+            "steps.max": {
+                "go": "stateful.Max",
+                "java": "Stateful.max",
+                "kotlin": "Stateful.max",
+                "python": "stateful.max_steps",
+                "rust": "stateful::max",
+                "typescript": "stateful.max"
+            },
+            "steps.mean": {
+                "go": "stateful.Mean",
+                "java": "Stateful.mean",
+                "kotlin": "Stateful.mean",
+                "python": "stateful.mean",
+                "rust": "stateful::mean",
+                "typescript": "stateful.mean"
+            },
+            "steps.repeat": {
+                "go": "stateful.Repeat",
+                "java": "Stateful.repeat",
+                "kotlin": "Stateful.repeat",
+                "python": "stateful.repeat",
+                "rust": "stateful::repeat",
+                "typescript": "stateful.repeat"
+            },
+            "steps.scheduler": {
+                "go": "stateful.Tasks",
+                "java": "Stateful.tasks",
+                "kotlin": "Stateful.tasks",
+                "python": "stateful.tasks",
+                "rust": "stateful::tasks",
+                "typescript": "stateful.tasks"
+            },
+            "steps.swarm": {
+                "go": "stateful.Swarm",
+                "java": "Stateful.swarm",
+                "kotlin": "Stateful.swarm",
+                "python": "stateful.swarm",
+                "rust": "stateful::swarm",
+                "typescript": "stateful.swarm"
+            },
             "that": {
                 "go": "That",
                 "java": "Check.that",
@@ -1218,6 +1306,54 @@
             }
         },
         "members": {
+            "action.drain": {
+                "go": "Drain",
+                "java": "drain",
+                "kotlin": "drain",
+                "python": "drain",
+                "rust": "drain",
+                "typescript": "drain"
+            },
+            "action.enabled": {
+                "go": "Enabled",
+                "java": "enabled",
+                "kotlin": "enabled",
+                "python": "enabled",
+                "rust": "enabled",
+                "typescript": "enabled"
+            },
+            "action.input": {
+                "go": "Input",
+                "java": "input",
+                "kotlin": "input",
+                "python": "input",
+                "rust": "input",
+                "typescript": "input"
+            },
+            "action.name": {
+                "go": "Name",
+                "java": "name",
+                "kotlin": "name",
+                "python": "name",
+                "rust": "name",
+                "typescript": "name"
+            },
+            "action.run": {
+                "go": "Run",
+                "java": "run",
+                "kotlin": "run",
+                "python": "run",
+                "rust": "run",
+                "typescript": "run"
+            },
+            "action.weight": {
+                "go": "Weight",
+                "java": "weight",
+                "kotlin": "weight",
+                "python": "weight",
+                "rust": "weight",
+                "typescript": "weight"
+            },
             "call.fail": {
                 "go": "Fail",
                 "java": "fail",
@@ -1280,6 +1416,14 @@
                 "rust": "draw",
                 "typescript": "draw"
             },
+            "case.history": {
+                "go": "History",
+                "java": "history",
+                "kotlin": "history",
+                "python": "history",
+                "rust": "history",
+                "typescript": "history"
+            },
             "case.note": {
                 "go": "Logf",
                 "java": "note",
@@ -1303,6 +1447,14 @@
                 "python": "rand",
                 "rust": "rand",
                 "typescript": "rand"
+            },
+            "case.target": {
+                "go": "Target",
+                "java": "target",
+                "kotlin": "target",
+                "python": "target",
+                "rust": "target",
+                "typescript": "target"
             },
             "clock.now": {
                 "go": "Now",
@@ -1440,6 +1592,38 @@
                 "rust": "History::new",
                 "typescript": "new History()"
             },
+            "machine.actions": {
+                "go": "Actions",
+                "java": "actions",
+                "kotlin": "actions",
+                "python": "actions",
+                "rust": "actions",
+                "typescript": "actions"
+            },
+            "machine.invariant": {
+                "go": "Invariant",
+                "java": "invariant",
+                "kotlin": "invariant",
+                "python": "invariant",
+                "rust": "invariant",
+                "typescript": "invariant"
+            },
+            "machine.model": {
+                "go": "Model",
+                "java": "model",
+                "kotlin": "model",
+                "python": "model",
+                "rust": "model",
+                "typescript": "model"
+            },
+            "machine.settle": {
+                "go": "Settle",
+                "java": "settle",
+                "kotlin": "settle",
+                "python": "settle",
+                "rust": "settle",
+                "typescript": "settle"
+            },
             "model.equal": {
                 "go": "Equal",
                 "java": "equal",
@@ -1512,6 +1696,28 @@
                 "rust": "records",
                 "typescript": "records"
             },
+            "scheduler.run": {
+                "go": "Run",
+                "java": "run",
+                "kotlin": "run",
+                "python": "run",
+                "rust": "run",
+                "typescript": "run"
+            },
+            "scheduler.spawn": {
+                "go": "Spawn",
+                "java": "spawn",
+                "kotlin": "spawn",
+                "python": "spawn",
+                "rust": "spawn",
+                "typescript": "spawn"
+            },
+            "scheduler.yield": {
+                "go": "Yield",
+                "java": "yield",
+                "rust": "yield_now",
+                "typescript": "yield"
+            },
             "seat.clock": {
                 "go": "Clock",
                 "java": "clock",
@@ -1554,6 +1760,14 @@
             }
         },
         "types": {
+            "action": {
+                "go": "stateful.Action",
+                "java": "Action",
+                "kotlin": "Action",
+                "python": "stateful.Action",
+                "rust": "stateful::Action",
+                "typescript": "stateful.Action"
+            },
             "assertion": {
                 "go": "Assertion",
                 "java": "Assertion",
@@ -1644,6 +1858,14 @@
                 "rust": "history::History",
                 "typescript": "history.History"
             },
+            "machine": {
+                "go": "stateful.Machine",
+                "java": "Machine",
+                "kotlin": "Machine",
+                "python": "stateful.Machine",
+                "rust": "stateful::Machine",
+                "typescript": "stateful.Machine"
+            },
             "model": {
                 "go": "history.Model",
                 "java": "Model",
@@ -1680,6 +1902,14 @@
                 "go": "Reporter",
                 "java": "Reporter",
                 "kotlin": "Reporter"
+            },
+            "scheduler": {
+                "go": "stateful.Scheduler",
+                "java": "Scheduler",
+                "kotlin": "Scheduler",
+                "python": "stateful.Scheduler",
+                "rust": "stateful::Scheduler",
+                "typescript": "stateful.Scheduler"
             },
             "scrubber": {
                 "go": "golden.Scrubber",
@@ -1722,5 +1952,5 @@
             }
         }
     },
-    "version": "3.2.0"
+    "version": "3.3.0"
 }

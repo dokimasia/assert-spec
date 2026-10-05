@@ -8,6 +8,11 @@ the same function again to check that a vector still holds.
 A choice is written as a JSON integer, or as a decimal string beyond 2^53
 - 1 in magnitude; ``{"float": …}`` with a number or a float's name; or
 ``{"sequence": […]}``. Values are typed literals.
+
+A trace entry is written as a draw entry, ``{"label": …, "value": …}``, or
+as a step entry, ``{"step": …}`` with ``"client"`` in a concurrent
+section and ``"drain": true`` in the drain. A machine's counterexample
+lists its steps among its draws in that form.
 """
 
 from __future__ import annotations
@@ -21,7 +26,7 @@ from typing import Any, Final
 from . import coverage, literal, replay, store
 from .body import build_body
 from .bridge import Bridging
-from .case import Case, Failed, Generating, Generator, Rejected, Replaying
+from .case import Case, Failed, Generating, Generator, Rejected, Replaying, Step
 from .choice import (
     Bounds,
     Choice,
@@ -38,6 +43,7 @@ from .shape import ShapeError
 from .shape import read as read_shape
 from .shrink import DEFAULT_BUDGET, Explained
 from .source import case_source
+from .trace import entries
 
 #: A case of the corpus, or the outputs computed for one: a JSON object.
 Vector = dict[str, Any]
@@ -315,7 +321,7 @@ def store_entry(case: Mapping[str, Any]) -> Vector:
 def behaviour(case: Mapping[str, Any]) -> Vector:
     """Run a body under settings, and return the detail of the run."""
     body = build_body(case["body"])
-    return {"detail": detail(run(body, _settings(case.get("settings", {}))))}
+    return {"detail": detail(run(body, run_settings(case.get("settings", {}))))}
 
 
 def recording(case: Mapping[str, Any]) -> Vector:
@@ -351,7 +357,7 @@ def recording(case: Mapping[str, Any]) -> Vector:
         )
         made.clear()
 
-    outcome = run(asserting, _settings(case.get("settings", {})), observe)
+    outcome = run(asserting, run_settings(case.get("settings", {})), observe)
     verdict = "pass" if outcome.kind is Kind.PASSED else "fail"
     return {"verdict": verdict, "calls": calls}
 
@@ -392,7 +398,7 @@ def _form_detail(
     return {**detail(outcome), "failure": record}
 
 
-def _settings(written: Mapping[str, Any]) -> Settings:
+def run_settings(written: Mapping[str, Any]) -> Settings:
     """Return the run settings a vector states.
 
     workers is read and ignored: a run on more workers reports what a run
@@ -453,15 +459,20 @@ def detail(outcome: Outcome) -> Vector:
 def _counterexample(
     failing: Execution, explanation: Sequence[Explained]
 ) -> list[Vector]:
-    """Return a failing case's draws, explained where the run explained them."""
+    """Return a failing case's steps and draws, each draw explained where it was."""
     drawn: list[Vector] = []
-    for index, draw in enumerate(failing.case.draws):
+    index = 0
+    for entry in entries(failing.case):
+        if isinstance(entry, Step):
+            drawn.append(step_literal(entry))
+            continue
         explained = explanation[index] if index < len(explanation) else None
+        index += 1
         nearest = None if explained is None else explained.nearest_passing
         drawn.append(
             {
-                "label": draw.label,
-                "value": literal.encode(draw.value),
+                "label": entry.label,
+                "value": literal.encode(entry.value),
                 "any-value-fails": None
                 if explained is None
                 else explained.any_value_fails,
@@ -471,13 +482,25 @@ def _counterexample(
     return drawn
 
 
+def step_literal(step: Step) -> Vector:
+    """Return the corpus form of a step entry."""
+    form: Vector = {"step": step.action}
+    if step.client is not None:
+        form["client"] = step.client
+    if step.drain:
+        form["drain"] = True
+    return form
+
+
 def _other(execution: Execution) -> Vector:
-    """Return another failure's identity, draws and token."""
+    """Return another failure's identity, steps and draws, and token."""
     return {
         "failure": execution.identity,
         "counterexample": [
-            {"label": d.label, "value": literal.encode(d.value)}
-            for d in execution.case.draws
+            step_literal(entry)
+            if isinstance(entry, Step)
+            else {"label": entry.label, "value": literal.encode(entry.value)}
+            for entry in entries(execution.case)
         ],
         "choices": replay.encode(execution.case.choices),
     }

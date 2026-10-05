@@ -24,6 +24,7 @@ import history.isolation
 import history.linearizable
 import history.seam
 import history.vectors
+import stateful.vectors
 from prop import literal
 from prop.coverage import Verdict
 from prop.execution import Phase
@@ -140,6 +141,21 @@ ISOLATION_ENDS = {
     )
     for level in history.isolation.Level
 }
+
+#: What the machines vectors cover between them: a counterexample and a
+#: pass, a trace that fails, a trace whose step entries state their
+#: clients, and a step entry that a run refuses.
+MACHINE_ENDS = (
+    "counterexample",
+    "passed",
+    "trace:counterexample",
+    "trace:client",
+    "refused:step",
+)
+
+#: How a language may run the concurrent section of a machine: as tasks of
+#: the task scheduler, which replays, or on real threads.
+SECTIONS = ("tasks", "threads")
 
 #: The languages whose threads run on more than one core. The history's
 #: counter synchronizes the clients of such a language, which can hide a
@@ -262,10 +278,11 @@ def check_vocabulary(
 ) -> set[str]:
     """Check one vocabulary of names that a case states in place of a value.
 
-    A case that cannot state a callable names a subject instead, and a
-    history vector names a model. Each implementation builds every subject
-    and every model natively, so each vocabulary is small, and each name
-    has a summary to build it from. Returns the names.
+    A case that cannot state a callable names a subject instead, a history
+    vector names a model, and a machines vector names a machine subject.
+    Each implementation builds every subject, model and machine subject
+    natively, so each vocabulary is small, and each name has a summary to
+    build it from. Returns the names.
     """
     entries = spec.get(section, {})
     problems.unless(
@@ -1115,6 +1132,55 @@ def _check_covers(case: dict[str, Any]) -> list[str]:
     ]
 
 
+def check_stateful(machines: set[str], problems: Problems) -> int:
+    """Check the machines' vector files, and return the number of vectors.
+
+    `make render` writes the outputs of these vectors as it writes the
+    property engine's, so this check covers what the renderer copies from
+    the YAML: each file's kind, the ids, the typed literals, and the
+    machine subject that each vector runs, which its id names. It also
+    checks what the vectors cover: every machine subject, and every end in
+    MACHINE_ENDS.
+    """
+    total = 0
+    named = (frozenset(machines), "machine subject")
+    for _, where, cases in _vector_files("stateful", stateful.vectors.KINDS, problems):
+        total += len(cases)
+        covered: set[str] = set()
+        for cid, prefix, case in _vector_cases(cases, named, where, problems):
+            subject = case.get("subject")
+            problems.unless(
+                subject == prefix,
+                f"{where} [{cid}]",
+                f"runs {subject!r}, and its id names {prefix!r}",
+            )
+            covered.add(f"subject:{subject}")
+            covered.update(_machine_covers(case))
+        subjects = (f"subject:{name}" for name in sorted(machines))
+        for end in (*MACHINE_ENDS, *subjects):
+            problems.unless(end in covered, where, f"has no vector that covers {end!r}")
+    return total
+
+
+def _machine_covers(case: dict[str, Any]) -> list[str]:
+    """Return what one machines vector covers.
+
+    A vector covers the outcome of its run, or the reason of the error that
+    ends the run. A vector with a trace also covers that end as the end of a
+    trace, and covers the clients when a step entry states one.
+    """
+    error, detail = case.get("error"), case.get("detail")
+    if isinstance(error, dict):
+        end = f"refused:{error.get('reason')}"
+    else:
+        end = str(detail.get("outcome")) if isinstance(detail, dict) else "none"
+    trace = case.get("trace")
+    if not isinstance(trace, list):
+        return [end]
+    clients = any(isinstance(entry, dict) and "client" in entry for entry in trace)
+    return [end, f"trace:{end}", *(["trace:client"] if clients else [])]
+
+
 def _vector_files(
     folder: str, kinds: Collection[str], problems: Problems
 ) -> Iterator[tuple[str, str, list[Any]]]:
@@ -1524,6 +1590,33 @@ def check_overlay_records(overlay: Any, where: str, problems: Problems) -> None:
         )
 
 
+def check_overlay_sections(overlay: Any, where: str, problems: Problems) -> None:
+    """Check that one overlay states how its language runs a concurrent section.
+
+    sections lists one or both of SECTIONS, each once.
+    """
+    sections = overlay.get("sections")
+    if not problems.unless(sections is not None, where, "states no sections"):
+        return
+    if not problems.unless(
+        isinstance(sections, list) and bool(sections),
+        where,
+        f"sections is {sections!r}, not a list of one or both of {list(SECTIONS)}",
+    ):
+        return
+    for section in sections:
+        problems.unless(
+            section in SECTIONS,
+            where,
+            f"runs a section as {section!r}, which is none of {list(SECTIONS)}",
+        )
+    problems.unless(
+        len({str(section) for section in sections}) == len(sections),
+        where,
+        "names a way to run a section twice",
+    )
+
+
 def check_overlay_limits(
     overlay: Any,
     where: str,
@@ -1581,7 +1674,7 @@ def check_overlays(
     the history.
 
     Every overlay states the artifact that contains its language's call
-    records.
+    records, and how its language runs the concurrent section of a machine.
     """
     for path in sorted((ROOT / "overlays").glob("*.json")):
         where = str(path.relative_to(ROOT))
@@ -1612,6 +1705,7 @@ def check_overlays(
         )
         check_overlay_surface(overlay, where, language, tables, problems)
         check_overlay_records(overlay, where, problems)
+        check_overlay_sections(overlay, where, problems)
         known = assertions | tables.surface_ids
         limited = check_overlay_limits(overlay, where, language, known, problems)
 
@@ -1671,11 +1765,13 @@ def main() -> int:
     }
     subjects = check_vocabulary(spec, "subjects", "subject", problems)
     models = check_vocabulary(spec, "models", "model", problems)
+    machines = check_vocabulary(spec, "machines", "machine", problems)
     cases = check_corpus(assertions, subjects, accepted, problems)
     vectors = check_vectors(
         FormVocabulary(form_runs(spec), assertions, subjects), problems
     )
     vectors += check_history(models, problems)
+    vectors += check_stateful(machines, problems)
     changes = check_zones(ROOT / "spec" / "zones.json", problems)
     check_surface(naming, set(naming.get("languages", [])), problems)
     check_overlays(

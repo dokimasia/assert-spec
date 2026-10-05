@@ -10,7 +10,9 @@ and a one-element range consume nothing.
 from __future__ import annotations
 
 import math
+from collections.abc import Sequence
 from fractions import Fraction
+from itertools import accumulate
 from typing import Final
 
 from .choice import (
@@ -104,6 +106,42 @@ def integer(source: Source, bounds: IntegerBounds) -> int:
 def boolean(source: Source, probability: Fraction) -> int:
     """Draw 1 with the given probability and 0 otherwise, from one coin."""
     return 1 if source.coin(probability.numerator, probability.denominator) else 0
+
+
+def weighted(source: Source, weights: Sequence[int]) -> int:
+    """Draw an index with probability proportional to its weight.
+
+    One weight returns 0 and consumes nothing. Otherwise the draw is
+    below(sum of the weights), and the index is the first whose running
+    sum of weights exceeds it.
+    """
+    if len(weights) == 1:
+        return 0
+    point = source.below(sum(weights))
+    return next(i for i, total in enumerate(accumulate(weights)) if point < total)
+
+
+def keep(source: Source, probability: Fraction, kept: bool, remaining: int) -> int:
+    """Decide whether swarm keeps an action: 1 keeps it, and 0 disables it.
+
+    kept states whether an earlier action is kept, and remaining counts
+    this action and the actions after it. Once an earlier action is kept,
+    one coin with the probability decides. While none is, the last action
+    is kept and consumes nothing. Before it, the draw tosses one coin for
+    this action and one for each later action, again until a coin comes
+    up, and keeps the action when its own coin came up. The kept set then
+    has the distribution of one coin per action, conditioned on keeping
+    one action or more: at a probability of 1/2, each non-empty set of n
+    actions has probability 1 / (2^n - 1).
+    """
+    if kept:
+        return boolean(source, probability)
+    if remaining == 1:
+        return 1
+    while True:
+        coins = [boolean(source, probability) for _ in range(remaining)]
+        if any(coins):
+            return coins[0]
 
 
 def average_length(min_size: int, max_size: int | None) -> int:

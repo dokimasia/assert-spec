@@ -10,11 +10,13 @@ from .case import (
     MAX_CHOICES,
     Case,
     Generating,
+    Generator,
     Overrun,
     Rejected,
     Replaying,
     Request,
     Span,
+    Step,
 )
 from .choice import INT64_MAX, INT64_MIN, Choice, IntegerBounds, SequenceBounds, Value
 from .source import Source
@@ -58,6 +60,27 @@ class _Digit:
     def decode(self, case: Case) -> object:
         """Return the case's next digit."""
         return case.choose(_digit())
+
+
+@final
+class _Announced:
+    """A provider that replays digits and keeps the label of every draw it hears of."""
+
+    def __init__(self) -> None:
+        """Replay 4, 5, 6, and hear of no draw yet."""
+        self._replay = Replaying([Choice("integer", v) for v in (4, 5, 6)])
+        self.served = 0
+        self.heard: list[tuple[str, int]] = []
+
+    def value(self, request: Request, index: int) -> Value:
+        """Return the replayed value, and count it."""
+        self.served += 1
+        return self._replay.value(request, index)
+
+    def drawing(self, generator: Generator, label: str) -> None:
+        """Keep the label, and the number of values served before it."""
+        del generator
+        self.heard.append((label, self.served))
 
 
 @final
@@ -315,3 +338,35 @@ class RewindTest(unittest.TestCase):
         case.choose(_digit())
         self.assertEqual(steps.values, [1, 2, 2])
         self.assertEqual(len(case.choices), 2)
+
+
+@final
+class RecordTest(unittest.TestCase):
+    """The history, the steps and the tracer of a case."""
+
+    def test_each_case_starts_with_an_empty_history_of_its_own(self) -> None:
+        """A call recorded in one case is not in another."""
+        first, second = Case(Replaying([])), Case(Replaying([]))
+        first.history.invoke(0, "put", [1], []).ok(None)
+        self.assertEqual(len(first.history.events()), 2)
+        self.assertEqual(second.history.events(), [])
+
+    def test_a_step_is_recorded_after_the_draws_before_it(self) -> None:
+        """The number beside each step counts the draws the case recorded first."""
+        case = Case(Replaying([]))
+        case.step(Step("put"))
+        case.draw(_Digit(), "v")
+        case.step(Step("get", client=1))
+        self.assertEqual(case.steps, [(0, Step("put")), (1, Step("get", client=1))])
+
+    def test_a_provider_that_hears_of_draws_is_the_tracer(self) -> None:
+        """Each draw tells the tracer its label before it decodes."""
+        provider = _Announced()
+        case = Case(provider)
+        self.assertIs(case.tracer, provider)
+        self.assertEqual([case.draw(_Digit(), label) for label in "ab"], [4, 5])
+        self.assertEqual(provider.heard, [("a", 0), ("b", 1)])
+
+    def test_a_provider_that_hears_of_no_draw_is_no_tracer(self) -> None:
+        """A replaying case has no tracer."""
+        self.assertIsNone(Case(Replaying([])).tracer)

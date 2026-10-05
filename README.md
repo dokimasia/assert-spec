@@ -44,14 +44,17 @@ corpus/prop/*.yaml     the property engine's vector inputs  edited by people
 corpus/prop/*.json     the vectors with their outputs       read by libraries
 corpus/history/*.yaml  the history's vector inputs          edited by people
 corpus/history/*.json  the vectors with their outputs       read by libraries
+corpus/stateful/*.yaml the machines' vector inputs          edited by people
+corpus/stateful/*.json the vectors with their outputs       read by libraries
 overlays/*.json        one per language, declaring divergences
 tools/render.py        YAML to JSON, and the vectors' outputs
 tools/validate.py      the rules, checked
 tools/prop/            the property engine's executable reference
 tools/history/         the history's and the checkers' executable reference
+tools/stateful/        the machines' and the scheduler's executable reference
 tools/spec-sync.sh     how an implementation vendors the definition
 tools/spec-check.sh    how an implementation checks its copy
-VERSION                3.2.0
+VERSION                3.3.0
 ```
 
 People edit the YAML. `make render` produces the JSON, which is
@@ -145,7 +148,10 @@ reads as, a passing and a failing run of every property form but
 and the checkers are data in and data out too. 80 vectors under
 `corpus/history/` pin the events that calls record, the entries that the
 history refuses, the verdict, steps and record of a check against each
-named model, and the verdict and record of each isolation check.
+named model, and the verdict and record of each isolation check. So are
+the steps of a machine. 13 vectors under `corpus/stateful/` pin the run of
+each machine subject, the minimal steps of each fault, and the traces that
+a run follows or refuses.
 
 **The completeness gate** checks membership. Every assertion must be
 present under the name the naming table gives it, with the arity the
@@ -240,11 +246,12 @@ package its assertion declares, that every corpus case names a defined
 assertion with a unique id, decodable literals and options its assertion
 accepts, and that an overlay extends this version and diverges only from
 assertions that exist. It also checks that each overlay states where its
-language writes the call records, that each history vector names a
-defined model, that the vectors of each isolation level report every kind
-the level forbids, and that each language whose threads run on more than
-one core limits the history's recorder. It reports everything it finds in
-one run.
+language writes the call records and how it runs the concurrent section of
+a machine, that each history vector names a defined model, that the
+vectors of each isolation level report every kind the level forbids, that
+each machine subject runs in a vector named for it, and that each language
+whose threads run on more than one core limits the history's recorder. It
+reports everything it finds in one run.
 
 `make test` breaks each rule of the validator in a scratch copy and
 requires the validator to report it, and breaks a vendored copy each way
@@ -276,7 +283,7 @@ differently.
 | TypeScript | [assert-typescript](https://github.com/dokimasia/assert-typescript) | 94 of 98 |
 
 Each count is what the language's overlay declares against version
-3.2.0. An implementation that has not synced to it yet has a drift issue
+3.3.0. An implementation that has not synced to it yet has a drift issue
 open until it does.
 
 Java and Kotlin ship from one repository and are named identically, so

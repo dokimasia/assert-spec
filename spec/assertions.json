@@ -1565,6 +1565,26 @@
             ]
         }
     },
+    "machines": {
+        "correct-counter": {
+            "summary": "The machine of racy-counter over an increment that adds one to the count and returns it without yielding.\n"
+        },
+        "correct-queue": {
+            "summary": "The machine of queue-loses-on-wrap over a queue that writes every value at its write index.\n"
+        },
+        "counter-overflows": {
+            "summary": "A counter, initially 0. increment adds one to the count, sets the count to 0 when the sum is 3, and returns the count. reset sets the count to 0 and returns null. The actions are increment and reset, each of which records its one call with no arguments. The model is a counter: increment outputs the count plus one and leaves it, and reset leaves 0.\n"
+        },
+        "queue-loses-on-wrap": {
+            "summary": "A queue in a ring of slots, of a capacity drawn under \"capacity\" as an integer in [1, 8]. put(v) returns false when the queue is full. Otherwise it writes v at the write index, or into the first slot when the write index is at the last slot, moves the index on to the next slot, from the last to the first, and returns true. get() removes and returns the oldest value, or returns null when the queue is empty. The actions are put, whose input is drawn under \"v\" as an integer in [0, 1000], and get, each of which records its one call. The model is a queue of the capacity: put outputs whether the queue had room and adds v when it had, and get outputs the head and removes it, or outputs null.\n"
+        },
+        "racy-counter": {
+            "summary": "A counter, initially 0, whose increment reads the count, yields to the task scheduler, writes the count plus one and returns it. The action is increment, which records its one call with no arguments. The model is the counter of counter-overflows.\n"
+        },
+        "store-loses-on-crash": {
+            "summary": "A store of a buffer and a durable map. The actions are put, flush and crash. put's input is a key drawn under \"key\" as an integer in [0, 3] and the next value of a counter that starts at 1. put records a call of put with the key and the value as arguments, sets the key to the value in the buffer, and completes the call with null. flush is a drain action, enabled while the buffer is not empty, that moves the buffer into the durable map and empties it. crash empties the buffer. Neither records a call. The machine has no model. Its settle check reads the durable value of each key that a put completed for, and fails with the identity lost-write when it is not the last value put under the key.\n"
+        }
+    },
     "models": {
         "cas-register": {
             "summary": "The register with cas(from, to). A cas outputs true and leaves to when the value equals from, and outputs false and leaves the value otherwise. A cas whose outcome is unknown takes effect when the value equals from, and leaves the value otherwise.\n"
@@ -1691,5 +1711,5 @@
             "summary": "Yields the integers 1 to 5 in order, on every iteration.\n"
         }
     },
-    "version": "3.2.0"
+    "version": "3.3.0"
 }

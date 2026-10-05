@@ -1,0 +1,95 @@
+# Machines: a named machine subject run as a property. Each case names a
+# subject of the definition's `machines` section, which states the subject,
+# its machine and its draws, and may state:
+#
+# - `setup`: the options of the subject's steps: `mean`, `max`, `swarm`,
+#   and for a subject whose clients run as tasks `clients`, `concurrent` and
+#   `strategy`, which is uniform or {pct: depth}.
+# - `settings`: the settings of the run, as a behaviour vector states them.
+# - `trace`: a trace that the run takes first, as the Draws option does. A
+#   draw entry states a label and a value, and a step entry states its
+#   action, with `client` in a concurrent section and `drain: true` in the
+#   drain.
+#
+# `detail` is the detail of the run. A machine's counterexample lists its
+# steps among its draws, in request order. `error` states the entry, the
+# name and the reason of a trace that the run cannot follow, and the
+# detail is then null. `make render` writes both.
+kind: machines
+cases:
+  # A failing and a passing run of each subject with a fault. The fault
+  # needs more steps than the passing run's max allows.
+  - id: queue-loses-on-wrap/a-put-at-the-last-slot-overwrites-the-first-value
+    subject: queue-loses-on-wrap
+    settings: {seed: "1"}
+
+  - id: queue-loses-on-wrap/two-steps-cannot-fill-the-ring-and-read-it
+    subject: queue-loses-on-wrap
+    setup: {max: 2}
+    settings: {seed: "1"}
+
+  - id: counter-overflows/a-third-increment-without-a-reset-returns-0
+    subject: counter-overflows
+    settings: {seed: "1"}
+
+  - id: counter-overflows/two-steps-never-overflow
+    subject: counter-overflows
+    setup: {max: 2}
+    settings: {seed: "1"}
+
+  - id: store-loses-on-crash/a-crash-loses-an-acknowledged-put
+    subject: store-loses-on-crash
+    settings: {seed: "1"}
+
+  - id: store-loses-on-crash/one-step-cannot-put-and-crash
+    subject: store-loses-on-crash
+    setup: {max: 1}
+    settings: {seed: "1"}
+
+  # The queue without a fault passes, with swarm and without it.
+  - id: correct-queue/passes-with-swarm
+    subject: correct-queue
+    settings: {seed: "1"}
+
+  - id: correct-queue/passes-without-swarm
+    subject: correct-queue
+    setup: {swarm: false}
+    settings: {seed: "1"}
+
+  # Two clients under the task scheduler: the racy counter fails, and the
+  # atomic one passes.
+  - id: racy-counter/two-increments-on-two-clients-both-return-1
+    subject: racy-counter
+    settings: {seed: "1"}
+
+  - id: correct-counter/passes-with-two-clients
+    subject: correct-counter
+    settings: {seed: "1"}
+
+  # Traces: the minimal steps of a failure fail again, a step that is not
+  # enabled at its position fails before any case runs, and a concurrent
+  # step states its client.
+  - id: queue-loses-on-wrap/the-minimal-steps-as-a-trace-fail
+    subject: queue-loses-on-wrap
+    settings: {seed: "1"}
+    trace:
+      - {label: capacity, value: {type: int, value: 2}}
+      - {step: put}
+      - {label: v, value: {type: int, value: 0}}
+      - {step: put}
+      - {label: v, value: {type: int, value: 1}}
+      - {step: get}
+
+  - id: store-loses-on-crash/a-flush-of-an-empty-buffer-is-refused
+    subject: store-loses-on-crash
+    settings: {seed: "1"}
+    trace:
+      - {step: crash}
+      - {step: flush}
+
+  - id: racy-counter/the-minimal-steps-as-a-trace-state-their-clients
+    subject: racy-counter
+    settings: {seed: "1"}
+    trace:
+      - {step: increment, client: 1}
+      - {step: increment, client: 2}

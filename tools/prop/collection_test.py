@@ -5,9 +5,10 @@ from __future__ import annotations
 import unittest
 from typing import final
 
-from .case import Case, Rejected, Replaying, Span
+from .case import Case, Generating, Rejected, Replaying, Span
 from .choice import Choice, IntegerBounds
 from .collection import ELEMENT, Sizes, collect, more
+from .source import Source
 
 #: The discards in a row that stop a collection, pinned here as the
 #: definition states it rather than read from the code under test.
@@ -64,6 +65,14 @@ class MoreTest(unittest.TestCase):
         want = [IntegerBounds(1, 1), IntegerBounds(0, 1), IntegerBounds(0, 0)]
         self.assertEqual(bounds, want)
         self.assertEqual([r.edge for r in case.requests], [1, 0, 0])
+
+    def test_a_stated_average_replaces_the_average_of_the_sizes(self) -> None:
+        """An average of 30 continues on a coin of 30 in 31."""
+        case = Case(Generating(Source(12)))
+        twin = Source(12)
+        for count in range(50):
+            continues = more(case, count, Sizes(0, 100), average=30)
+            self.assertEqual(continues, twin.coin(30, 31))
 
 
 @final

@@ -3,7 +3,7 @@
 # A qualified name names a member of the subpackage the assertion table
 # gives it. The separator is the language's own: a dot in Go, Java,
 # Kotlin, Python and TypeScript, two colons in Rust.
-version: "3.2.0"
+version: "3.3.0"
 
 languages: [go, java, kotlin, php, python, rust, typescript]
 
@@ -503,7 +503,21 @@ relaxations:
 #
 # Each language constructs a history as it constructs any value: Go and
 # Rust through a function, Python and Kotlin by calling the class, and
-# TypeScript and Java with new.
+# TypeScript and Java with new. A scheduler is constructed the same way.
+#
+# Machines, steps and its options, and the task scheduler are named in the
+# package stateful, as Hypothesis, jqwik and proptest give their state
+# machines a module of their own. The options of steps then share no
+# namespace with the options of a run, and need no suffix to tell them
+# apart. Python spells max as max_steps, because max is a builtin. The
+# option that states the scheduler is tasks, because Go's package already
+# declares the type Scheduler. The case's history and target are members
+# of the case, in prop, because every property body can call them.
+#
+# Rust spells the scheduler's yield as yield_now, because yield is a Rust
+# keyword. Python and Kotlin decline it: an await in an asyncio task, and
+# yield() in a coroutine, already suspend the task at a point the
+# scheduler sees.
 surface:
   types:
     "seat":
@@ -650,6 +664,27 @@ surface:
       typescript: "history.Op"
       java: "Op"
       kotlin: "Op"
+    "machine":
+      go: "stateful.Machine"
+      python: "stateful.Machine"
+      rust: "stateful::Machine"
+      typescript: "stateful.Machine"
+      java: "Machine"
+      kotlin: "Machine"
+    "action":
+      go: "stateful.Action"
+      python: "stateful.Action"
+      rust: "stateful::Action"
+      typescript: "stateful.Action"
+      java: "Action"
+      kotlin: "Action"
+    "scheduler":
+      go: "stateful.Scheduler"
+      python: "stateful.Scheduler"
+      rust: "stateful::Scheduler"
+      typescript: "stateful.Scheduler"
+      java: "Scheduler"
+      kotlin: "Scheduler"
   members:
     "seat.helper":
       go: "Helper"
@@ -942,6 +977,109 @@ surface:
       typescript: "equal"
       java: "equal"
       kotlin: "equal"
+    "machine.model":
+      go: "Model"
+      python: "model"
+      rust: "model"
+      typescript: "model"
+      java: "model"
+      kotlin: "model"
+    "machine.actions":
+      go: "Actions"
+      python: "actions"
+      rust: "actions"
+      typescript: "actions"
+      java: "actions"
+      kotlin: "actions"
+    "machine.invariant":
+      go: "Invariant"
+      python: "invariant"
+      rust: "invariant"
+      typescript: "invariant"
+      java: "invariant"
+      kotlin: "invariant"
+    "machine.settle":
+      go: "Settle"
+      python: "settle"
+      rust: "settle"
+      typescript: "settle"
+      java: "settle"
+      kotlin: "settle"
+    "action.name":
+      go: "Name"
+      python: "name"
+      rust: "name"
+      typescript: "name"
+      java: "name"
+      kotlin: "name"
+    "action.weight":
+      go: "Weight"
+      python: "weight"
+      rust: "weight"
+      typescript: "weight"
+      java: "weight"
+      kotlin: "weight"
+    "action.enabled":
+      go: "Enabled"
+      python: "enabled"
+      rust: "enabled"
+      typescript: "enabled"
+      java: "enabled"
+      kotlin: "enabled"
+    "action.drain":
+      go: "Drain"
+      python: "drain"
+      rust: "drain"
+      typescript: "drain"
+      java: "drain"
+      kotlin: "drain"
+    "action.input":
+      go: "Input"
+      python: "input"
+      rust: "input"
+      typescript: "input"
+      java: "input"
+      kotlin: "input"
+    "action.run":
+      go: "Run"
+      python: "run"
+      rust: "run"
+      typescript: "run"
+      java: "run"
+      kotlin: "run"
+    "case.history":
+      go: "History"
+      python: "history"
+      rust: "history"
+      typescript: "history"
+      java: "history"
+      kotlin: "history"
+    "case.target":
+      go: "Target"
+      python: "target"
+      rust: "target"
+      typescript: "target"
+      java: "target"
+      kotlin: "target"
+    "scheduler.spawn":
+      go: "Spawn"
+      python: "spawn"
+      rust: "spawn"
+      typescript: "spawn"
+      java: "spawn"
+      kotlin: "spawn"
+    "scheduler.yield":
+      go: "Yield"
+      rust: "yield_now"
+      typescript: "yield"
+      java: "yield"
+    "scheduler.run":
+      go: "Run"
+      python: "run"
+      rust: "run"
+      typescript: "run"
+      java: "run"
+      kotlin: "run"
   helpers:
     "that":
       go: "That"
@@ -1283,6 +1421,83 @@ surface:
       typescript: "history.workers"
       java: "History.workers"
       kotlin: "History.workers"
+    "stateful.steps":
+      go: "stateful.Steps"
+      python: "stateful.steps"
+      rust: "stateful::steps"
+      typescript: "stateful.steps"
+      java: "Stateful.steps"
+      kotlin: "Stateful.steps"
+    "steps.mean":
+      go: "stateful.Mean"
+      python: "stateful.mean"
+      rust: "stateful::mean"
+      typescript: "stateful.mean"
+      java: "Stateful.mean"
+      kotlin: "Stateful.mean"
+    "steps.max":
+      go: "stateful.Max"
+      python: "stateful.max_steps"
+      rust: "stateful::max"
+      typescript: "stateful.max"
+      java: "Stateful.max"
+      kotlin: "Stateful.max"
+    "steps.swarm":
+      go: "stateful.Swarm"
+      python: "stateful.swarm"
+      rust: "stateful::swarm"
+      typescript: "stateful.swarm"
+      java: "Stateful.swarm"
+      kotlin: "Stateful.swarm"
+    "steps.clients":
+      go: "stateful.Clients"
+      python: "stateful.clients"
+      rust: "stateful::clients"
+      typescript: "stateful.clients"
+      java: "Stateful.clients"
+      kotlin: "Stateful.clients"
+    "steps.concurrent":
+      go: "stateful.Concurrent"
+      python: "stateful.concurrent"
+      rust: "stateful::concurrent"
+      typescript: "stateful.concurrent"
+      java: "Stateful.concurrent"
+      kotlin: "Stateful.concurrent"
+    "steps.scheduler":
+      go: "stateful.Tasks"
+      python: "stateful.tasks"
+      rust: "stateful::tasks"
+      typescript: "stateful.tasks"
+      java: "Stateful.tasks"
+      kotlin: "Stateful.tasks"
+    "steps.repeat":
+      go: "stateful.Repeat"
+      python: "stateful.repeat"
+      rust: "stateful::repeat"
+      typescript: "stateful.repeat"
+      java: "Stateful.repeat"
+      kotlin: "Stateful.repeat"
+    "scheduler.new":
+      go: "stateful.NewScheduler"
+      python: "stateful.Scheduler()"
+      rust: "stateful::Scheduler::new"
+      typescript: "new stateful.Scheduler()"
+      java: "new Scheduler()"
+      kotlin: "Scheduler()"
+    "scheduler.uniform":
+      go: "stateful.Uniform"
+      python: "stateful.uniform"
+      rust: "stateful::uniform"
+      typescript: "stateful.uniform"
+      java: "Stateful.uniform"
+      kotlin: "Stateful.uniform"
+    "scheduler.pct":
+      go: "stateful.PCT"
+      python: "stateful.pct"
+      rust: "stateful::pct"
+      typescript: "stateful.pct"
+      java: "Stateful.pct"
+      kotlin: "Stateful.pct"
 
 # The property form of an assertion takes the assertion's name in the prop
 # package. Rendering adds one name for each form that the assertion table
