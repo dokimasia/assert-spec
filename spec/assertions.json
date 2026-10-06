@@ -35,7 +35,7 @@
                 "got"
             ],
             "package": "bench",
-            "summary": "The allocations per iteration stay within a ceiling.\n"
+            "summary": "The allocations per iteration stay within a ceiling. The count is the average over the measured iterations, rounded to the nearest whole number, with a half rounded up.\n"
         },
         "bench-max-bytes": {
             "arity": 1,
@@ -376,7 +376,7 @@
                 "want",
                 "got"
             ],
-            "summary": "A callable makes at most a stated number of heap allocations per call. One call warms it first, and the count is the average over the calls after it, rounded down.\n"
+            "summary": "A callable makes at most a stated number of heap allocations per call. One call warms it first, and the count is the average over the calls after it, rounded to the nearest whole number, with a half rounded up.\n"
         },
         "max-allocs-with-setup": {
             "arity": 4,
@@ -384,7 +384,7 @@
                 "want",
                 "got"
             ],
-            "summary": "A callable makes at most a stated number of heap allocations per call on an input that a setup builds before each call. The setup is not counted. One setup and one call warm both first, and the count is the average over the calls after them, rounded down.\n"
+            "summary": "A callable makes at most a stated number of heap allocations per call on an input that a setup builds before each call. The setup is not counted. One setup and one call warm both first, and the count is the average over the calls after them, rounded to the nearest whole number, with a half rounded up.\n"
         },
         "monotonic": {
             "arity": 4,
@@ -1873,5 +1873,5 @@
             "summary": "Yields two objects, and the value of each is 1.\n"
         }
     },
-    "version": "5.2.0"
+    "version": "6.0.0"
 }

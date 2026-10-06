@@ -1725,6 +1725,14 @@
                 "rust": "assertion",
                 "typescript": "assertion"
             },
+            "failure.case-failure": {
+                "go": "CaseFailure",
+                "java": "caseFailure",
+                "kotlin": "caseFailure",
+                "python": "case_failure",
+                "rust": "case_failure",
+                "typescript": "caseFailure"
+            },
             "failure.contract": {
                 "go": "Contract",
                 "java": "contract",
@@ -1740,6 +1748,22 @@
                 "python": "detail",
                 "rust": "detail",
                 "typescript": "detail"
+            },
+            "failure.got": {
+                "go": "Got",
+                "java": "got",
+                "kotlin": "got",
+                "python": "got",
+                "rust": "got",
+                "typescript": "got"
+            },
+            "failure.want": {
+                "go": "Want",
+                "java": "want",
+                "kotlin": "want",
+                "python": "want",
+                "rust": "want",
+                "typescript": "want"
             },
             "generator.bind": {
                 "go": "Bind",
@@ -2165,5 +2189,5 @@
             }
         }
     },
-    "version": "5.2.0"
+    "version": "6.0.0"
 }

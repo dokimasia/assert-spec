@@ -17,7 +17,7 @@
 # assertion carries exactly these. got is what the assertion observed
 # and want is what it required, so an assertion whose failure holds
 # neither states no fields and reports the caller's message alone.
-version: "5.2.0"
+version: "6.0.0"
 
 # What a caller may change about equality, for one call.
 #
@@ -679,7 +679,8 @@ assertions:
     summary: >
       A callable makes at most a stated number of heap allocations per
       call. One call warms it first, and the count is the average over
-      the calls after it, rounded down.
+      the calls after it, rounded to the nearest whole number, with a
+      half rounded up.
     detail_fields: [want, got]
 
   "max-allocs-with-setup":
@@ -688,7 +689,8 @@ assertions:
       A callable makes at most a stated number of heap allocations per
       call on an input that a setup builds before each call. The setup is
       not counted. One setup and one call warm both first, and the count
-      is the average over the calls after them, rounded down.
+      is the average over the calls after them, rounded to the nearest
+      whole number, with a half rounded up.
     detail_fields: [want, got]
 
   "golden-match":
@@ -835,7 +837,9 @@ assertions:
     arity: 1
     package: bench
     summary: >
-      The allocations per iteration stay within a ceiling.
+      The allocations per iteration stay within a ceiling. The count is
+      the average over the measured iterations, rounded to the nearest
+      whole number, with a half rounded up.
     detail_fields: [want, got]
 
   "bench-max-bytes":
