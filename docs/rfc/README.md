@@ -31,3 +31,4 @@ they record why not.
 | [0023](0023-comparing-references-by-identity.md) | Comparing references by identity | Accepted |
 | [0024](0024-accessors-of-the-failure-record.md) | Accessors of the failure record | Accepted |
 | [0025](0025-rounding-an-allocation-count.md) | Rounding an allocation count to the nearest whole number | Accepted |
+| [0026](0026-the-sequential-specification-of-a-history-check.md) | The sequential specification of a history check | Accepted |
