@@ -1,0 +1,102 @@
+# golden-match-tree: the tree read from a directory equals the golden tree
+# that a name resolves to. Each case states `workspace`, the output that the
+# runner writes before the call, `args`, the name and update, `golden`, the
+# golden tree, or null for none, and `expect`. The runner writes the golden
+# tree where the language's conventional directory resolves the name, in a
+# working directory of the case's own, and passes the workspace's directory
+# as the output.
+#
+# The comparison reads no mode of the golden tree, and compares the execute
+# bit of each file. A tree literal states a mode as a decimal integer: 420
+# is 0644, 448 is 0700 and 384 is 0600.
+#
+# `detail` is the record of a failure, as tree-equal's is, with the golden
+# tree as the wanted one. `after` is the golden tree that a call under
+# update leaves. `make render` writes both.
+kind: golden-match-tree
+cases:
+  - id: golden-match-tree/an-equal-golden-tree-passes
+    workspace: &api
+      type: tree
+      entries:
+        - {path: api.go, text: "package api\n"}
+        - {path: v1/types.go, text: "package v1\n"}
+    args:
+      - {type: string, value: api}
+      - {type: bool, value: false}
+    golden: *api
+    expect: pass
+
+  - id: golden-match-tree/a-golden-tree-whose-modes-differ-in-no-execute-bit-passes
+    workspace:
+      type: tree
+      entries:
+        - {path: gen.sh, text: "#!/bin/sh\n", executable: true}
+        - {path: types.go, text: "package api\n", mode: 384}
+    args:
+      - {type: string, value: api}
+      - {type: bool, value: false}
+    golden:
+      type: tree
+      entries:
+        - {path: gen.sh, text: "#!/bin/sh\n", mode: 448}
+        - {path: types.go, text: "package api\n", mode: 420}
+    expect: pass
+
+  - id: golden-match-tree/a-golden-tree-that-differs-fails
+    workspace:
+      type: tree
+      entries:
+        - {path: api.go, text: "package api\n\nfunc New() {}\n"}
+    args:
+      - {type: string, value: api}
+      - {type: bool, value: false}
+    golden:
+      type: tree
+      entries:
+        - {path: api.go, text: "package api\n"}
+        - {path: old.go, text: "package api\n"}
+    expect: fail
+
+  - id: golden-match-tree/a-missing-golden-tree-fails-with-want-null
+    workspace: *api
+    args:
+      - {type: string, value: api}
+      - {type: bool, value: false}
+    golden: null
+    expect: fail
+
+  - id: golden-match-tree/update-writes-a-missing-golden-tree
+    workspace: *api
+    args:
+      - {type: string, value: api}
+      - {type: bool, value: true}
+    golden: null
+    expect: pass
+
+  # Update removes the extra file, the extra directory and the link, and
+  # writes the changed file and the new one.
+  - id: golden-match-tree/update-rewrites-a-golden-tree-without-its-extra-entries
+    workspace:
+      type: tree
+      entries:
+        - {path: api.go, text: "package api\n\nfunc New() {}\n"}
+        - {path: new.go, text: "package api\n"}
+    args:
+      - {type: string, value: api}
+      - {type: bool, value: true}
+    golden:
+      type: tree
+      entries:
+        - {path: api.go, text: "package api\n"}
+        - {path: latest, link: api.go}
+        - {path: old/stale.go, text: "package old\n"}
+    expect: pass
+
+  - id: golden-match-tree/update-leaves-an-equal-golden-tree-as-it-is
+    workspace: *api
+    args:
+      - {type: string, value: api}
+      - {type: bool, value: true}
+    golden: *api
+    expect: pass

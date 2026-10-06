@@ -1,0 +1,65 @@
+# links-to: a symbolic link with a stated target is at a path. Each case
+# states `workspace`, the tree that the runner writes before the call,
+# `args`, the path relative to the workspace's root and the target, and
+# `expect`. The runner passes the path of the operating system there, the
+# target as stated, and a message of its own.
+#
+# `detail` is the record of a failure: `want`, the stated target, `got`, the
+# target of the link at the path, or null when no link is there, and
+# `kind`, the kind of the entry at the path, or null for none. `make render`
+# writes it.
+kind: links-to
+cases:
+  - id: links-to/the-stated-target-passes
+    workspace:
+      type: tree
+      entries:
+        - {path: a.txt, text: "a\n"}
+        - {path: current, link: a.txt}
+    args:
+      - {type: string, value: current}
+      - {type: string, value: a.txt}
+    expect: pass
+
+  # A workspace writes a target as the tree states it, and never follows it.
+  - id: links-to/a-target-outside-the-workspace-passes
+    workspace:
+      type: tree
+      entries:
+        - {path: up, link: ../outside.txt}
+    args:
+      - {type: string, value: up}
+      - {type: string, value: ../outside.txt}
+    expect: pass
+
+  - id: links-to/another-target-fails
+    workspace:
+      type: tree
+      entries:
+        - {path: a.txt, text: "a\n"}
+        - {path: b.txt, text: "b\n"}
+        - {path: current, link: a.txt}
+    args:
+      - {type: string, value: current}
+      - {type: string, value: b.txt}
+    expect: fail
+
+  - id: links-to/a-file-fails
+    workspace:
+      type: tree
+      entries:
+        - {path: current, text: "a.txt"}
+    args:
+      - {type: string, value: current}
+      - {type: string, value: a.txt}
+    expect: fail
+
+  - id: links-to/nothing-at-the-path-fails
+    workspace:
+      type: tree
+      entries:
+        - {path: a.txt, text: "a\n"}
+    args:
+      - {type: string, value: current}
+      - {type: string, value: a.txt}
+    expect: fail

@@ -1281,6 +1281,99 @@ class Validator(unittest.TestCase):
         self._machines(lambda c: c["error"] is None)
         self.assert_caught("has no vector that covers 'refused:step'")
 
+    def _files(self, kind: str, change: Callable[[Any], object]) -> None:
+        """Edit the vectors of one file assertion in the scratch tree."""
+        _edit(self.tree / "corpus" / "files" / f"{kind}.json", change)
+
+    def test_a_missing_files_vector_file_is_caught(self) -> None:
+        """Every file assertion has a vector file."""
+        (self.tree / "corpus" / "files" / "is-dir.json").unlink()
+        self.assert_caught("corpus/files/: has no is-dir vectors")
+
+    def test_a_file_assertion_driven_one_way_is_caught(self) -> None:
+        """A file assertion has a vector that passes and one that fails."""
+        self._files(
+            "has-mode",
+            lambda d: d.update(cases=[c for c in d["cases"] if c["expect"] == "fail"]),
+        )
+        self.assert_caught("has-mode.json: states no case expecting 'pass'")
+
+    def test_a_files_vector_under_another_assertion_is_caught(self) -> None:
+        """A vector's id begins with the assertion of its file."""
+        self._files("is-file", lambda d: d["cases"][0].update(id="is-dir/renamed"))
+        self.assert_caught("id 'is-dir/renamed' does not begin with 'is-file'")
+
+    def test_a_repeated_files_vector_id_is_caught(self) -> None:
+        """Two vectors with one id make one of them unreportable."""
+        self._files("is-dir", lambda d: d["cases"].append(dict(d["cases"][0])))
+        self.assert_caught("repeats case id 'is-dir/a-directory-passes'")
+
+    def test_a_files_vector_with_an_undeclared_detail_field_is_caught(self) -> None:
+        """A failure states only the fields its assertion declares."""
+        self._files(
+            "is-file",
+            lambda d: d["cases"][1]["detail"].update(kind={"type": "null"}),
+        )
+        self.assert_caught("states detail 'kind', which is-file does not declare")
+
+    def test_a_subject_that_the_definition_does_not_state_is_caught(self) -> None:
+        """tree-unchanged names a subject of the definition."""
+        self._files(
+            "tree-unchanged",
+            lambda d: d["cases"][0].update(subject={"kind": "sleeps"}),
+        )
+        self.assert_caught("names subject kind 'sleeps', which the definition does")
+
+    def test_a_workspace_that_breaks_a_rule_of_the_tree_is_caught(self) -> None:
+        """A workspace states its entries in path order."""
+        self._files(
+            "tree-equal",
+            lambda d: d["cases"][2]["workspace"]["entries"].reverse(),
+        )
+        self.assert_caught("workspace: 'a.txt' is not after the entry before it")
+
+    def test_a_workspace_that_states_a_digest_is_caught(self) -> None:
+        """A workspace writes content, which a digest does not state."""
+
+        def digest(document: Any) -> None:
+            entry = document["cases"][0]["workspace"]["entries"][0]
+            del entry["text"]
+            entry.update(digest="sha256:" + "0" * 64, size=70_000)
+
+        self._files("is-file", digest)
+        self.assert_caught("workspace: 'docs/a.md' states a digest")
+
+    def test_an_argument_that_states_a_digest_is_caught(self) -> None:
+        """Only a record states a file by its digest."""
+
+        def digest(document: Any) -> None:
+            entry = document["cases"][1]["args"][0]["entries"][0]
+            del entry["text"]
+            entry.update(digest="sha256:" + "0" * 64, size=70_000)
+
+        self._files("tree-equal", digest)
+        self.assert_caught("arg 0: 'a.txt' states a digest, which only a record")
+
+    def test_a_tree_literal_with_a_key_it_does_not_take_is_caught(self) -> None:
+        """A tree states its entries and nothing else."""
+        self._files("tree-equal", lambda d: d["cases"][0]["args"][0].update(of="x"))
+        self.assert_caught("states 'of', which type 'tree' does not take")
+
+    def test_a_golden_case_without_its_golden_tree_is_caught(self) -> None:
+        """A case of golden-match-tree states a golden tree, or null for none."""
+        self._files("golden-match-tree", lambda d: d["cases"][0].pop("golden"))
+        self.assert_caught("states no golden, a tree or null")
+
+    def test_a_golden_tree_that_breaks_a_rule_of_the_tree_is_caught(self) -> None:
+        """A golden tree states no entry below a file."""
+        self._files(
+            "golden-match-tree",
+            lambda d: d["cases"][0]["golden"]["entries"].insert(
+                1, {"path": "api.go/x", "text": ""}
+            ),
+        )
+        self.assert_caught("golden: 'api.go/x' is below 'api.go', no directory")
+
     def test_a_parallel_language_without_the_recorder_limit_is_caught(self) -> None:
         """The counter can hide a missing barrier where threads run on many cores."""
         _edit(

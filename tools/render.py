@@ -12,10 +12,11 @@ published tables, so the validator can check each entry against it.
 
 Vectors are authored as inputs only, in corpus/<family>/<kind>.yaml. The
 family prop contains the property engine's vectors, history those of the
-history seam and the checkers, and stateful those of machines. Each
-rendered case is its inputs followed by the outputs the family's
-executable reference computes for them, in the order the reference
-returns them, indented by two as the rest of the corpus is.
+history seam and the checkers, stateful those of machines, and files those
+of the ten assertions that read files. Each rendered case is its inputs
+followed by the outputs the family's executable reference computes for
+them, in the order the reference returns them, indented by two as the rest
+of the corpus is.
 """
 
 from __future__ import annotations
@@ -29,6 +30,7 @@ from typing import Any, Final
 
 import yaml
 
+from files import vectors as files_vectors
 from history import vectors as history_vectors
 from prop import vectors as prop_vectors
 from prop.vectors import Vector
@@ -50,6 +52,7 @@ FAMILIES: Final[
     "prop": (prop_vectors.KINDS, prop_vectors.compute),
     "history": (history_vectors.KINDS, history_vectors.compute),
     "stateful": (stateful_vectors.KINDS, stateful_vectors.compute),
+    "files": (files_vectors.KINDS, files_vectors.compute),
 }
 
 #: The assertion whose run every property form is, and the start of each

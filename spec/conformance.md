@@ -77,6 +77,21 @@ history refuses, and the verdict, the steps and the record of each
 check. One history then gives one outcome and one record in every
 language.
 
+**What a tree of files is, and how the file assertions decide.** A tree
+states paths, the bytes of its files, the targets of its links, and the
+modes that a test states. Where its tree states no mode, a workspace sets
+0644 on a file and 0755 on an executable file and on a directory. It then
+writes the same tree under any umask. A comparison reads a mode only where
+the wanted tree states one. Its record lists the first 64 paths that
+differ. The files vectors pin the verdict and the record of each
+assertion that reads files, and the golden tree that an update leaves.
+
+A runner on a platform that does not record permission bits skips each
+vector that states a mode or an executable file. It also skips each vector
+of `has-mode`. A runner on a platform that refuses symbolic links skips
+each vector that states a link. These skips follow from the platform. No
+case declares them.
+
 **How a machine takes its steps, and how the task scheduler releases
 tasks.** Every decision of a machine is a choice of the case: the swarm
 choices, the continue flags, the indices by weight, the clients of a
@@ -216,6 +231,7 @@ other is the library's.
 | Fixed: the call record | The corpus, run with recording on: the call record of every case. The recording vectors: the call records of a property's runs |
 | Fixed: the history and the checkers | The history vectors: the events of a script or of intervals, the entry that the history refuses, and the verdict, the steps and the detail of each linearizability and isolation check |
 | Fixed: machines and the task scheduler | The machines vectors: the detail of a run of each machine subject, the minimal steps of each fault, and the traces that a run follows or refuses |
+| Fixed: trees of files | The files vectors: the verdict and the detail of each assertion that reads files over a workspace, and the golden tree that an update leaves |
 | Named | The completeness gate, against the naming table, with each member's arity as far as the language can read it |
 | Declared | The validator, which refuses an entry with no reason, an overlay that states no artifact, and an overlay that states no way to run a concurrent section |
 | Free | Nothing |

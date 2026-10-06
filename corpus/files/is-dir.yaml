@@ -1,0 +1,47 @@
+# is-dir: a directory is at a path, and a link to a directory is a link.
+# Each case states `workspace`, the tree that the runner writes before the
+# call, `args`, the path relative to the workspace's root, and `expect`. The
+# runner passes the path of the operating system there, and a message of
+# its own.
+#
+# `detail` is the record of a failure: `got`, the kind of the entry at the
+# path, or null for none. `make render` writes it.
+kind: is-dir
+cases:
+  # The workspace writes each parent of an entry as a directory.
+  - id: is-dir/a-directory-passes
+    workspace:
+      type: tree
+      entries:
+        - {path: docs/a.md, text: "# a\n"}
+    args:
+      - {type: string, value: docs}
+    expect: pass
+
+  - id: is-dir/a-file-fails
+    workspace:
+      type: tree
+      entries:
+        - {path: docs/a.md, text: "# a\n"}
+    args:
+      - {type: string, value: docs/a.md}
+    expect: fail
+
+  - id: is-dir/a-link-to-a-directory-fails
+    workspace:
+      type: tree
+      entries:
+        - {path: docs/a.md, text: "# a\n"}
+        - {path: latest, link: docs}
+    args:
+      - {type: string, value: latest}
+    expect: fail
+
+  - id: is-dir/nothing-at-the-path-fails
+    workspace:
+      type: tree
+      entries:
+        - {path: docs/a.md, text: "# a\n"}
+    args:
+      - {type: string, value: build}
+    expect: fail

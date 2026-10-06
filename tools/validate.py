@@ -20,6 +20,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+import files.tree
+import files.vectors
 import history.isolation
 import history.linearizable
 import history.seam
@@ -54,6 +56,7 @@ FORMS: dict[str, tuple[frozenset[str], ...]] = {
     "map": (frozenset({"key", "of", "value"}), frozenset({"entries"})),
     "record": (frozenset({"fields"}),),
     "variant": (frozenset({"name"}), frozenset({"name", "payload"})),
+    "tree": (frozenset({"entries"}),),
 }
 
 #: JSON has no NaN or infinity, so a float states them by these names.
@@ -507,13 +510,17 @@ def _check_form_names(
             )
 
 
-def check_literal(value: Any, where: str, problems: Problems) -> None:
+def check_literal(
+    value: Any, where: str, problems: Problems, *, record: bool = False
+) -> None:
     """Check one typed literal against the encoding.
 
     A literal whose keys fit no form of its type is reported by key. A
     literal whose keys fit is decoded with the reference's codec, which
     reports a value the type cannot take, such as a JavaScript-unsafe
-    integer stated as a number or bytes that are not lowercase hex.
+    integer stated as a number or bytes that are not lowercase hex. The
+    files reference decodes a tree, and admits a file stated by its digest
+    only in a record.
     """
     if not isinstance(value, dict):
         problems.at(where, f"is {type(value).__name__}, not a typed literal")
@@ -546,9 +553,14 @@ def check_literal(value: Any, where: str, problems: Problems) -> None:
         return
 
     try:
-        literal.decode(value)
-    except literal.LiteralError as bad:
-        problems.at(where, str(bad).removeprefix("prop: "))
+        if kind != "tree":
+            literal.decode(value)
+        elif record:
+            files.tree.check_record(value)
+        else:
+            files.tree.decode(value)
+    except (literal.LiteralError, files.tree.TreeError) as bad:
+        problems.at(where, str(bad).removeprefix("prop: ").removeprefix("files: "))
 
 
 @dataclass(frozen=True)
@@ -648,7 +660,9 @@ def check_case(
                 f"{where} [{cid}]",
                 f"states detail {name!r}, which {assertion} does not declare",
             )
-            check_literal(value, f"{where} [{cid}] detail.{name}", problems)
+            check_literal(
+                value, f"{where} [{cid}] detail.{name}", problems, record=True
+            )
 
     skip = case.get("skip", {})
     if problems.unless(
@@ -1179,6 +1193,67 @@ def _machine_covers(case: dict[str, Any]) -> list[str]:
         return [end]
     clients = any(isinstance(entry, dict) and "client" in entry for entry in trace)
     return [end, f"trace:{end}", *(["trace:client"] if clients else [])]
+
+
+def check_files(
+    subjects: set[str], detail: dict[str, set[str]], problems: Problems
+) -> int:
+    """Check the vector files of the file assertions, and return the number of vectors.
+
+    A vector of the files family is a case of the assertion that its file
+    names, and is checked as a corpus case is, with its workspace beside it.
+    `make render` writes its detail and its after, so this check covers what
+    the renderer copies from the YAML: each file's kind, the ids, the typed
+    literals, the workspace and the golden tree, each case's expect, and
+    the subject of each case of tree-unchanged. It reads each failure's
+    detail against the fields that its assertion declares, and requires a
+    case that passes and one that fails of each assertion.
+    """
+    total = 0
+    for kind, where, cases in _vector_files("files", files.vectors.KINDS, problems):
+        total += len(cases)
+        vocabulary = Vocabulary(
+            detail=detail.get(kind, set()), subjects=subjects, relaxations=set()
+        )
+        seen: set[str] = set()
+        outcomes: set[object] = set()
+        for case in cases:
+            cid = check_case(case, kind, vocabulary, where, problems)
+            if cid is None:
+                continue
+            problems.unless(cid not in seen, where, f"repeats case id {cid!r}")
+            seen.add(cid)
+            outcomes.add(case.get("expect"))
+            _check_trees(kind, case, f"{where} [{cid}]", problems)
+        for wanted in sorted(OUTCOMES):
+            problems.unless(
+                wanted in outcomes,
+                where,
+                f"states no case expecting {wanted!r}; an assertion is driven "
+                "both ways or the corpus proves nothing about it",
+            )
+    return total
+
+
+def _check_trees(
+    kind: str, case: dict[str, Any], where: str, problems: Problems
+) -> None:
+    """Check the workspace of a files vector, and the golden tree it states.
+
+    A case of golden-match-tree states golden, a tree or null for none.
+    Neither tree states a file by its digest, which only a record does.
+    """
+    trees = [("workspace", case.get("workspace"))]
+    golden = kind == "golden-match-tree" and problems.unless(
+        "golden" in case, where, "states no golden, a tree or null"
+    )
+    if golden and case["golden"] is not None:
+        trees.append(("golden", case["golden"]))
+    for name, stated in trees:
+        try:
+            files.tree.decode(stated)
+        except files.tree.TreeError as bad:
+            problems.at(where, f"{name}: {str(bad).removeprefix('files: ')}")
 
 
 def _vector_files(
@@ -1772,6 +1847,7 @@ def main() -> int:
     )
     vectors += check_history(models, problems)
     vectors += check_stateful(machines, problems)
+    vectors += check_files(subjects, assertions, problems)
     changes = check_zones(ROOT / "spec" / "zones.json", problems)
     check_surface(naming, set(naming.get("languages", [])), problems)
     check_overlays(

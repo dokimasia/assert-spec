@@ -1,0 +1,50 @@
+# tree-unchanged: a callable leaves the tree in a directory as it found it.
+# Each case states `workspace`, the tree that the runner writes before the
+# call, `subject`, the callable as a subject of the definition, and
+# `expect`. The runner passes the workspace's directory, the subject, and a
+# message of its own.
+#
+# `detail` is the record of a failure, as tree-equal's is, with the tree
+# before the call as the wanted one. `make render` writes it.
+kind: tree-unchanged
+cases:
+  # The reader follows no link, so the link is read as a link.
+  - id: tree-unchanged/a-subject-that-reads-every-file-passes
+    workspace:
+      type: tree
+      entries:
+        - {path: a.txt, text: "a\n"}
+        - {path: current, link: a.txt}
+        - {path: docs/b.md, text: "# b\n"}
+        - {path: run.sh, text: "#!/bin/sh\n", executable: true}
+    subject: {kind: leaves-files-alone}
+    expect: pass
+
+  # A write of the bytes that a file has changes its timestamps, and no
+  # entry of the tree.
+  - id: tree-unchanged/a-subject-that-rewrites-every-file-passes
+    workspace:
+      type: tree
+      entries:
+        - {path: a.txt, text: "a\n"}
+        - {path: docs/b.md, text: "# b\n"}
+        - {path: keys/id, text: "secret\n", mode: 384}
+    subject: {kind: rewrites-files}
+    expect: pass
+
+  - id: tree-unchanged/a-subject-that-writes-a-file-fails
+    workspace:
+      type: tree
+      entries:
+        - {path: a.txt, text: "a\n"}
+    subject: {kind: writes-a-file}
+    expect: fail
+
+  # The record states a file of 65,537 bytes by its digest and its size.
+  - id: tree-unchanged/a-subject-that-writes-a-large-file-fails
+    workspace:
+      type: tree
+      entries:
+        - {path: a.txt, text: "a\n"}
+    subject: {kind: writes-a-large-file}
+    expect: fail

@@ -1,0 +1,72 @@
+# tree-contains: the tree read from a directory has every entry of a stated
+# tree, each as the stated entry states it, and may have more. Each case
+# states `workspace`, the tree that the runner writes before the call,
+# `args`, the stated tree, and `expect`. The runner passes the workspace's
+# directory, and a message of its own.
+#
+# A tree literal states a mode as a decimal integer: 420 is 0644 and 384 is
+# 0600.
+#
+# `detail` is the record of a failure, as tree-equal's is. A path that the
+# stated tree lacks is no difference. `make render` writes it.
+kind: tree-contains
+cases:
+  - id: tree-contains/a-stated-subset-passes
+    workspace:
+      type: tree
+      entries:
+        - {path: a.txt, text: "a\n"}
+        - {path: cache, directory: true}
+        - {path: docs/b.md, text: "# b\n"}
+    args:
+      - type: tree
+        entries:
+          - {path: docs/b.md, text: "# b\n"}
+    expect: pass
+
+  # A stated directory may hold entries that the stated tree does not list.
+  - id: tree-contains/an-entry-below-a-stated-directory-passes
+    workspace:
+      type: tree
+      entries:
+        - {path: cache/x.bin, bytes: "00ff"}
+    args:
+      - type: tree
+        entries:
+          - {path: cache, directory: true}
+    expect: pass
+
+  - id: tree-contains/a-missing-entry-fails
+    workspace:
+      type: tree
+      entries:
+        - {path: a.txt, text: "a\n"}
+    args:
+      - type: tree
+        entries:
+          - {path: a.txt, text: "a\n"}
+          - {path: b.txt, text: "b\n"}
+    expect: fail
+
+  - id: tree-contains/another-content-fails
+    workspace:
+      type: tree
+      entries:
+        - {path: a.txt, text: "a\n"}
+        - {path: b.txt, text: "b\n"}
+    args:
+      - type: tree
+        entries:
+          - {path: a.txt, text: "b\n"}
+    expect: fail
+
+  - id: tree-contains/another-stated-mode-fails
+    workspace:
+      type: tree
+      entries:
+        - {path: keys/id, text: "secret\n", mode: 420}
+    args:
+      - type: tree
+        entries:
+          - {path: keys/id, text: "secret\n", mode: 384}
+    expect: fail

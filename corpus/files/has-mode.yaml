@@ -1,0 +1,65 @@
+# has-mode: a file or a directory whose nine permission bits equal a stated
+# mode is at a path, and a link has no mode. Each case states `workspace`,
+# the tree that the runner writes before the call, `args`, the path relative
+# to the workspace's root and the mode, and `expect`. The runner passes the
+# path of the operating system there, the mode, and a message of its own.
+#
+# A mode is a decimal integer: 420 is 0644, 448 is 0700 and 384 is 0600.
+#
+# `detail` is the record of a failure: `want`, the stated mode, `got`, the
+# entry's permission bits, or null when no file or directory is there, and
+# `kind`, the kind of the entry at the path, or null for none. `make render`
+# writes it.
+kind: has-mode
+cases:
+  - id: has-mode/the-stated-mode-of-a-file-passes
+    workspace:
+      type: tree
+      entries:
+        - {path: keys/id, text: "secret\n", mode: 384}
+    args:
+      - {type: string, value: keys/id}
+      - {type: int, value: 384}
+    expect: pass
+
+  - id: has-mode/the-stated-mode-of-a-directory-passes
+    workspace:
+      type: tree
+      entries:
+        - {path: keys, directory: true, mode: 448}
+        - {path: keys/id, text: "secret\n", mode: 384}
+    args:
+      - {type: string, value: keys}
+      - {type: int, value: 448}
+    expect: pass
+
+  - id: has-mode/another-mode-fails
+    workspace:
+      type: tree
+      entries:
+        - {path: keys/id, text: "secret\n", mode: 420}
+    args:
+      - {type: string, value: keys/id}
+      - {type: int, value: 384}
+    expect: fail
+
+  - id: has-mode/a-link-fails
+    workspace:
+      type: tree
+      entries:
+        - {path: a.txt, text: "a\n"}
+        - {path: current, link: a.txt}
+    args:
+      - {type: string, value: current}
+      - {type: int, value: 420}
+    expect: fail
+
+  - id: has-mode/nothing-at-the-path-fails
+    workspace:
+      type: tree
+      entries:
+        - {path: a.txt, text: "a\n"}
+    args:
+      - {type: string, value: b.txt}
+      - {type: int, value: 420}
+    expect: fail

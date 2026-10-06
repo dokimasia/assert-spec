@@ -228,6 +228,36 @@
             "package": "golden",
             "summary": "Output matches one named field of a golden JSON object.\n"
         },
+        "golden-match-tree": {
+            "arity": 3,
+            "detail_fields": [
+                "want",
+                "got",
+                "differences"
+            ],
+            "package": "golden",
+            "summary": "A tree read from a directory equals the golden tree in the directory that a name resolves to against the conventional directory. The comparison reads no mode of the golden tree, and compares execute bits. Under update, the call makes the golden directory equal the tree and passes.\n"
+        },
+        "has-content": {
+            "arity": 3,
+            "detail_fields": [
+                "want",
+                "got",
+                "kind"
+            ],
+            "package": "files",
+            "summary": "A file whose bytes equal stated text or bytes is at a path. got is the file's content, as text when it is valid UTF-8 and as bytes otherwise, or null when no file is there, and kind is the kind of the entry there.\n"
+        },
+        "has-mode": {
+            "arity": 3,
+            "detail_fields": [
+                "want",
+                "got",
+                "kind"
+            ],
+            "package": "files",
+            "summary": "A file or a directory whose nine permission bits equal a stated mode is at a path. A link has no mode. got is the entry's permission bits, or null when no file or directory is there, and kind is the kind of the entry there.\n"
+        },
         "has-prefix": {
             "arity": 3,
             "detail_fields": [
@@ -279,6 +309,22 @@
             ],
             "summary": "A number falls in a closed interval. NaN is in no range, and a range with a NaN bound contains no number.\n"
         },
+        "is-dir": {
+            "arity": 2,
+            "detail_fields": [
+                "got"
+            ],
+            "package": "files",
+            "summary": "A directory is at a path. A link to a directory is a link. got is the kind of the entry there, or null for none.\n"
+        },
+        "is-file": {
+            "arity": 2,
+            "detail_fields": [
+                "got"
+            ],
+            "package": "files",
+            "summary": "A file is at a path. A link to a file is a link. got is the kind of the entry there, or null for none.\n"
+        },
         "length": {
             "arity": 3,
             "detail_fields": [
@@ -303,6 +349,16 @@
             ],
             "package": "history",
             "summary": "Every partition of a recorded history has an order of its calls that keeps the history's precedence and that the model accepts. A fixed search decides it within a budget of model steps and a limit on the size of its memo. A search that uses up either is undecided, and an undecided history fails.\n"
+        },
+        "links-to": {
+            "arity": 3,
+            "detail_fields": [
+                "want",
+                "got",
+                "kind"
+            ],
+            "package": "files",
+            "summary": "A symbolic link with a stated target is at a path. The target compares as text. got is the link's target, or null when no link is there, and kind is the kind of the entry there, or null for none.\n"
         },
         "matches": {
             "arity": 3,
@@ -429,6 +485,14 @@
                 "second"
             ],
             "summary": "Every adjacent pair of a sequence satisfies a predicate. Nought or one item passes.\n"
+        },
+        "path-absent": {
+            "arity": 2,
+            "detail_fields": [
+                "got"
+            ],
+            "package": "files",
+            "summary": "Nothing is at a path: no file, no directory and no link, a link whose target is missing included. got is the kind of the entry there.\n"
         },
         "permutation": {
             "arity": 3,
@@ -1532,6 +1596,36 @@
             ],
             "summary": "A call succeeds for every input of a domain, in order. index is the position of the first input for which it fails, and got the failure.\n"
         },
+        "tree-contains": {
+            "arity": 3,
+            "detail_fields": [
+                "want",
+                "got",
+                "differences"
+            ],
+            "package": "files",
+            "summary": "A tree read from a directory has every entry of a stated tree, each as the stated entry states it. It may have more.\n"
+        },
+        "tree-equal": {
+            "arity": 3,
+            "detail_fields": [
+                "want",
+                "got",
+                "differences"
+            ],
+            "package": "files",
+            "summary": "A tree read from a directory has the entries of a stated tree, no more and no fewer, each as the stated entry states it.\n"
+        },
+        "tree-unchanged": {
+            "arity": 3,
+            "detail_fields": [
+                "want",
+                "got",
+                "differences"
+            ],
+            "package": "files",
+            "summary": "A callable leaves the tree in a directory as it found it: the tree read after the call equals the tree read before it, modes included.\n"
+        },
         "true": {
             "arity": 2,
             "detail_fields": [],
@@ -1686,6 +1780,9 @@
         "is-non-negative": {
             "summary": "Returns whether its integer input is 0 or more.\n"
         },
+        "leaves-files-alone": {
+            "summary": "Reads every file of the workspace, and writes nothing.\n"
+        },
         "leaves-state-alone": {
             "summary": "Reads the observed state and changes nothing.\n"
         },
@@ -1719,6 +1816,9 @@
         "returns-ok": {
             "summary": "Does the work and returns success, whatever it was handed. As the subject of a member, it returns its input, 1, and its domain is 1, 2 and 3.\n"
         },
+        "rewrites-files": {
+            "summary": "Writes every file of the workspace again, with the bytes that the file has.\n"
+        },
         "rotates": {
             "summary": "Yields the integers 1 to 5, rotated one place further on each iteration: 1 to 5 first, then 2, 3, 4, 5 and 1.\n"
         },
@@ -1743,9 +1843,15 @@
         "wraps-in-a-and-b": {
             "summary": "Returns its text with a before it and b after it.\n"
         },
+        "writes-a-file": {
+            "summary": "Writes the file new.txt, with the text new, at the root of the workspace.\n"
+        },
+        "writes-a-large-file": {
+            "summary": "Writes the file large.bin, 65,537 bytes of the letter a, at the root of the workspace.\n"
+        },
         "yields-in-order": {
             "summary": "Yields the integers 1 to 5 in order, on every iteration.\n"
         }
     },
-    "version": "5.0.0"
+    "version": "5.1.0"
 }

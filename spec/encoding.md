@@ -19,6 +19,7 @@ A value is an object with a `type` key.
 | `map` | `entries`, a list of key and value literal pairs | `map[K]V` |
 | `record` | `fields`, a list of name and value literal pairs | The value `prop.OfShape` decodes |
 | `variant` | `name`, and `payload` when the variant has one | The value `prop.OfShape` decodes |
+| `tree` | `entries`, a list of entries in path order | `files.Tree` |
 
 `of` and `key` name a scalar type: `bool`, `int`, `float`, `string`.
 
@@ -57,6 +58,46 @@ A `variant` is one variant of an enum. It states its `name`, and its
 `payload` literal when the variant has a payload. A variant without a
 payload states no `payload` key. A variant whose payload is optional
 and absent states a `null` payload, so the two differ.
+
+## Trees
+
+A `tree` states a tree of files: entries at paths relative to the tree's
+root, each a file, a directory or a symbolic link.
+
+```json
+{
+  "type": "tree",
+  "entries": [
+    { "path": "bin/run", "text": "#!/bin/sh\necho ok\n", "executable": true },
+    { "path": "cache", "directory": true },
+    { "path": "current", "link": "bin/run" },
+    { "path": "keys", "directory": true, "mode": 448 },
+    { "path": "keys/id", "text": "secret\n", "mode": 384 },
+    { "path": "logo.png", "bytes": "89504e470d0a1a0a" }
+  ]
+}
+```
+
+- A path is one or more names joined by `/`. A name is not empty, `.` or
+  `..`, and contains no `\` and no NUL.
+- `entries` lists each path once, in the order of the bytes of its UTF-8.
+- An entry states `path` and exactly one of `text`, `bytes`, `directory`
+  and `link`. `text` states a file's content as UTF-8 text, and `bytes`
+  states it in lowercase hexadecimal. `directory` is `true`, and `link`
+  states a link's target, as text of any form.
+- A file may state `executable`, which is false when absent.
+- A file or a directory may state `mode`, its nine permission bits as an
+  integer from 0 to 511: 448 is `0o700` and 384 is `0o600`. A file that
+  states a mode states no `executable`, because the mode states the
+  execute bit. A link has no mode.
+- Every parent of an entry is a directory of the tree, stated or not. A
+  file and a link have no entries, so no entry is below one.
+
+A record states a file whose content is longer than 65,536 bytes by
+`digest` and `size` in place of `text` or `bytes`. `digest` is `sha256:`
+and 64 lowercase hexadecimal digits, and `size` is the number of bytes. A
+case states the content of every file it writes, so only a record states
+this form.
 
 ## Opaque values
 

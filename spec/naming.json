@@ -232,6 +232,30 @@
             "rust": "golden::matches_json_field",
             "typescript": "golden.matchJsonField"
         },
+        "golden-match-tree": {
+            "go": "golden.MatchTree",
+            "java": "Golden.matchTree",
+            "kotlin": "Golden.matchTree",
+            "python": "golden.match_tree",
+            "rust": "golden::matches_tree",
+            "typescript": "golden.matchTree"
+        },
+        "has-content": {
+            "go": "files.HasContent",
+            "java": "FileTrees.hasContent",
+            "kotlin": "FileTrees.hasContent",
+            "python": "files.has_content",
+            "rust": "files::has_content",
+            "typescript": "files.hasContent"
+        },
+        "has-mode": {
+            "go": "files.HasMode",
+            "java": "FileTrees.hasMode",
+            "kotlin": "FileTrees.hasMode",
+            "python": "files.has_mode",
+            "rust": "files::has_mode",
+            "typescript": "files.hasMode"
+        },
         "has-prefix": {
             "go": "HasPrefix",
             "java": "hasPrefix",
@@ -280,6 +304,22 @@
             "rust": "in_range",
             "typescript": "inRange"
         },
+        "is-dir": {
+            "go": "files.IsDir",
+            "java": "FileTrees.isDir",
+            "kotlin": "FileTrees.isDir",
+            "python": "files.is_dir",
+            "rust": "files::is_dir",
+            "typescript": "files.isDir"
+        },
+        "is-file": {
+            "go": "files.IsFile",
+            "java": "FileTrees.isFile",
+            "kotlin": "FileTrees.isFile",
+            "python": "files.is_file",
+            "rust": "files::is_file",
+            "typescript": "files.isFile"
+        },
         "length": {
             "go": "Length",
             "java": "length",
@@ -295,6 +335,14 @@
             "python": "history.is_linearizable",
             "rust": "history::is_linearizable",
             "typescript": "history.isLinearizable"
+        },
+        "links-to": {
+            "go": "files.LinksTo",
+            "java": "FileTrees.linksTo",
+            "kotlin": "FileTrees.linksTo",
+            "python": "files.links_to",
+            "rust": "files::links_to",
+            "typescript": "files.linksTo"
         },
         "matches": {
             "go": "Matches",
@@ -415,6 +463,14 @@
             "python": "pairwise",
             "rust": "pairwise",
             "typescript": "pairwise"
+        },
+        "path-absent": {
+            "go": "files.Absent",
+            "java": "FileTrees.absent",
+            "kotlin": "FileTrees.absent",
+            "python": "files.absent",
+            "rust": "files::absent",
+            "typescript": "files.absent"
         },
         "permutation": {
             "go": "Permutation",
@@ -816,6 +872,30 @@
             "rust": "is_total",
             "typescript": "isTotal"
         },
+        "tree-contains": {
+            "go": "files.Contains",
+            "java": "FileTrees.contains",
+            "kotlin": "FileTrees.contains",
+            "python": "files.contains",
+            "rust": "files::contains",
+            "typescript": "files.contains"
+        },
+        "tree-equal": {
+            "go": "files.Equal",
+            "java": "FileTrees.equal",
+            "kotlin": "FileTrees.equal",
+            "python": "files.equal",
+            "rust": "files::equal",
+            "typescript": "files.equal"
+        },
+        "tree-unchanged": {
+            "go": "files.Unchanged",
+            "java": "FileTrees.unchanged",
+            "kotlin": "FileTrees.unchanged",
+            "python": "files.unchanged",
+            "rust": "files::unchanged",
+            "typescript": "files.unchanged"
+        },
         "true": {
             "go": "True",
             "java": "isTrue",
@@ -843,6 +923,62 @@
     },
     "surface": {
         "helpers": {
+            "files.bytes": {
+                "go": "files.Bytes",
+                "java": "FileTrees.bytes",
+                "kotlin": "FileTrees.bytes",
+                "python": "files.bytes",
+                "rust": "files::bytes",
+                "typescript": "files.bytes"
+            },
+            "files.directory": {
+                "go": "files.Dir",
+                "java": "FileTrees.directory",
+                "kotlin": "FileTrees.directory",
+                "python": "files.directory",
+                "rust": "files::directory",
+                "typescript": "files.directory"
+            },
+            "files.executable": {
+                "go": "files.Executable",
+                "java": "FileTrees.executable",
+                "kotlin": "FileTrees.executable",
+                "python": "files.executable",
+                "rust": "files::executable",
+                "typescript": "files.executable"
+            },
+            "files.link": {
+                "go": "files.Link",
+                "java": "FileTrees.link",
+                "kotlin": "FileTrees.link",
+                "python": "files.link",
+                "rust": "files::link",
+                "typescript": "files.link"
+            },
+            "files.read": {
+                "go": "files.Read",
+                "java": "FileTrees.read",
+                "kotlin": "FileTrees.read",
+                "python": "files.read",
+                "rust": "files::read",
+                "typescript": "files.read"
+            },
+            "files.text": {
+                "go": "files.Text",
+                "java": "FileTrees.text",
+                "kotlin": "FileTrees.text",
+                "python": "files.text",
+                "rust": "files::text",
+                "typescript": "files.text"
+            },
+            "files.workspace": {
+                "go": "files.Workspace",
+                "java": "FileTrees.workspace",
+                "kotlin": "FileTrees.workspace",
+                "python": "files.workspace",
+                "rust": "files::workspace",
+                "typescript": "files.workspace"
+            },
             "golden.scrub-hashes": {
                 "go": "golden.ScrubHashes",
                 "java": "Golden.scrubHashes",
@@ -1558,6 +1694,14 @@
                 "rust": "advance",
                 "typescript": "advance"
             },
+            "entry.with-mode": {
+                "go": "WithMode",
+                "java": "withMode",
+                "kotlin": "withMode",
+                "python": "with_mode",
+                "rust": "with_mode",
+                "typescript": "withMode"
+            },
             "failure.assertion": {
                 "go": "Assertion",
                 "java": "assertion",
@@ -1864,6 +2008,14 @@
                 "rust": "Controlled",
                 "typescript": "Controlled"
             },
+            "entry": {
+                "go": "files.Entry",
+                "java": "FileTree.Entry",
+                "kotlin": "FileTree.Entry",
+                "python": "files.Entry",
+                "rust": "files::Entry",
+                "typescript": "files.Entry"
+            },
             "event": {
                 "go": "history.Event",
                 "java": "Event",
@@ -1980,6 +2132,14 @@
                 "rust": "System",
                 "typescript": "System"
             },
+            "tree": {
+                "go": "files.Tree",
+                "java": "FileTree",
+                "kotlin": "FileTree",
+                "python": "files.Tree",
+                "rust": "files::Tree",
+                "typescript": "files.Tree"
+            },
             "where": {
                 "go": "Where",
                 "java": "Where",
@@ -1990,5 +2150,5 @@
             }
         }
     },
-    "version": "5.0.0"
+    "version": "5.1.0"
 }

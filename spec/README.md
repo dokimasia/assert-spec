@@ -32,18 +32,19 @@ simpler than a list of exceptions.
 ## Corpus coverage by assertion
 
 A case states its arguments as typed literals, or names a subject from a
-small vocabulary that each implementation builds natively. 39 of the 61
-assertions have corpus cases:
+small vocabulary that each implementation builds natively. Of the 71
+assertions:
 
-- 18 take data.
-- 21 take a callable that a subject describes.
+- 18 take data, and have corpus cases.
+- 21 take a callable that a subject describes, and have corpus cases.
+- 10 read files, and have vectors under `corpus/files/`.
+- 22 take an error value, a predicate, a callable that no subject
+  describes, a golden file, a benchmark, a property's body, a model or a
+  recorded history.
 
-The other 22 take an error value, a predicate, a callable that no
-subject describes, a golden file, a benchmark, a property's body, a
-model or a recorded history. Each language tests them itself, and the
-completeness gate checks only that they are present. The standard checks
-an implementation's meaning where a case can state it, and its membership
-everywhere else.
+Each language tests the last 22 itself, and the completeness gate checks
+only that they are present. The standard checks an implementation's
+meaning where a case can state it, and its membership everywhere else.
 
 The engine behind `prop-for-all` is data in and data out, so the vectors
 under `corpus/prop/` pin the decoding of every generator, the generation
@@ -79,3 +80,16 @@ minimal steps of each fault, the traces that a run follows or refuses,
 and the label and the step that a divergence names. People write the inputs in `corpus/stateful/machines.yaml`, and
 `make render` computes the outputs with the executable reference in
 `tools/stateful/`.
+
+The ten assertions that read files are data in and data out once a case
+states the files. A vector under `corpus/files/<assertion>.yaml` states
+`workspace`, a tree literal that the runner writes before the call, the
+assertion's arguments without the directory and the message, and
+`expect`. A tree assertion reads the whole workspace, and a path is
+relative to the workspace's root. A vector of `tree-unchanged` names a
+subject from the `subjects` section in place of arguments, and a vector
+of `golden-match-tree` states `golden`, the golden tree, or null for
+none. `make render` computes `detail`, the record of a failure, and
+`after`, the golden tree that an update leaves, with the executable
+reference in `tools/files/`. It refuses a vector whose `expect` differs
+from the reference's verdict.

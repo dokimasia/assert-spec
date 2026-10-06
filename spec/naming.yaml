@@ -3,7 +3,7 @@
 # A qualified name names a member of the subpackage the assertion table
 # gives it. The separator is the language's own: a dot in Go, Java,
 # Kotlin, Python and TypeScript, two colons in Rust.
-version: "5.0.0"
+version: "5.1.0"
 
 languages: [go, java, kotlin, php, python, rust, typescript]
 
@@ -372,6 +372,76 @@ names:
     typescript: "golden.matchJsonField"
     java: "Golden.matchJsonField"
     kotlin: "Golden.matchJsonField"
+  "golden-match-tree":
+    go: "golden.MatchTree"
+    python: "golden.match_tree"
+    rust: "golden::matches_tree"
+    typescript: "golden.matchTree"
+    java: "Golden.matchTree"
+    kotlin: "Golden.matchTree"
+  "tree-equal":
+    go: "files.Equal"
+    python: "files.equal"
+    rust: "files::equal"
+    typescript: "files.equal"
+    java: "FileTrees.equal"
+    kotlin: "FileTrees.equal"
+  "tree-contains":
+    go: "files.Contains"
+    python: "files.contains"
+    rust: "files::contains"
+    typescript: "files.contains"
+    java: "FileTrees.contains"
+    kotlin: "FileTrees.contains"
+  "tree-unchanged":
+    go: "files.Unchanged"
+    python: "files.unchanged"
+    rust: "files::unchanged"
+    typescript: "files.unchanged"
+    java: "FileTrees.unchanged"
+    kotlin: "FileTrees.unchanged"
+  "path-absent":
+    go: "files.Absent"
+    python: "files.absent"
+    rust: "files::absent"
+    typescript: "files.absent"
+    java: "FileTrees.absent"
+    kotlin: "FileTrees.absent"
+  "is-file":
+    go: "files.IsFile"
+    python: "files.is_file"
+    rust: "files::is_file"
+    typescript: "files.isFile"
+    java: "FileTrees.isFile"
+    kotlin: "FileTrees.isFile"
+  "is-dir":
+    go: "files.IsDir"
+    python: "files.is_dir"
+    rust: "files::is_dir"
+    typescript: "files.isDir"
+    java: "FileTrees.isDir"
+    kotlin: "FileTrees.isDir"
+  "links-to":
+    go: "files.LinksTo"
+    python: "files.links_to"
+    rust: "files::links_to"
+    typescript: "files.linksTo"
+    java: "FileTrees.linksTo"
+    kotlin: "FileTrees.linksTo"
+  "has-content":
+    go: "files.HasContent"
+    python: "files.has_content"
+    rust: "files::has_content"
+    typescript: "files.hasContent"
+    java: "FileTrees.hasContent"
+    kotlin: "FileTrees.hasContent"
+  "has-mode":
+    go: "files.HasMode"
+    python: "files.has_mode"
+    rust: "files::has_mode"
+    typescript: "files.hasMode"
+    java: "FileTrees.hasMode"
+    kotlin: "FileTrees.hasMode"
   "bench-max-latency":
     go: "bench.Contract.MaxLatency"
     python: "bench.Contract.max_latency"
@@ -532,6 +602,13 @@ relaxations:
 # keyword. Python and Kotlin decline it: an await in an asyncio task, and
 # yield() in a coroutine, already suspend the task at a point the
 # scheduler sees.
+#
+# Java and Kotlin name the tree of files FileTree, and the class of its
+# assertions and helpers FileTrees, as the JDK pairs Path with Paths. A
+# Java test reads and writes files through java.nio.file.Files, and a
+# second class of that name would make every such test qualify one of the
+# two. Go spells the directory constructor Dir, as io/fs spells ReadDir and
+# DirEntry.
 surface:
   types:
     "seat":
@@ -699,6 +776,20 @@ surface:
       typescript: "stateful.Scheduler"
       java: "Scheduler"
       kotlin: "Scheduler"
+    "tree":
+      go: "files.Tree"
+      python: "files.Tree"
+      rust: "files::Tree"
+      typescript: "files.Tree"
+      java: "FileTree"
+      kotlin: "FileTree"
+    "entry":
+      go: "files.Entry"
+      python: "files.Entry"
+      rust: "files::Entry"
+      typescript: "files.Entry"
+      java: "FileTree.Entry"
+      kotlin: "FileTree.Entry"
   members:
     "seat.helper":
       go: "Helper"
@@ -1106,6 +1197,13 @@ surface:
       typescript: "run"
       java: "run"
       kotlin: "run"
+    "entry.with-mode":
+      go: "WithMode"
+      python: "with_mode"
+      rust: "with_mode"
+      typescript: "withMode"
+      java: "withMode"
+      kotlin: "withMode"
   helpers:
     "that":
       go: "That"
@@ -1531,6 +1629,55 @@ surface:
       typescript: "stateful.pct"
       java: "Stateful.pct"
       kotlin: "Stateful.pct"
+    "files.workspace":
+      go: "files.Workspace"
+      python: "files.workspace"
+      rust: "files::workspace"
+      typescript: "files.workspace"
+      java: "FileTrees.workspace"
+      kotlin: "FileTrees.workspace"
+    "files.read":
+      go: "files.Read"
+      python: "files.read"
+      rust: "files::read"
+      typescript: "files.read"
+      java: "FileTrees.read"
+      kotlin: "FileTrees.read"
+    "files.text":
+      go: "files.Text"
+      python: "files.text"
+      rust: "files::text"
+      typescript: "files.text"
+      java: "FileTrees.text"
+      kotlin: "FileTrees.text"
+    "files.bytes":
+      go: "files.Bytes"
+      python: "files.bytes"
+      rust: "files::bytes"
+      typescript: "files.bytes"
+      java: "FileTrees.bytes"
+      kotlin: "FileTrees.bytes"
+    "files.executable":
+      go: "files.Executable"
+      python: "files.executable"
+      rust: "files::executable"
+      typescript: "files.executable"
+      java: "FileTrees.executable"
+      kotlin: "FileTrees.executable"
+    "files.directory":
+      go: "files.Dir"
+      python: "files.directory"
+      rust: "files::directory"
+      typescript: "files.directory"
+      java: "FileTrees.directory"
+      kotlin: "FileTrees.directory"
+    "files.link":
+      go: "files.Link"
+      python: "files.link"
+      rust: "files::link"
+      typescript: "files.link"
+      java: "FileTrees.link"
+      kotlin: "FileTrees.link"
 
 # The property form of an assertion takes the assertion's name in the prop
 # package. Rendering adds one name for each form that the assertion table

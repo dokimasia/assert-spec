@@ -1,0 +1,73 @@
+# has-content: a file whose bytes equal stated text or bytes is at a path.
+# Each case states `workspace`, the tree that the runner writes before the
+# call, `args`, the path relative to the workspace's root and the content,
+# and `expect`. The runner passes the path of the operating system there,
+# the content as text or as bytes, and a message of its own.
+#
+# `detail` is the record of a failure: `want`, the stated content, `got`,
+# the file's content, as text when it is valid UTF-8 and as bytes otherwise,
+# or null when no file is there, and `kind`, the kind of the entry at the
+# path, or null for none. `make render` writes it.
+kind: has-content
+cases:
+  - id: has-content/equal-text-passes
+    workspace:
+      type: tree
+      entries:
+        - {path: go.mod, text: "module example.com/a\n"}
+    args:
+      - {type: string, value: go.mod}
+      - {type: string, value: "module example.com/a\n"}
+    expect: pass
+
+  - id: has-content/equal-bytes-pass
+    workspace:
+      type: tree
+      entries:
+        - {path: logo.png, bytes: "89504e470d0a1a0a"}
+    args:
+      - {type: string, value: logo.png}
+      - {type: bytes, value: "89504e470d0a1a0a"}
+    expect: pass
+
+  # Content compares as bytes, so a carriage return is a difference.
+  - id: has-content/other-text-fails
+    workspace:
+      type: tree
+      entries:
+        - {path: a.txt, text: "a\r\n"}
+    args:
+      - {type: string, value: a.txt}
+      - {type: string, value: "a\n"}
+    expect: fail
+
+  # Content that is no UTF-8 is stated as bytes.
+  - id: has-content/other-bytes-fail
+    workspace:
+      type: tree
+      entries:
+        - {path: logo.png, bytes: "89504e470d0a1a0a"}
+    args:
+      - {type: string, value: logo.png}
+      - {type: bytes, value: "89504e47"}
+    expect: fail
+
+  - id: has-content/a-directory-fails
+    workspace:
+      type: tree
+      entries:
+        - {path: docs/a.md, text: "# a\n"}
+    args:
+      - {type: string, value: docs}
+      - {type: string, value: ""}
+    expect: fail
+
+  - id: has-content/nothing-at-the-path-fails
+    workspace:
+      type: tree
+      entries:
+        - {path: a.txt, text: "a\n"}
+    args:
+      - {type: string, value: b.txt}
+      - {type: string, value: "b\n"}
+    expect: fail
