@@ -1058,13 +1058,13 @@
                 "rust": "history::memo_limit",
                 "typescript": "history.memoLimit"
             },
-            "history.model-from": {
-                "go": "history.ModelFrom",
-                "java": "History.modelFrom",
-                "kotlin": "History.modelFrom",
-                "python": "history.model_from",
-                "rust": "history::model_from",
-                "typescript": "history.modelFrom"
+            "history.spec-from": {
+                "go": "history.SpecFrom",
+                "java": "History.specFrom",
+                "kotlin": "History.specFrom",
+                "python": "history.spec_from",
+                "rust": "history::spec_from",
+                "typescript": "history.specFrom"
             },
             "history.time-limit": {
                 "go": "history.TimeLimit",
@@ -1829,14 +1829,6 @@
                 "rust": "invariant",
                 "typescript": "invariant"
             },
-            "machine.model": {
-                "go": "Model",
-                "java": "model",
-                "kotlin": "model",
-                "python": "model",
-                "rust": "model",
-                "typescript": "model"
-            },
             "machine.settle": {
                 "go": "Settle",
                 "java": "settle",
@@ -1845,29 +1837,53 @@
                 "rust": "settle",
                 "typescript": "settle"
             },
-            "model.equal": {
-                "go": "Equal",
-                "java": "equal",
-                "kotlin": "equal",
-                "python": "equal",
-                "rust": "equal",
-                "typescript": "equal"
+            "machine.spec": {
+                "go": "Spec",
+                "java": "spec",
+                "kotlin": "spec",
+                "python": "spec",
+                "rust": "spec",
+                "typescript": "spec"
             },
-            "model.init": {
-                "go": "Init",
-                "java": "init",
-                "kotlin": "init",
-                "python": "init",
-                "rust": "init",
-                "typescript": "init"
+            "operation.args": {
+                "go": "Args",
+                "java": "args",
+                "kotlin": "args",
+                "python": "args",
+                "rust": "args",
+                "typescript": "args"
             },
-            "model.step": {
-                "go": "Step",
-                "java": "step",
-                "kotlin": "step",
-                "python": "step",
-                "rust": "step",
-                "typescript": "step"
+            "operation.known": {
+                "go": "Known",
+                "java": "known",
+                "kotlin": "known",
+                "python": "known",
+                "rust": "known",
+                "typescript": "known"
+            },
+            "operation.name": {
+                "go": "Name",
+                "java": "name",
+                "kotlin": "name",
+                "python": "name",
+                "rust": "name",
+                "typescript": "name"
+            },
+            "operation.output": {
+                "go": "Output",
+                "java": "output",
+                "kotlin": "output",
+                "python": "output",
+                "rust": "output",
+                "typescript": "output"
+            },
+            "operation.returned": {
+                "go": "Returned",
+                "java": "returned",
+                "kotlin": "returned",
+                "python": "returned",
+                "rust": "returned",
+                "typescript": "returned"
             },
             "recorder-seat.failed": {
                 "go": "Failed",
@@ -1978,6 +1994,30 @@
                 "python": "report",
                 "rust": "report",
                 "typescript": "report"
+            },
+            "spec.equal": {
+                "go": "Equal",
+                "java": "equal",
+                "kotlin": "equal",
+                "python": "equal",
+                "rust": "equal",
+                "typescript": "equal"
+            },
+            "spec.initial": {
+                "go": "Initial",
+                "java": "initial",
+                "kotlin": "initial",
+                "python": "initial",
+                "rust": "initial",
+                "typescript": "initial"
+            },
+            "spec.next": {
+                "go": "Next",
+                "java": "next",
+                "kotlin": "next",
+                "python": "next",
+                "rust": "next",
+                "typescript": "next"
             }
         },
         "types": {
@@ -2095,21 +2135,13 @@
                 "rust": "stateful::Machine",
                 "typescript": "stateful.Machine"
             },
-            "model": {
-                "go": "history.Model",
-                "java": "Model",
-                "kotlin": "Model",
-                "python": "history.Model",
-                "rust": "history::Model",
-                "typescript": "history.Model"
-            },
-            "op": {
-                "go": "history.Op",
-                "java": "Op",
-                "kotlin": "Op",
-                "python": "history.Op",
-                "rust": "history::Op",
-                "typescript": "history.Op"
+            "operation": {
+                "go": "history.Operation",
+                "java": "Operation",
+                "kotlin": "Operation",
+                "python": "history.Operation",
+                "rust": "history::Operation",
+                "typescript": "history.Operation"
             },
             "outcome": {
                 "go": "history.Outcome",
@@ -2156,6 +2188,14 @@
                 "rust": "Seat",
                 "typescript": "Seat"
             },
+            "spec": {
+                "go": "history.Spec",
+                "java": "Spec",
+                "kotlin": "Spec",
+                "python": "history.Spec",
+                "rust": "history::Spec",
+                "typescript": "history.Spec"
+            },
             "standard-seat": {
                 "java": "Standard",
                 "kotlin": "Standard",
@@ -2189,5 +2229,5 @@
             }
         }
     },
-    "version": "6.0.0"
+    "version": "7.0.0"
 }

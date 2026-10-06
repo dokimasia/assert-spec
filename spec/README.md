@@ -39,7 +39,7 @@ assertions:
 - 21 take a callable that a subject describes, and have corpus cases.
 - 10 read files, and have vectors under `corpus/files/`.
 - 22 take an error value, a predicate, a callable that no subject
-  describes, a golden file, a benchmark, a property's body, a model or a
+  describes, a golden file, a benchmark, a property's body, a spec or a
   recorded history.
 
 Each language tests the last 22 itself, and the completeness gate checks
@@ -64,9 +64,9 @@ The history and the checkers behind `linearizable`, `serializable` and
 `snapshot-isolation` are data in and data out as well. The vectors under
 `corpus/history/` pin the events that a script or a list of intervals
 records, the entry that the history refuses, and the verdict, the steps
-and the record of a check. A vector of `linearizable` names a model from
-the `models` section of `assertions.yaml`, as a case names a subject, and
-each implementation builds every named model natively. A vector of an
+and the record of a check. A vector of `linearizable` names a spec from
+the `specs` section of `assertions.yaml`, as a case names a subject, and
+each implementation builds every named spec natively. A vector of an
 isolation level states a history of list-append transactions, and every
 history appears once at each level. People write the inputs in
 `corpus/history/<kind>.yaml`, and `make render` computes the outputs with
@@ -76,7 +76,7 @@ The steps of a machine and the task scheduler are data in and data out
 too. A vector under `corpus/stateful/` names a machine subject from the
 `machines` section of `assertions.yaml`, and each implementation builds
 every machine subject natively: the subject, its machine, its draws and
-its model. The vectors pin the detail of a run of each subject, the
+its spec. The vectors pin the detail of a run of each subject, the
 minimal steps of each fault, the traces that a run follows or refuses,
 and the label and the step that a divergence names. People write the inputs in `corpus/stateful/machines.yaml`, and
 `make render` computes the outputs with the executable reference in

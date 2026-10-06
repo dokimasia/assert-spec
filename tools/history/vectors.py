@@ -92,18 +92,18 @@ def _interval(entry: Mapping[str, Any]) -> Interval:
 
 
 def linearizable(case: Mapping[str, Any]) -> Vector:
-    """Check a history against a named model, and return the verdict and its detail.
+    """Check a history against a named spec, and return the verdict and its detail.
 
     workers is read and ignored: a check on more workers reports what a
     check on one reports.
 
     Raises:
-        VectorError: the model is not a named one, the history's script is
+        VectorError: the spec is not a named one, the history's script is
             refused, or a limit or the workers is not a positive integer.
     """
-    model = NAMED.get(str(case["model"]))
+    model = NAMED.get(str(case["spec"]))
     if model is None:
-        raise VectorError(f"history: {case['model']!r} is no named model")
+        raise VectorError(f"history: {case['spec']!r} is no named spec")
     try:
         events = record(case["history"])
     except ScriptError as refused:

@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@6.0.0",
+  "extends": "spec://assertions@7.0.0",
   "language": "go",
   "diverge": [],
   "limits": [

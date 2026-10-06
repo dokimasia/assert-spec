@@ -1,5 +1,5 @@
-# Linearizable: a history checked against a named model. Each case names a
-# model of the definition's `models` section and states its history as a
+# Linearizable: a history checked against a named spec. Each case names a
+# spec of the definition's `specs` section and states its history as a
 # script of the seam. A case may also state `budget`, `memo-limit` and
 # `workers`, each a positive integer. A check reports what a check on one
 # worker reports, whatever its workers.
@@ -11,9 +11,9 @@
 # `make render` writes both.
 kind: linearizable
 cases:
-  # Verdicts: a pass and a violation of each named model.
+  # Verdicts: a pass and a violation of each named spec.
   - id: linearizable/concurrent-writes-take-effect-in-the-order-a-read-needs
-    model: register
+    spec: register
     history:
       - {invoke: 0, client: 0, operation: write, args: [{type: int, value: 1}], keys: [{type: string, value: x}]}
       - {invoke: 1, client: 1, operation: write, args: [{type: int, value: 2}], keys: [{type: string, value: x}]}
@@ -23,7 +23,7 @@ cases:
       - {ok: 2, output: {type: int, value: 1}}
 
   - id: linearizable/a-read-after-a-completed-write-misses-it
-    model: register
+    spec: register
     history:
       - {invoke: 0, client: 0, operation: write, args: [{type: int, value: 1}], keys: [{type: string, value: x}]}
       - {ok: 0, output: {type: "null"}}
@@ -31,7 +31,7 @@ cases:
       - {ok: 1, output: {type: "null"}}
 
   - id: linearizable/one-of-two-concurrent-compare-and-sets-succeeds
-    model: cas-register
+    spec: cas-register
     history:
       - {invoke: 0, client: 0, operation: write, args: [{type: int, value: 1}], keys: [{type: string, value: x}]}
       - {ok: 0, output: {type: "null"}}
@@ -43,7 +43,7 @@ cases:
       - {ok: 3, output: {type: int, value: 2}}
 
   - id: linearizable/two-concurrent-compare-and-sets-cannot-both-succeed
-    model: cas-register
+    spec: cas-register
     history:
       - {invoke: 0, client: 0, operation: write, args: [{type: int, value: 1}], keys: [{type: string, value: x}]}
       - {ok: 0, output: {type: "null"}}
@@ -53,7 +53,7 @@ cases:
       - {ok: 2, output: {type: bool, value: true}}
 
   - id: linearizable/an-append-follows-a-concurrent-put
-    model: key-value
+    spec: key-value
     history:
       - {invoke: 0, client: 0, operation: put, args: [{type: string, value: k}, {type: string, value: a}], keys: [{type: string, value: k}]}
       - {invoke: 1, client: 1, operation: append, args: [{type: string, value: k}, {type: string, value: b}], keys: [{type: string, value: k}]}
@@ -63,7 +63,7 @@ cases:
       - {ok: 2, output: {type: string, value: ab}}
 
   - id: linearizable/sequential-appends-take-effect-in-their-order
-    model: key-value
+    spec: key-value
     history:
       - {invoke: 0, client: 0, operation: append, args: [{type: string, value: k}, {type: string, value: a}], keys: [{type: string, value: k}]}
       - {ok: 0, output: {type: "null"}}
@@ -73,7 +73,7 @@ cases:
       - {ok: 2, output: {type: string, value: ba}}
 
   - id: linearizable/concurrent-enqueues-dequeue-in-either-order
-    model: queue
+    spec: queue
     history:
       - {invoke: 0, client: 0, operation: enqueue, args: [{type: int, value: 1}], keys: [{type: string, value: q}]}
       - {invoke: 1, client: 1, operation: enqueue, args: [{type: int, value: 2}], keys: [{type: string, value: q}]}
@@ -85,7 +85,7 @@ cases:
       - {ok: 3, output: {type: int, value: 1}}
 
   - id: linearizable/a-queue-dequeues-in-the-order-it-enqueued
-    model: queue
+    spec: queue
     history:
       - {invoke: 0, client: 0, operation: enqueue, args: [{type: int, value: 1}], keys: [{type: string, value: q}]}
       - {ok: 0, output: {type: "null"}}
@@ -95,7 +95,7 @@ cases:
       - {ok: 2, output: {type: int, value: 2}}
 
   - id: linearizable/a-contains-concurrent-with-an-add-may-miss-it
-    model: set
+    spec: set
     history:
       - {invoke: 0, client: 0, operation: add, args: [{type: int, value: 1}], keys: [{type: string, value: s}]}
       - {invoke: 1, client: 1, operation: contains, args: [{type: int, value: 1}], keys: [{type: string, value: s}]}
@@ -105,7 +105,7 @@ cases:
       - {ok: 2, output: {type: bool, value: true}}
 
   - id: linearizable/a-removed-value-is-not-contained
-    model: set
+    spec: set
     history:
       - {invoke: 0, client: 0, operation: add, args: [{type: int, value: 1}], keys: [{type: string, value: s}]}
       - {ok: 0, output: {type: "null"}}
@@ -115,7 +115,7 @@ cases:
       - {ok: 2, output: {type: bool, value: true}}
 
   - id: linearizable/a-lossy-write-may-leave-the-old-value
-    model: lossy-register
+    spec: lossy-register
     history:
       - {invoke: 0, client: 0, operation: write, args: [{type: int, value: 1}], keys: [{type: string, value: x}]}
       - {ok: 0, output: {type: "null"}}
@@ -123,7 +123,7 @@ cases:
       - {ok: 1, output: {type: "null"}}
 
   - id: linearizable/a-lossy-write-that-a-read-saw-is-not-lost-later
-    model: lossy-register
+    spec: lossy-register
     history:
       - {invoke: 0, client: 0, operation: write, args: [{type: int, value: 1}], keys: [{type: string, value: x}]}
       - {ok: 0, output: {type: "null"}}
@@ -132,10 +132,10 @@ cases:
       - {invoke: 2, client: 1, operation: read, args: [], keys: [{type: string, value: x}]}
       - {ok: 2, output: {type: "null"}}
 
-  # Frontiers: a violation of each named model, with the order, the states
+  # Frontiers: a violation of each named spec, with the order, the states
   # and the candidates the search stopped at.
   - id: linearizable/the-memo-merges-two-orders-of-equal-writes
-    model: register
+    spec: register
     history:
       - {invoke: 0, client: 0, operation: write, args: [{type: int, value: 1}], keys: [{type: string, value: x}]}
       - {invoke: 1, client: 1, operation: write, args: [{type: int, value: 1}], keys: [{type: string, value: x}]}
@@ -145,7 +145,7 @@ cases:
       - {ok: 2, output: {type: int, value: 5}}
 
   - id: linearizable/three-concurrent-compare-and-sets-cannot-all-succeed
-    model: cas-register
+    spec: cas-register
     history:
       - {invoke: 0, client: 0, operation: write, args: [{type: int, value: 1}], keys: [{type: string, value: x}]}
       - {ok: 0, output: {type: "null"}}
@@ -157,7 +157,7 @@ cases:
       - {ok: 3, output: {type: bool, value: true}}
 
   - id: linearizable/a-get-after-two-appends-misses-them
-    model: key-value
+    spec: key-value
     history:
       - {invoke: 0, client: 0, operation: put, args: [{type: string, value: k}, {type: string, value: a}], keys: [{type: string, value: k}]}
       - {ok: 0, output: {type: "null"}}
@@ -169,7 +169,7 @@ cases:
       - {ok: 3, output: {type: string, value: a}}
 
   - id: linearizable/a-dequeue-outputs-a-value-nobody-enqueued
-    model: queue
+    spec: queue
     history:
       - {invoke: 0, client: 0, operation: enqueue, args: [{type: int, value: 1}], keys: [{type: string, value: q}]}
       - {invoke: 1, client: 1, operation: enqueue, args: [{type: int, value: 2}], keys: [{type: string, value: q}]}
@@ -179,7 +179,7 @@ cases:
       - {ok: 2, output: {type: int, value: 3}}
 
   - id: linearizable/the-memo-merges-two-orders-of-adds
-    model: set
+    spec: set
     history:
       - {invoke: 0, client: 0, operation: add, args: [{type: int, value: 1}], keys: [{type: string, value: s}]}
       - {invoke: 1, client: 1, operation: add, args: [{type: int, value: 2}], keys: [{type: string, value: s}]}
@@ -189,7 +189,7 @@ cases:
       - {ok: 2, output: {type: bool, value: true}}
 
   - id: linearizable/a-read-outputs-a-value-no-lossy-write-left
-    model: lossy-register
+    spec: lossy-register
     history:
       - {invoke: 0, client: 0, operation: write, args: [{type: int, value: 1}], keys: [{type: string, value: x}]}
       - {invoke: 1, client: 1, operation: write, args: [{type: int, value: 2}], keys: [{type: string, value: x}]}
@@ -200,7 +200,7 @@ cases:
 
   # Completions.
   - id: linearizable/a-failed-write-takes-no-effect
-    model: register
+    spec: register
     history:
       - {invoke: 0, client: 0, operation: write, args: [{type: int, value: 1}], keys: [{type: string, value: x}]}
       - {fail: 0, error: connection refused}
@@ -208,7 +208,7 @@ cases:
       - {ok: 1, output: {type: int, value: 1}}
 
   - id: linearizable/a-write-whose-outcome-is-unknown-takes-effect-later
-    model: register
+    spec: register
     history:
       - {invoke: 0, client: 0, operation: write, args: [{type: int, value: 1}], keys: [{type: string, value: x}]}
       - {ok: 0, output: {type: "null"}}
@@ -220,7 +220,7 @@ cases:
       - {ok: 3, output: {type: int, value: 2}}
 
   - id: linearizable/a-write-whose-outcome-is-unknown-may-never-take-effect
-    model: register
+    spec: register
     history:
       - {invoke: 0, client: 0, operation: write, args: [{type: int, value: 1}], keys: [{type: string, value: x}]}
       - {ok: 0, output: {type: "null"}}
@@ -230,7 +230,7 @@ cases:
       - {ok: 2, output: {type: int, value: 1}}
 
   - id: linearizable/a-pending-write-takes-effect-when-a-later-read-needs-it
-    model: register
+    spec: register
     history:
       - {invoke: 0, client: 0, operation: write, args: [{type: int, value: 1}], keys: [{type: string, value: x}]}
       - {invoke: 1, client: 1, operation: read, args: [], keys: [{type: string, value: x}]}
@@ -239,7 +239,7 @@ cases:
   # The state equals from, so the compare-and-set takes effect, and an
   # output of false is wrong.
   - id: linearizable/a-compare-and-set-that-refuses-a-matching-value-is-violated
-    model: cas-register
+    spec: cas-register
     history:
       - {invoke: 0, client: 0, operation: write, args: [{type: int, value: 1}], keys: [{type: string, value: x}]}
       - {ok: 0, output: {type: "null"}}
@@ -248,7 +248,7 @@ cases:
 
   # Partitions.
   - id: linearizable/partitions-are-searched-in-the-order-of-their-first-invocation
-    model: key-value
+    spec: key-value
     history:
       - {invoke: 0, client: 0, operation: put, args: [{type: string, value: y}, {type: string, value: "1"}], keys: [{type: string, value: y}]}
       - {ok: 0, output: {type: "null"}}
@@ -258,7 +258,7 @@ cases:
       - {ok: 2, output: {type: string, value: "1"}}
 
   - id: linearizable/a-call-on-two-keys-joins-their-partitions
-    model: key-value
+    spec: key-value
     history:
       - {invoke: 0, client: 0, operation: get, args: [{type: string, value: x}], keys: [{type: string, value: x}]}
       - {ok: 0, output: {type: string, value: ""}}
@@ -268,7 +268,7 @@ cases:
       - {ok: 2, output: {type: string, value: "3"}}
 
   - id: linearizable/a-call-that-declares-no-key-touches-every-key
-    model: key-value
+    spec: key-value
     history:
       - {invoke: 0, client: 0, operation: put, args: [{type: string, value: x}, {type: string, value: "1"}], keys: [{type: string, value: x}]}
       - {ok: 0, output: {type: "null"}}
@@ -280,7 +280,7 @@ cases:
   # Limits. Partition x needs two steps and two configurations, and
   # partition y one of each.
   - id: linearizable/a-search-stops-before-a-step-past-its-budget
-    model: register
+    spec: register
     budget: 1
     history:
       - {invoke: 0, client: 0, operation: write, args: [{type: int, value: 1}], keys: [{type: string, value: x}]}
@@ -291,7 +291,7 @@ cases:
       - {ok: 2, output: {type: "null"}}
 
   - id: linearizable/a-memo-limit-counts-a-bit-per-call-for-each-configuration
-    model: register
+    spec: register
     memo-limit: 3
     history:
       - {invoke: 0, client: 0, operation: write, args: [{type: int, value: 1}], keys: [{type: string, value: x}]}
@@ -304,7 +304,7 @@ cases:
   # The second write steps from two states, and the budget stops it after
   # the first.
   - id: linearizable/a-budget-stops-a-search-between-two-states
-    model: lossy-register
+    spec: lossy-register
     budget: 2
     history:
       - {invoke: 0, client: 0, operation: write, args: [{type: int, value: 1}], keys: [{type: string, value: x}]}
@@ -317,7 +317,7 @@ cases:
   # Workers. Partition a is undecided at the budget, b is violated, and c
   # would pass. One worker stops at b, so the steps count a and b.
   - id: linearizable/four-workers-report-what-one-worker-reports
-    model: key-value
+    spec: key-value
     budget: 2
     workers: 4
     history:

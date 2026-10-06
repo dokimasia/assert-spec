@@ -1140,26 +1140,26 @@ class Validator(unittest.TestCase):
             lambda d: d.update(cases=[c for c in d["cases"] if keep(c)]),
         )
 
-    def test_a_definition_with_no_models_is_caught(self) -> None:
-        """The models are what the checker's vectors name."""
-        _edit(self.tree / "spec" / "assertions.json", lambda d: d.update(models={}))
-        self.assert_caught("spec/assertions.json: states no model vocabulary")
+    def test_a_definition_with_no_specs_is_caught(self) -> None:
+        """The specs are what the checker's vectors name."""
+        _edit(self.tree / "spec" / "assertions.json", lambda d: d.update(specs={}))
+        self.assert_caught("spec/assertions.json: states no spec vocabulary")
 
-    def test_a_model_with_no_summary_is_caught(self) -> None:
-        """Each implementation builds a named model from its summary."""
+    def test_a_spec_with_no_summary_is_caught(self) -> None:
+        """Each implementation builds a named spec from its summary."""
         _edit(
             self.tree / "spec" / "assertions.json",
-            lambda d: d["models"]["queue"].update(summary="  "),
+            lambda d: d["specs"]["queue"].update(summary="  "),
         )
-        self.assert_caught("model queue: states no summary")
+        self.assert_caught("spec queue: states no summary")
 
-    def test_a_history_vector_of_an_unknown_model_is_caught(self) -> None:
-        """A vector of the checker names a model of the definition."""
+    def test_a_history_vector_of_an_unknown_spec_is_caught(self) -> None:
+        """A vector of the checker names a spec of the definition."""
         _edit(
             self.tree / "corpus" / "history" / "linearizable.json",
-            lambda d: d["cases"][0].update(model="stack"),
+            lambda d: d["cases"][0].update(spec="stack"),
         )
-        self.assert_caught("names model 'stack', which the definition does not state")
+        self.assert_caught("names spec 'stack', which the definition does not state")
 
     def test_a_missing_history_vector_file_is_caught(self) -> None:
         """Every kind of history vector has a file."""
@@ -1210,11 +1210,11 @@ class Validator(unittest.TestCase):
         self._history("seam", lambda c: c["id"] != pending)
         self.assert_caught("has no vector that covers 'script:pending'")
 
-    def test_a_model_driven_only_one_way_is_caught(self) -> None:
-        """Each named model has a vector that passes and one that is violated."""
+    def test_a_spec_driven_only_one_way_is_caught(self) -> None:
+        """Each named spec has a vector that passes and one that is violated."""
         self._history(
             "linearizable",
-            lambda c: c["model"] != "queue" or c["detail"]["outcome"] != "passed",
+            lambda c: c["spec"] != "queue" or c["detail"]["outcome"] != "passed",
         )
         self.assert_caught("has no vector that covers 'queue:passed'")
 

@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@6.0.0",
+  "extends": "spec://assertions@7.0.0",
   "language": "typescript",
   "diverge": [
     {
@@ -63,7 +63,7 @@
     {
       "id": "history.workers",
       "what": "Searches one partition at a time, whatever the number of workers. A check reports what a check on one worker reports, as it does in every language.",
-      "why": "A model is a set of functions, and the structured clone that copies a message to a worker thread refuses a function, so every partition is searched on the runtime's one thread."
+      "why": "A spec is a set of functions, and the structured clone that copies a message to a worker thread refuses a function, so every partition is searched on the runtime's one thread."
     }
   ],
   "surface": [

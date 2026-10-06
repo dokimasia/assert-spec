@@ -350,7 +350,7 @@
                 "limit"
             ],
             "package": "history",
-            "summary": "Every partition of a recorded history has an order of its calls that keeps the history's precedence and that the model accepts. A fixed search decides it within a budget of model steps and a limit on the size of its memo. A search that uses up either is undecided, and an undecided history fails.\n"
+            "summary": "The calls of each partition of a recorded history have a linearization: an order that respects their real-time order and that the spec accepts. Two calls that share a key are in one partition. A fixed search decides it within a budget of steps of the spec and a limit on the size of its memo. A search that uses up either is undecided, and an undecided history fails.\n"
         },
         "links-to": {
             "arity": 3,
@@ -1711,22 +1711,33 @@
             "summary": "The machine of queue-loses-on-wrap over a queue that writes every value at its write index.\n"
         },
         "counter-overflows": {
-            "summary": "A counter, initially 0. increment adds one to the count, sets the count to 0 when the sum is 3, and returns the count. reset sets the count to 0 and returns null. The actions are increment and reset, each of which records its one call with no arguments. The model is a counter: increment outputs the count plus one and leaves it, and reset leaves 0.\n"
+            "summary": "A counter, initially 0. increment adds one to the count, sets the count to 0 when the sum is 3, and returns the count. reset sets the count to 0 and returns null. The actions are increment and reset, each of which records its one call with no arguments. The spec is a counter: increment outputs the count plus one and leaves it, and reset leaves 0.\n"
         },
         "counter-refuses-every-third": {
-            "summary": "A counter, initially 0, that refuses every third increment, counted over every case of the run. A refused increment completes with fail and the error refused, and leaves the count. Any other increment adds one to the count and returns it, and read returns the count. The actions are increment, enabled while the model's count is below 3, and read, each of which records its one call with no arguments. The model is a counter: increment outputs the count plus one and leaves it, and read outputs the count and leaves it. The machine's enabled reads a count that the subject's refusals change, so a case that repeats an earlier case's choices can list other actions.\n"
+            "summary": "A counter, initially 0, that refuses every third increment, counted over every case of the run. A refused increment completes with fail and the error refused, and leaves the count. Any other increment adds one to the count and returns it, and read returns the count. The actions are increment, enabled while the spec's count is below 3, and read, each of which records its one call with no arguments. The spec is a counter: increment outputs the count plus one and leaves it, and read outputs the count and leaves it. The machine's enabled reads a count that the subject's refusals change, so a case that repeats an earlier case's choices can list other actions.\n"
         },
         "queue-loses-on-wrap": {
-            "summary": "A queue in a ring of slots, of a capacity drawn under \"capacity\" as an integer in [1, 8]. put(v) returns false when the queue is full. Otherwise it writes v at the write index, or into the first slot when the write index is at the last slot, moves the index on to the next slot, from the last to the first, and returns true. get() removes and returns the oldest value, or returns null when the queue is empty. The actions are put, whose input is drawn under \"v\" as an integer in [0, 1000], and get, each of which records its one call. The model is a queue of the capacity: put outputs whether the queue had room and adds v when it had, and get outputs the head and removes it, or outputs null.\n"
+            "summary": "A queue in a ring of slots, of a capacity drawn under \"capacity\" as an integer in [1, 8]. put(v) returns false when the queue is full. Otherwise it writes v at the write index, or into the first slot when the write index is at the last slot, moves the index on to the next slot, from the last to the first, and returns true. get() removes and returns the oldest value, or returns null when the queue is empty. The actions are put, whose input is drawn under \"v\" as an integer in [0, 1000], and get, each of which records its one call. The spec is a queue of the capacity: put outputs whether the queue had room and adds v when it had, and get outputs the head and removes it, or outputs null.\n"
         },
         "racy-counter": {
-            "summary": "A counter, initially 0, whose increment reads the count, yields to the task scheduler, writes the count plus one and returns it. The action is increment, which records its one call with no arguments. The model is the counter of counter-overflows.\n"
+            "summary": "A counter, initially 0, whose increment reads the count, yields to the task scheduler, writes the count plus one and returns it. The action is increment, which records its one call with no arguments. The spec is the counter of counter-overflows.\n"
         },
         "store-loses-on-crash": {
-            "summary": "A store of a buffer and a durable map. The actions are put, flush and crash. put's input is a key drawn under \"key\" as an integer in [0, 3] and the next value of a counter that starts at 1. put records a call of put with the key and the value as arguments, sets the key to the value in the buffer, and completes the call with null. flush is a drain action, enabled while the buffer is not empty, that moves the buffer into the durable map and empties it. crash empties the buffer. Neither records a call. The machine has no model. Its settle check reads the durable value of each key that a put completed for, and fails with the identity lost-write when it is not the last value put under the key.\n"
+            "summary": "A store of a buffer and a durable map. The actions are put, flush and crash. put's input is a key drawn under \"key\" as an integer in [0, 3] and the next value of a counter that starts at 1. put records a call of put with the key and the value as arguments, sets the key to the value in the buffer, and completes the call with null. flush is a drain action, enabled while the buffer is not empty, that moves the buffer into the durable map and empties it. crash empties the buffer. Neither records a call. The machine has no spec. Its settle check reads the durable value of each key that a put completed for, and fails with the identity lost-write when it is not the last value put under the key.\n"
         }
     },
-    "models": {
+    "relaxations": {
+        "by-identity": {
+            "summary": "A reference equals another reference only when both refer to the same object, whatever the object's value. A value that is no reference compares as without it. The modifier applies wherever the comparison meets a reference: at the top, in an element of a list, in a value of a map and in a field of a record. What a reference is in each language is stated where the encoding states the reference literal.\n"
+        },
+        "equate-empty": {
+            "summary": "An absent container equals an empty one of the same type. Without it a null map and an empty map are different values, which is what the standard states by default.\n"
+        },
+        "equate-nans": {
+            "summary": "A NaN equals another NaN of the same type. Without it NaN is unequal to itself, which is what IEEE 754 states and what the standard states by default.\n"
+        }
+    },
+    "specs": {
         "cas-register": {
             "summary": "The register with cas(from, to). A cas outputs true and leaves to when the value equals from, and outputs false and leaves the value otherwise. A cas whose outcome is unknown takes effect when the value equals from, and leaves the value otherwise.\n"
         },
@@ -1744,17 +1755,6 @@
         },
         "set": {
             "summary": "A set of values, initially empty, listed in the order they were added. Two sets are equal when they contain equal values in any order. add(v) adds v when it is absent. remove(v) outputs whether v is present, and leaves the set without v. contains(v) outputs whether v is present. A remove whose outcome is unknown removes v when it is present, and a contains whose outcome is unknown accepts any set.\n"
-        }
-    },
-    "relaxations": {
-        "by-identity": {
-            "summary": "A reference equals another reference only when both refer to the same object, whatever the object's value. A value that is no reference compares as without it. The modifier applies wherever the comparison meets a reference: at the top, in an element of a list, in a value of a map and in a field of a record. What a reference is in each language is stated where the encoding states the reference literal.\n"
-        },
-        "equate-empty": {
-            "summary": "An absent container equals an empty one of the same type. Without it a null map and an empty map are different values, which is what the standard states by default.\n"
-        },
-        "equate-nans": {
-            "summary": "A NaN equals another NaN of the same type. Without it NaN is unequal to itself, which is what IEEE 754 states and what the standard states by default.\n"
         }
     },
     "subjects": {
@@ -1873,5 +1873,5 @@
             "summary": "Yields two objects, and the value of each is 1.\n"
         }
     },
-    "version": "6.0.0"
+    "version": "7.0.0"
 }

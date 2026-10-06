@@ -17,7 +17,7 @@
 # assertion carries exactly these. got is what the assertion observed
 # and want is what it required, so an assertion whose failure holds
 # neither states no fields and reports the caller's message alone.
-version: "6.0.0"
+version: "7.0.0"
 
 # What a caller may change about equality, for one call.
 #
@@ -205,18 +205,17 @@ subjects:
     summary: >
       Raises for a negative integer input, and returns otherwise.
 
-# The sequential models that a history vector names in place of a model,
-# as a corpus case names a subject. Each implementation builds every named
-# model natively.
+# The sequential specifications that a history vector names in place of a
+# spec of its own, as a corpus case names a subject. Each implementation
+# builds every named spec natively.
 #
-# Every named model accepts a call whose outcome is unknown in every
-# state, and checks no output of a write, a put, an append, an enqueue or
-# an add. An operation that a model does not define is a fault. States
-# compare with the standard's equal unless a summary states otherwise. A
-# record states each state as a typed literal: the register's value, the
-# map's entries in order, and the queue's and the set's values as a list
-# in order.
-models:
+# Every named spec accepts a call whose outcome is unknown in every state,
+# and checks no output of a write, a put, an append, an enqueue or an add.
+# An operation that a spec does not define is a fault. States compare with
+# the standard's equal unless a summary states otherwise. A record states
+# each state as a typed literal: the register's value, the map's entries
+# in order, and the queue's and the set's values as a list in order.
+specs:
   "register":
     summary: >
       One value, initially null. write(v) leaves v. read() outputs the
@@ -258,7 +257,7 @@ models:
 
 # The machine subjects that a machines vector names, as a corpus case
 # names a subject. Each implementation builds every machine subject
-# natively: the subject, its machine, its draws and its model.
+# natively: the subject, its machine, its draws and its spec.
 #
 # A machine lists its actions in the order its summary states. Each call
 # that an action records names no key and completes as ok with its output,
@@ -277,7 +276,7 @@ machines:
       removes and returns the oldest value, or returns null when the queue
       is empty. The actions are put, whose input is drawn under "v" as an
       integer in [0, 1000], and get, each of which records its one call.
-      The model is a queue of the capacity: put outputs whether the queue
+      The spec is a queue of the capacity: put outputs whether the queue
       had room and adds v when it had, and get outputs the head and removes
       it, or outputs null.
   "correct-queue":
@@ -289,7 +288,7 @@ machines:
       A counter, initially 0. increment adds one to the count, sets the
       count to 0 when the sum is 3, and returns the count. reset sets the
       count to 0 and returns null. The actions are increment and reset,
-      each of which records its one call with no arguments. The model is a
+      each of which records its one call with no arguments. The spec is a
       counter: increment outputs the count plus one and leaves it, and
       reset leaves 0.
   "store-loses-on-crash":
@@ -301,7 +300,7 @@ machines:
       value in the buffer, and completes the call with null. flush is a
       drain action, enabled while the buffer is not empty, that moves the
       buffer into the durable map and empties it. crash empties the buffer.
-      Neither records a call. The machine has no model. Its settle check
+      Neither records a call. The machine has no spec. Its settle check
       reads the durable value of each key that a put completed for, and
       fails with the identity lost-write when it is not the last value put
       under the key.
@@ -310,7 +309,7 @@ machines:
       A counter, initially 0, whose increment reads the count, yields to
       the task scheduler, writes the count plus one and returns it. The
       action is increment, which records its one call with no arguments.
-      The model is the counter of counter-overflows.
+      The spec is the counter of counter-overflows.
   "correct-counter":
     summary: >
       The machine of racy-counter over an increment that adds one to the
@@ -321,9 +320,9 @@ machines:
       over every case of the run. A refused increment completes with fail
       and the error refused, and leaves the count. Any other increment
       adds one to the count and returns it, and read returns the count.
-      The actions are increment, enabled while the model's count is below
+      The actions are increment, enabled while the spec's count is below
       3, and read, each of which records its one call with no arguments.
-      The model is a counter: increment outputs the count plus one and
+      The spec is a counter: increment outputs the count plus one and
       leaves it, and read outputs the count and leaves it. The machine's
       enabled reads a count that the subject's refusals change, so a case
       that repeats an earlier case's choices can list other actions.
@@ -872,11 +871,12 @@ assertions:
     arity: 3
     package: history
     summary: >
-      Every partition of a recorded history has an order of its calls that
-      keeps the history's precedence and that the model accepts. A fixed
-      search decides it within a budget of model steps and a limit on the
-      size of its memo. A search that uses up either is undecided, and an
-      undecided history fails.
+      The calls of each partition of a recorded history have a
+      linearization: an order that respects their real-time order and that
+      the spec accepts. Two calls that share a key are in one partition. A
+      fixed search decides it within a budget of steps of the spec and a
+      limit on the size of its memo. A search that uses up either is
+      undecided, and an undecided history fails.
     detail_fields: [outcome, partitions, steps, partition, calls, concurrency, linearized, states, candidates, limit]
 
   "serializable":

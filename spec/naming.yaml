@@ -3,7 +3,7 @@
 # A qualified name names a member of the subpackage the assertion table
 # gives it. The separator is the language's own: a dot in Go, Java,
 # Kotlin, Python and TypeScript, two colons in Rust.
-version: "6.0.0"
+version: "7.0.0"
 
 languages: [go, java, kotlin, php, python, rust, typescript]
 
@@ -747,20 +747,20 @@ surface:
       typescript: "history.Outcome"
       java: "Outcome"
       kotlin: "Outcome"
-    "model":
-      go: "history.Model"
-      python: "history.Model"
-      rust: "history::Model"
-      typescript: "history.Model"
-      java: "Model"
-      kotlin: "Model"
-    "op":
-      go: "history.Op"
-      python: "history.Op"
-      rust: "history::Op"
-      typescript: "history.Op"
-      java: "Op"
-      kotlin: "Op"
+    "spec":
+      go: "history.Spec"
+      python: "history.Spec"
+      rust: "history::Spec"
+      typescript: "history.Spec"
+      java: "Spec"
+      kotlin: "Spec"
+    "operation":
+      go: "history.Operation"
+      python: "history.Operation"
+      rust: "history::Operation"
+      typescript: "history.Operation"
+      java: "Operation"
+      kotlin: "Operation"
     "machine":
       go: "stateful.Machine"
       python: "stateful.Machine"
@@ -1100,34 +1100,69 @@ surface:
       typescript: "unknown"
       java: "unknown"
       kotlin: "unknown"
-    "model.init":
-      go: "Init"
-      python: "init"
-      rust: "init"
-      typescript: "init"
-      java: "init"
-      kotlin: "init"
-    "model.step":
-      go: "Step"
-      python: "step"
-      rust: "step"
-      typescript: "step"
-      java: "step"
-      kotlin: "step"
-    "model.equal":
+    "spec.initial":
+      go: "Initial"
+      python: "initial"
+      rust: "initial"
+      typescript: "initial"
+      java: "initial"
+      kotlin: "initial"
+    "spec.next":
+      go: "Next"
+      python: "next"
+      rust: "next"
+      typescript: "next"
+      java: "next"
+      kotlin: "next"
+    "spec.equal":
       go: "Equal"
       python: "equal"
       rust: "equal"
       typescript: "equal"
       java: "equal"
       kotlin: "equal"
-    "machine.model":
-      go: "Model"
-      python: "model"
-      rust: "model"
-      typescript: "model"
-      java: "model"
-      kotlin: "model"
+    "operation.name":
+      go: "Name"
+      python: "name"
+      rust: "name"
+      typescript: "name"
+      java: "name"
+      kotlin: "name"
+    "operation.args":
+      go: "Args"
+      python: "args"
+      rust: "args"
+      typescript: "args"
+      java: "args"
+      kotlin: "args"
+    "operation.known":
+      go: "Known"
+      python: "known"
+      rust: "known"
+      typescript: "known"
+      java: "known"
+      kotlin: "known"
+    "operation.output":
+      go: "Output"
+      python: "output"
+      rust: "output"
+      typescript: "output"
+      java: "output"
+      kotlin: "output"
+    "operation.returned":
+      go: "Returned"
+      python: "returned"
+      rust: "returned"
+      typescript: "returned"
+      java: "returned"
+      kotlin: "returned"
+    "machine.spec":
+      go: "Spec"
+      python: "spec"
+      rust: "spec"
+      typescript: "spec"
+      java: "spec"
+      kotlin: "spec"
     "machine.actions":
       go: "Actions"
       python: "actions"
@@ -1551,13 +1586,13 @@ surface:
       typescript: "history.concurrently"
       java: "History.concurrently"
       kotlin: "History.concurrently"
-    "history.model-from":
-      go: "history.ModelFrom"
-      python: "history.model_from"
-      rust: "history::model_from"
-      typescript: "history.modelFrom"
-      java: "History.modelFrom"
-      kotlin: "History.modelFrom"
+    "history.spec-from":
+      go: "history.SpecFrom"
+      python: "history.spec_from"
+      rust: "history::spec_from"
+      typescript: "history.specFrom"
+      java: "History.specFrom"
+      kotlin: "History.specFrom"
     "history.budget":
       go: "history.Budget"
       python: "history.budget"

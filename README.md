@@ -57,7 +57,7 @@ tools/stateful/        the machines' and the scheduler's executable reference
 tools/files/           the trees' and the file assertions' executable reference
 tools/spec-sync.sh     how an implementation vendors the definition
 tools/spec-check.sh    how an implementation checks its copy
-VERSION                6.0.0
+VERSION                7.0.0
 ```
 
 People edit the YAML. `make render` produces the JSON, which is
@@ -144,7 +144,7 @@ read files take a directory or a path, which a case states as a tree
 that the runner writes before the call, so their cases are vectors. The
 remaining 22 take an error value, a predicate, a callable that no subject
 describes, a golden file, a benchmark measurement, a property's body, a
-model or a recorded history, and none of those is a typed literal
+spec or a recorded history, and none of those is a typed literal
 either. The property engine
 itself is data in and data out, so 430 vectors under `corpus/prop/` pin
 its decoding, generation, shrinking, coverage test, fuzz bridge, replay
@@ -156,7 +156,7 @@ a property's runs. The history
 and the checkers are data in and data out too. 80 vectors under
 `corpus/history/` pin the events that calls record, the entries that the
 history refuses, the verdict, steps and record of a check against each
-named model, and the verdict and record of each isolation check. So are
+named spec, and the verdict and record of each isolation check. So are
 the steps of a machine. 14 vectors under `corpus/stateful/` pin the run of
 each machine subject, the minimal steps of each fault, the traces that a
 run follows or refuses, and the step at which a replay of a subject whose
@@ -261,7 +261,7 @@ assertion with a unique id, decodable literals and options its assertion
 accepts, and that an overlay extends this version and diverges only from
 assertions that exist. It also checks that each overlay states where its
 language writes the call records and how it runs the concurrent section of
-a machine, that each history vector names a defined model, that the
+a machine, that each history vector names a defined spec, that the
 vectors of each isolation level report every kind the level forbids, that
 each machine subject runs in a vector named for it, that the workspace and
 the golden tree of each files vector follow the rules of a tree, and that
@@ -298,7 +298,7 @@ differently.
 | TypeScript | [assert-typescript](https://github.com/dokimasia/assert-typescript) | 104 of 110 |
 
 Each count is what the language's overlay declares against version
-6.0.0. An implementation that has not synced to it yet has a drift issue
+7.0.0. An implementation that has not synced to it yet has a drift issue
 open until it does.
 
 Java and Kotlin ship from one repository and are named identically, so

@@ -96,11 +96,11 @@ class SeamTest(unittest.TestCase):
 
 @final
 class LinearizableTest(unittest.TestCase):
-    """linearizable: the verdict and the detail of a check against a named model."""
+    """linearizable: the verdict and the detail of a check against a named spec."""
 
     def test_a_violation_fails_with_the_detail_of_its_record(self) -> None:
         """The read misses the write, after two steps."""
-        got = compute("linearizable", {"model": "register", "history": MISSED})
+        got = compute("linearizable", {"spec": "register", "history": MISSED})
         self.assertEqual(got["expect"], "fail")
         self.assertEqual(
             (got["detail"]["outcome"], got["detail"]["steps"]), ("violated", 2)
@@ -108,7 +108,7 @@ class LinearizableTest(unittest.TestCase):
 
     def test_a_pass_states_its_steps(self) -> None:
         """A read of null before any write passes after one step."""
-        got = compute("linearizable", {"model": "register", "history": MISSED[2:]})
+        got = compute("linearizable", {"spec": "register", "history": MISSED[2:]})
         self.assertEqual(got["expect"], "pass")
         self.assertEqual(
             (got["detail"]["outcome"], got["detail"]["steps"]), ("passed", 1)
@@ -121,15 +121,15 @@ class LinearizableTest(unittest.TestCase):
             ("memo", {"memo-limit": 1}),
         ):
             got = compute(
-                "linearizable", {"model": "register", "history": MISSED, **case}
+                "linearizable", {"spec": "register", "history": MISSED, **case}
             )
             self.assertEqual(got["detail"]["limit"], limit)
 
     def test_reports_on_four_workers_what_it_reports_on_one(self) -> None:
         """The workers are read, and change nothing."""
-        one = compute("linearizable", {"model": "register", "history": MISSED})
+        one = compute("linearizable", {"spec": "register", "history": MISSED})
         four = compute(
-            "linearizable", {"model": "register", "history": MISSED, "workers": 4}
+            "linearizable", {"spec": "register", "history": MISSED, "workers": 4}
         )
         self.assertEqual(four, one)
 
@@ -144,19 +144,19 @@ class LinearizableTest(unittest.TestCase):
             with self.assertRaisesRegex(VectorError, f"{name} is .*not a positive"):
                 compute(
                     "linearizable",
-                    {"model": "register", "history": MISSED, name: value},
+                    {"spec": "register", "history": MISSED, name: value},
                 )
 
-    def test_refuses_a_model_that_is_not_named(self) -> None:
-        """A stack is no named model."""
-        with self.assertRaisesRegex(VectorError, "'stack' is no named model"):
-            compute("linearizable", {"model": "stack", "history": MISSED})
+    def test_refuses_a_spec_that_is_not_named(self) -> None:
+        """A stack is no named spec."""
+        with self.assertRaisesRegex(VectorError, "'stack' is no named spec"):
+            compute("linearizable", {"spec": "stack", "history": MISSED})
 
     def test_refuses_a_history_whose_script_raises(self) -> None:
         """A history is a script that the seam accepts."""
         refused = [*MISSED[:2], {"ok": 0, "output": NULL}]
         with self.assertRaisesRegex(VectorError, "script entry 2"):
-            compute("linearizable", {"model": "register", "history": refused})
+            compute("linearizable", {"spec": "register", "history": refused})
 
 
 def mop(function: str, key: str, value: dict[str, Any] | int | None) -> dict[str, Any]:
@@ -253,6 +253,6 @@ class ComputeTest(unittest.TestCase):
             compute("token", {})
 
     def test_names_an_input_a_vector_lacks(self) -> None:
-        """A linearizable vector names its model."""
-        with self.assertRaisesRegex(VectorError, "linearizable vector lacks 'model'"):
+        """A linearizable vector names its spec."""
+        with self.assertRaisesRegex(VectorError, "linearizable vector lacks 'spec'"):
             compute("linearizable", {"history": MISSED})

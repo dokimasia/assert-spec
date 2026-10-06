@@ -1,7 +1,7 @@
 {
-    "digest": "sha256:fa14c0f1c4012bb2f2d7f2260dc640e66e58856e01333e82ec1212a1b4874642",
+    "digest": "sha256:a792e182862a7a841ba9205131e799abe6a4a6b49383409acc6869ac7a1bbbe1",
     "files": {
-        "VERSION": "sha256:54ef76332b31df830699e9d4138396885ab72bae260a034a81ff02bf32d8e90a",
+        "VERSION": "sha256:746472de66b936ac885ca6d6e68058242b4e909e3260c6317f3ec719f78f76cc",
         "corpus/accumulates.json": "sha256:9ac2967d84157a9b57d3fb59ef75378e60495ced35194ba170bf216deb0e3daf",
         "corpus/after-close.json": "sha256:c7df47d3ef812973763b2191caa55180c1d2536710873bb420ff8d4e79da6506",
         "corpus/associative.json": "sha256:41169311a5d852966b84a14702a528a8f99591e82c734d32017fc6586bae56e9",
@@ -27,7 +27,7 @@
         "corpus/files/tree-unchanged.json": "sha256:d1384e7a48e2fa983c8d829af94fed71491b6d31b492dd60abdae043fe3c9a75",
         "corpus/has-prefix.json": "sha256:935fdc489462090ae65b257970411fc6dbd695123ec48e07c5cac29a5583bc4f",
         "corpus/has-suffix.json": "sha256:ee23deeed9804651f26c0a6be8fdb655acec52d003521de5498c1181caec646d",
-        "corpus/history/linearizable.json": "sha256:bfda87dff69fc6491ce98f98bf81959d17bf6c9a1bb67cea591912403f6491fb",
+        "corpus/history/linearizable.json": "sha256:64a55f71bcba1ea89824b28f7f891c98e78f64ce00ab26cccedc0ddb16c15d29",
         "corpus/history/seam.json": "sha256:d5e727ea967d185ebfb433db1cfa75e42cd2df88ab30e586ba9b141a60145dab",
         "corpus/history/serializable.json": "sha256:a43d2cdff72a16e22a57e1c4632e93153f4984664c517257b92f25e8728cc396",
         "corpus/history/snapshot-isolation.json": "sha256:e97309fe271e2f4dc8bd6810fc328318ce7b59f29d772759a2d8620efc94bb9c",
@@ -70,17 +70,17 @@
         "corpus/throws.json": "sha256:40dd385108c7ada8c0ce236a79c13db2da23e8e142f2fa5947fcce1623e7e365",
         "corpus/total.json": "sha256:ee76e6bd97358d2576dd24dc9d32949cdce5b46484635237a1a4c0e043322cb3",
         "corpus/true.json": "sha256:43e01f045228fd01449d2abad5c07b50b8d700fd6c986e6877a4f192ff86b616",
-        "overlays/go.json": "sha256:29f9e085caad26c41f872f661a206bdadd1f42f3a07c3d746e3b62b27e4af041",
-        "overlays/java.json": "sha256:91dcc8ab21fc76117428808a9e75e3370d48b17017eee4264a236d8f0cb6b5d3",
-        "overlays/kotlin.json": "sha256:3ce92c393e0d511b1b96cbd702befd0b77fdf9f6eefc9096c72c92e3332674ef",
-        "overlays/python.json": "sha256:9dbb36887e71eae1928a3b46e0bd50a3a13317eef8214d5d01c4be8b398000d1",
-        "overlays/rust.json": "sha256:371c14a50413a5b7c26d8a0e9178818ffaf5a0cf2f6d8528eba44f4b1a3cb96a",
-        "overlays/typescript.json": "sha256:c75b229619fbd54e24609f70907d0a38910445f73315196938ad9db18287d492",
-        "spec/assertions.json": "sha256:edaaccb33176d7a635d62be726eb659935eb2f5dd85880e04c702cf620d5c7a8",
-        "spec/naming.json": "sha256:c5e0fb192ce8ad673ac707dd14d68d772298d677754e2e83a15884bb07544b41",
+        "overlays/go.json": "sha256:0d06e55dc125a7f1e4a86de44082c78f4718e6c72a0b9919c756ba29e410b577",
+        "overlays/java.json": "sha256:a7c8e9a3869473da8f3f87b189099101e8f23e06f42ba70e66903600b1026909",
+        "overlays/kotlin.json": "sha256:8964623aa4e5bfe3d9809e05cc996b7c3c073e91a5fa237e0a69ccfbdc8ccdd1",
+        "overlays/python.json": "sha256:774e98e05c1df85600f12c4b6ebb1530ef3a68ce2d0e3e160ced02afc8a076f9",
+        "overlays/rust.json": "sha256:05daae4ffab7964d2de5aa68bf5ca9643512d7d1cf46e3706ea0c3b7d0d22755",
+        "overlays/typescript.json": "sha256:c490527a4eff78c0b94f66706a9100344beb21dd6bc13453db82dc85e7350459",
+        "spec/assertions.json": "sha256:df47eaede0265cf7578a07da01f0c74a365f0212b525cc52c1a70af2c5cad284",
+        "spec/naming.json": "sha256:6ba518088f2d161724a99dbd1afaea39416729e230d18ad6b5b69265adbf7bd5",
         "spec/zones.json": "sha256:6eb1d994a1e2d727161582e20dee8cd429073fa561c06f8eb7442c20f810f6c6",
         "tools/spec-check.sh": "sha256:82ec954bdf6601288f7d6231cb8e5c62330bf8c904c9dbd5910d85d9fdafe08c",
         "tools/spec-sync.sh": "sha256:39cca27ce28f1c403b9833780295082ca29ca38326b798c269f10dd3aa6b8d12"
     },
-    "version": "6.0.0"
+    "version": "7.0.0"
 }

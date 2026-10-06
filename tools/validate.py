@@ -283,8 +283,8 @@ def check_vocabulary(
     """Check one vocabulary of names that a case states in place of a value.
 
     A case that cannot state a callable names a subject instead, a history
-    vector names a model, and a machines vector names a machine subject.
-    Each implementation builds every subject, model and machine subject
+    vector names a spec, and a machines vector names a machine subject.
+    Each implementation builds every subject, spec and machine subject
     natively, so each vocabulary is small, and each name has a summary to
     build it from. Returns the names.
     """
@@ -1099,17 +1099,17 @@ def check_vectors(forms: FormVocabulary, problems: Problems) -> int:
     return total
 
 
-def check_history(models: set[str], problems: Problems) -> int:
+def check_history(specs: set[str], problems: Problems) -> int:
     """Check the history's vector files, and return the number of vectors.
 
     `make render` writes the outputs of these vectors as it writes the
     property engine's, so this check covers what the renderer copies from
-    the YAML: each file's kind, the ids, the typed literals, and the models
+    the YAML: each file's kind, the ids, the typed literals, and the specs
     that the checker's vectors name. It also checks what the vectors cover.
     Through a script and through intervals, the seam vectors record an
     event of every kind and a pending call, and refuse an entry. The
     checker's vectors end in every outcome, stop at every limit, and
-    include a pass and a violation of every named model. The vectors of
+    include a pass and a violation of every named spec. The vectors of
     each isolation level report every kind that the level forbids, and
     include a pass.
     """
@@ -1122,26 +1122,26 @@ def check_history(models: set[str], problems: Problems) -> int:
             if kind == "seam":
                 covered.update(_seam_covers(case))
             elif kind == "linearizable":
-                model = case.get("model")
+                named_spec = case.get("spec")
                 problems.unless(
-                    model in models,
+                    named_spec in specs,
                     f"{where} [{cid}]",
-                    f"names model {model!r}, which the definition does not state",
+                    f"names spec {named_spec!r}, which the definition does not state",
                 )
                 covered.update(_check_covers(case))
             else:
                 covered.add(_isolation_covers(case))
-        for end in _history_ends(kind, models):
+        for end in _history_ends(kind, specs):
             problems.unless(end in covered, where, f"has no vector that covers {end!r}")
     return total
 
 
-def _history_ends(kind: str, models: set[str]) -> tuple[str, ...]:
+def _history_ends(kind: str, specs: set[str]) -> tuple[str, ...]:
     """Return what the history vectors of one kind cover between them."""
     if kind == "seam":
         return SEAM_ENDS
     if kind == "linearizable":
-        both = (f"{m}:{o}" for m in sorted(models) for o in ("passed", "violated"))
+        both = (f"{s}:{o}" for s in sorted(specs) for o in ("passed", "violated"))
         return (*CHECK_ENDS, *both)
     return ISOLATION_ENDS[kind]
 
@@ -1177,7 +1177,7 @@ def _seam_covers(case: dict[str, Any]) -> list[str]:
 def _check_covers(case: dict[str, Any]) -> list[str]:
     """Return what one vector of the checker covers.
 
-    A vector covers its outcome, its limit, and its model under its outcome.
+    A vector covers its outcome, its limit, and its spec under its outcome.
     """
     detail = case.get("detail")
     stated = detail if isinstance(detail, dict) else {}
@@ -1185,7 +1185,7 @@ def _check_covers(case: dict[str, Any]) -> list[str]:
     return [
         str(outcome),
         f"limit:{stated.get('limit')}",
-        f"{case.get('model')}:{outcome}",
+        f"{case.get('spec')}:{outcome}",
     ]
 
 
@@ -1882,13 +1882,13 @@ def main() -> int:
         if isinstance(body, dict)
     }
     subjects = check_vocabulary(spec, "subjects", "subject", problems)
-    models = check_vocabulary(spec, "models", "model", problems)
+    specs = check_vocabulary(spec, "specs", "spec", problems)
     machines = check_vocabulary(spec, "machines", "machine", problems)
     cases = check_corpus(assertions, subjects, accepted, problems)
     vectors = check_vectors(
         FormVocabulary(form_runs(spec), assertions, subjects), problems
     )
-    vectors += check_history(models, problems)
+    vectors += check_history(specs, problems)
     vectors += check_stateful(machines, problems)
     vectors += check_files(subjects, assertions, problems)
     changes = check_zones(ROOT / "spec" / "zones.json", problems)
