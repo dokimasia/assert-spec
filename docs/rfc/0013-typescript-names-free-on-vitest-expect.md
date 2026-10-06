@@ -386,7 +386,9 @@ another major version.
 
 - Which assertions each language's chain offers. The definition states
   every assertion on the chain, and Go's chain offers the 15 value
-  assertions. This proposal settles only TypeScript's.
+  assertions and the four error assertions `err-is`, `err-is-not`,
+  `err-absent` and `err-present`. This proposal settles only
+  TypeScript's.
 - A TypeScript chain outside vitest.
 
 ## References
