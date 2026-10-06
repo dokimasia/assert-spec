@@ -27,3 +27,5 @@ they record why not.
 | [0019](0019-parallel-bodies-in-a-benchmark-contract.md) | Parallel bodies in a benchmark contract | Accepted |
 | [0020](0020-an-allocation-ceiling-that-leaves-out-setup.md) | An allocation ceiling that leaves out setup | Accepted |
 | [0021](0021-trees-of-files.md) | Trees of files | Accepted |
+| [0022](0022-examples-without-an-inverse.md) | Examples without an inverse, and any number of examples in one option | Accepted |
+| [0023](0023-comparing-references-by-identity.md) | Comparing references by identity | Accepted |
