@@ -202,6 +202,25 @@ class GeneratingTest(unittest.TestCase):
             got = case.integer(wide, reuse=True)
             self.assertEqual(got, draw.integer(twin, wide), seed)
 
+    def test_a_reuse_request_takes_no_removed_value_of_other_bounds(self) -> None:
+        """A request after a rewind forgets the removed values of every bounds.
+
+        The second attempt requests other bounds first, at the index where
+        the rejected value was, and the wide request after it finds no
+        earlier value, so no coin.
+        """
+        wide, narrow = IntegerBounds(0, 10**9), IntegerBounds(0, 10**9 - 1)
+        for seed in range(50):
+            case, twin = Case(Generating(Source(seed))), Source(seed)
+            start = case.mark()
+            case.integer(wide, reuse=True)
+            case.rewind(start)
+            draw.integer(twin, wide)
+            case.integer(narrow, reuse=True)
+            draw.integer(twin, narrow)
+            got = case.integer(wide, reuse=True)
+            self.assertEqual(got, draw.integer(twin, wide), seed)
+
 
 @final
 class ReplayingTest(unittest.TestCase):
@@ -293,6 +312,14 @@ class CapTest(unittest.TestCase):
         Case(Replaying(recorded), max_choices=4).choose(_sequence(bounds))
         with self.assertRaises(Overrun):
             Case(Replaying(recorded), max_choices=3).choose(_sequence(bounds))
+
+    def test_a_sequence_whose_minimum_passes_the_cap_draws_nothing(self) -> None:
+        """The overrun comes before the draw, so the source stays where it was."""
+        source, twin = Source(7), Source(7)
+        case = Case(Generating(source), max_choices=3)
+        with self.assertRaises(Overrun):
+            case.choose(_sequence(SequenceBounds(10, 3)))
+        self.assertEqual(source.next(), twin.next())
 
 
 @final

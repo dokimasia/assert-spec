@@ -185,7 +185,8 @@ class Generating:
 
     The earlier values are those of the choices the case's record still
     contains, in record order. A choice that Case.rewind() removed offers
-    no value, so a filter's next attempt never reuses a rejected one.
+    no value, whatever its bounds, so a filter's next attempt never reuses
+    a rejected one.
     """
 
     def __init__(self, source: Source) -> None:
@@ -194,14 +195,20 @@ class Generating:
         self._earlier: dict[Bounds, list[tuple[int, Value]]] = {}
 
     def value(self, request: Request, index: int) -> Value:
-        """Return the request's draw from the source, or an earlier value."""
+        """Return the request's draw from the source, or an earlier value.
+
+        A request at index finds index choices in the record, so the earlier
+        values at index and after it, of every bounds, are of choices that a
+        rewind removed, and the request forgets them first.
+        """
+        for kept in self._earlier.values():
+            while kept and kept[-1][0] >= index:
+                kept.pop()
         bounds = request.bounds
         forced = isinstance(bounds, IntegerBounds) and bounds.lo == bounds.hi
         if not request.reuse or forced:
             return request.draw(self._source)
         earlier = self._earlier.setdefault(request.bounds, [])
-        while earlier and earlier[-1][0] >= index:
-            earlier.pop()
         if earlier and self._source.coin(1, draw.REUSE_ODDS):
             _, value = earlier[self._source.below(len(earlier))]
         else:
@@ -346,9 +353,19 @@ class Case:
     def choose(self, request: Request) -> Value:
         """Return the value for request and record it.
 
+        A sequence whose minimum length alone takes the case past its cap
+        ends the case before the provider makes its value, which would make
+        that many elements.
+
         Raises:
             Overrun: the value takes the case past its cap.
         """
+        bounds = request.bounds
+        if (
+            isinstance(bounds, SequenceBounds)
+            and self._cost + 1 + bounds.min_size > self._max_choices
+        ):
+            raise Overrun
         value = self._provider.value(request, len(self.choices))
         self._cost += _cost(value)
         if self._cost > self._max_choices:
