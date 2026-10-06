@@ -1,5 +1,5 @@
 {
-    "digest": "sha256:129efb826a87c90796194351246396c6139d8eb62e6f8bf9cfaa8b4b238ccf43",
+    "digest": "sha256:0c48fca3567374727cba952c3b99e56d1ca255938d0d127d0fe04c766b08b750",
     "files": {
         "VERSION": "sha256:1cc3d76ac7c21a664e79848fd481e9791016451b244e7de5feeeb9bea5fd2184",
         "corpus/accumulates.json": "sha256:9ac2967d84157a9b57d3fb59ef75378e60495ced35194ba170bf216deb0e3daf",
@@ -60,7 +60,7 @@
         "corpus/throws.json": "sha256:40dd385108c7ada8c0ce236a79c13db2da23e8e142f2fa5947fcce1623e7e365",
         "corpus/total.json": "sha256:ee76e6bd97358d2576dd24dc9d32949cdce5b46484635237a1a4c0e043322cb3",
         "corpus/true.json": "sha256:43e01f045228fd01449d2abad5c07b50b8d700fd6c986e6877a4f192ff86b616",
-        "overlays/go.json": "sha256:99e24e877c993531067267e2e0a3d08d546fc2334d1abedfaeef83f0c6e7a097",
+        "overlays/go.json": "sha256:7260618e133e265ceb71b2fa4c97c3ff88decacbe2ca0b48a71b9aa84e52b080",
         "overlays/java.json": "sha256:3b1a66e58fc62acf52fa7ff6bacc93b6e7cd87a5511c5f01f89be19d1d9706a7",
         "overlays/kotlin.json": "sha256:c3a354d9f9e1a36c48dad2f754a681f646b03ab38b39bca324cf734bc99701fb",
         "overlays/python.json": "sha256:476b31a1f1ff41ddff0013381f070c6e1210467ad46c10a31e9b3ba8f4b54169",
