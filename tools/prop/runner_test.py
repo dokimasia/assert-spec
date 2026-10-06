@@ -10,7 +10,15 @@ from .choice import Choice
 from .coverage import Verdict
 from .execution import Body, Execution, Phase, Status, execute
 from .generator import build
-from .runner import Kind, Requirement, Settings, prefix_cases, rejects_too_many, run
+from .runner import (
+    Kind,
+    Requirement,
+    Settings,
+    Values,
+    prefix_cases,
+    rejects_too_many,
+    run,
+)
 from .source import case_source
 from .trace import Draw, TraceError
 
@@ -480,6 +488,45 @@ class ObserverTest(unittest.TestCase):
         replayed = (Choice("integer", MILLION + 1),)
         run(above_million, Settings(SEED, replay=replayed), seen)
         self.assertEqual(seen.calls, [(Phase.TOKEN, Status.FAILED)])
+
+
+@final
+class ValuesTest(unittest.TestCase):
+    """An example of values, which a generator without an inverse needs."""
+
+    def test_a_passing_example_of_values_counts_as_a_valid_case(self) -> None:
+        """A boolean's two inputs are two valid cases, and the example a third.
+
+        The example enters no case tree, so the run still finds both inputs.
+        """
+
+        def body(case: Case) -> None:
+            case.draw(BOOLEAN, "flag")
+
+        outcome = run(body, Settings(SEED, examples=(Values((True,)),)))
+        self.assertEqual((outcome.kind, outcome.cases), (Kind.PASSED, 3))
+
+    def test_a_failing_example_of_values_is_reported_as_found(self) -> None:
+        """No replay, shrink or explain run follows it, and it has no token."""
+        seen = Seen()
+        settings = Settings(SEED, examples=(Values((MILLION + 5,)),))
+        outcome = run(above_million, settings, seen)
+        self.assertEqual(seen.calls, [(Phase.EXAMPLE, Status.FAILED)])
+        self.assertIs(outcome.kind, Kind.COUNTEREXAMPLE)
+        self.assertTrue(outcome.valued)
+        self.assertEqual((outcome.token, outcome.runs, outcome.others), (None, 0, ()))
+        assert outcome.failing is not None
+        self.assertEqual(outcome.failing.case.choices, [])
+        self.assertEqual(outcome.failing.case.draws[0].value, MILLION + 5)
+
+    def test_a_failing_example_of_choices_is_shrunk(self) -> None:
+        """The same value as a choice sequence runs as every example does."""
+        settings = Settings(SEED, examples=((Choice("integer", MILLION + 5),),))
+        outcome = run(above_million, settings)
+        self.assertFalse(outcome.valued)
+        self.assertIsNotNone(outcome.token)
+        assert outcome.failing is not None
+        self.assertEqual(outcome.failing.case.draws[0].value, MILLION + 1)
 
 
 @final

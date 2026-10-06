@@ -193,3 +193,20 @@ cases:
     generator: {gen: filter, of: {gen: integer, min: 0, max: 1000}, keep: {kind: divisible-by, n: 2}}
     fails-when: {kind: never}
     seed: "7"
+
+  # The shrinker edits the source's choices, and the value is the map of
+  # what they decode to: two zeros, and the zero the map prepends.
+  - id: map/shrinks-the-choices-of-its-source
+    generator:
+      gen: map
+      of: {gen: list, of: {gen: integer, min: 0, max: 9}, max_size: 6}
+      subject: prepends-zero
+    fails-when: {kind: length-at-least, n: 3}
+    seed: "7"
+  - id: map/passes-when-no-value-fails
+    generator:
+      gen: map
+      of: {gen: list, of: {gen: integer, min: 0, max: 9}, max_size: 6}
+      subject: prepends-zero
+    fails-when: {kind: never}
+    seed: "7"

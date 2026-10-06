@@ -364,6 +364,79 @@
         }
       ],
       "expect": "pass"
+    },
+    {
+      "id": "contains/the-object-itself-by-identity-passes",
+      "args": [
+        {
+          "type": "list",
+          "items": [
+            {
+              "type": "reference",
+              "id": "a",
+              "value": {
+                "type": "int",
+                "value": 1
+              }
+            }
+          ]
+        },
+        {
+          "type": "reference",
+          "id": "a",
+          "value": {
+            "type": "int",
+            "value": 1
+          }
+        }
+      ],
+      "options": [
+        "by-identity"
+      ],
+      "expect": "pass"
+    },
+    {
+      "id": "contains/an-object-of-an-equal-value-by-identity-fails",
+      "args": [
+        {
+          "type": "list",
+          "items": [
+            {
+              "type": "reference",
+              "id": "a",
+              "value": {
+                "type": "int",
+                "value": 1
+              }
+            }
+          ]
+        },
+        {
+          "type": "reference",
+          "id": "b",
+          "value": {
+            "type": "int",
+            "value": 1
+          }
+        }
+      ],
+      "options": [
+        "by-identity"
+      ],
+      "expect": "fail",
+      "detail": {
+        "haystack": {
+          "type": "list",
+          "of": "int",
+          "value": [
+            1
+          ]
+        },
+        "needle": {
+          "type": "int",
+          "value": 1
+        }
+      }
     }
   ]
 }

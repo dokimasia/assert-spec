@@ -22,6 +22,10 @@ value into its one canonical literal:
 - variant: ``name``, and ``payload``, a literal, when the variant has
   one. A variant without a payload states no ``payload`` key, and one
   whose optional payload is absent states a null payload.
+- reference: ``id``, a non-empty string, and ``value``, a literal that
+  is not null. It decodes to its value. This codec makes no object of
+  its own, and encode() writes the value's literal, as a record states a
+  reference.
 """
 
 from __future__ import annotations
@@ -203,6 +207,22 @@ def _variant(literal: Mapping[str, Any]) -> Variant:
     return Variant(name)
 
 
+def _reference(literal: Mapping[str, Any]) -> object:
+    """Return the value that a reference refers to.
+
+    Raises:
+        LiteralError: the id is not a non-empty string, or the value is
+            null, which is no object.
+    """
+    rid = literal.get("id")
+    if not isinstance(rid, str) or not rid:
+        raise LiteralError(f"prop: {literal!r} states no id")
+    value = literal.get("value")
+    if isinstance(value, Mapping) and value.get("type") == "null":
+        raise LiteralError(f"prop: the reference {rid!r} refers to null, no object")
+    return decode(value)
+
+
 def encode(value: object) -> dict[str, Any]:
     """Return the canonical typed literal of a decoded value.
 
@@ -292,4 +312,5 @@ _DECODERS: Final[dict[str, Callable[[Mapping[str, Any]], object]]] = {
     "map": _map,
     "record": lambda literal: _record(literal.get("fields")),
     "variant": _variant,
+    "reference": _reference,
 }

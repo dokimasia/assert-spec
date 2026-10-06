@@ -938,6 +938,27 @@ class RunTest(unittest.TestCase):
             (explained.any_value_fails, explained.nearest_passing), (False, None)
         )
 
+    def test_a_map_of_an_integer_reports_the_map_of_the_nearest_integer(self) -> None:
+        """The integer steps from 1001 to 1000, and the map wraps it as a1000b."""
+        wrapped = build(
+            {
+                "gen": "map",
+                "of": {"gen": "integer", "min": 0, "max": 10**9},
+                "subject": "wraps-in-a-and-b",
+            }
+        )
+
+        def above_wrapped(case: Case) -> None:
+            text = case.draw(wrapped, "n")
+            assert isinstance(text, str)
+            if int(text[1:-1]) > LIMIT:
+                case.fail("above")
+
+        outcome = run(above_wrapped, Settings(SEED))
+        assert outcome.failing is not None
+        nearest = outcome.explanation[0].nearest_passing
+        self.assertEqual((drawn(outcome.failing), nearest), (["a1001b"], "a1000b"))
+
     def test_a_failure_that_does_not_replay_is_flaky(self) -> None:
         """A body that fails only on its second call, random case 0."""
         calls: list[Case] = []

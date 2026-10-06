@@ -53,7 +53,8 @@ replay token, the detail of a run, and the store's entries, file names
 and verdicts. They also pin the values each shape generates, the
 choices that produce a value, the shape each fixture type reads as, the
 case that known draws state, a passing and a failing run of each
-property form, and the call records of a property's runs.
+property form, the runs of a form's examples, and the call records of a
+property's runs.
 `prop-max-allocs` and `prop-max-allocs-with-setup` have no vector,
 because no case can state an allocation count. People write each vector's inputs in
 `corpus/prop/<kind>.yaml`. `make render` computes the outputs with the

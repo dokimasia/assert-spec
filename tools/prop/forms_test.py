@@ -5,17 +5,19 @@ from __future__ import annotations
 import unittest
 from typing import Any, final
 
+from . import generator
 from .forms import (
-    FUNCTIONS,
     REPETITIONS,
     Detail,
     FormError,
     Observed,
     build,
+    examples,
     rule,
     run_form,
 )
-from .runner import Kind, Settings
+from .inverse import invert
+from .runner import Kind, Settings, Values
 from .shape import read
 
 #: The shape the runs of these tests generate from.
@@ -26,6 +28,16 @@ SMALL: dict[str, Any] = {
     "min": -9,
     "max": 9,
 }
+
+#: A digit through identity, an input without an inverse.
+MAPPED: dict[str, Any] = {
+    "gen": "map",
+    "of": {"gen": "integer", "min": 0, "max": 9},
+    "subject": "identity",
+}
+
+#: A form over one input, which the examples tests extend.
+TRUE: dict[str, Any] = {"form": "prop-true", "subjects": ["is-non-negative"]}
 
 
 def _int(value: int) -> dict[str, Any]:
@@ -112,21 +124,6 @@ class BuildTest(unittest.TestCase):
 @final
 class ValueTest(unittest.TestCase):
     """The assertions over values, each on functions of the input."""
-
-    def test_each_function_returns_what_its_summary_states(self) -> None:
-        """One input each, with the result the subject's summary gives it."""
-        cases: list[tuple[str, object, object]] = [
-            ("identity", [1, 2], [1, 2]),
-            ("is-non-negative", 0, True),
-            ("returns-null", 3, None),
-            ("drops-the-first", [1, 2], [2]),
-            ("prepends-zero", [1], [0, 1]),
-            ("sorts", [2, 1, 2], [1, 2, 2]),
-            ("wraps-in-a-and-b", "x", "axb"),
-        ]
-        for kind, given, result in cases:
-            with self.subTest(kind=kind):
-                self.assertEqual(FUNCTIONS[kind](given), result)
 
     def test_equal_compares_the_two_results(self) -> None:
         """A sort of an unsorted list differs from the list."""
@@ -493,3 +490,45 @@ class RunTest(unittest.TestCase):
         self.assertEqual(
             fresh[:2], (Kind.COUNTEREXAMPLE, {"assertion": "pure", "detail": {}})
         )
+
+
+@final
+class ExamplesTest(unittest.TestCase):
+    """The examples a form vector states, one value per case."""
+
+    def test_an_example_of_an_input_with_an_inverse_is_its_choices(self) -> None:
+        """5 of the shape runs backwards."""
+        spec = {**TRUE, "examples": [_int(5)]}
+        shape = read(SMALL)
+        self.assertEqual(examples(spec, build(spec), shape), (invert(shape, 5),))
+
+    def test_an_example_of_an_input_without_an_inverse_is_its_value(self) -> None:
+        """-5 is outside the map's source, and the case states it as it is."""
+        spec = {**TRUE, "examples": [_int(-5)]}
+        mapped = generator.build(MAPPED)
+        self.assertEqual(examples(spec, build(spec), mapped), (Values((-5,)),))
+
+    def test_a_misstated_example_fails(self) -> None:
+        """Outside the domain, over two inputs, and not a list."""
+        commutative = {"form": "prop-commutative", "subjects": ["adds"]}
+        faults: list[tuple[dict[str, Any], str]] = [
+            ({**TRUE, "examples": [_int(50)]}, "the example 50"),
+            ({**commutative, "examples": [_int(1)]}, "the form generates 2"),
+            ({**TRUE, "examples": _int(1)}, "not a list of typed literals"),
+        ]
+        for spec, message in faults:
+            with (
+                self.subTest(message=message),
+                self.assertRaisesRegex(FormError, message),
+            ):
+                examples(spec, build(spec), read(SMALL))
+
+    def test_a_failing_example_of_values_is_reported_as_found(self) -> None:
+        """-5 fails prop-true at once, and its record states no field."""
+        spec = {**TRUE, "examples": [_int(-5)]}
+        mapped = generator.build(MAPPED)
+        outcome, record = run_form(spec, mapped, Settings(7), fresh=False)
+        self.assertTrue(outcome.valued)
+        self.assertEqual(record, {"assertion": "true", "detail": {}})
+        assert outcome.failing is not None
+        self.assertEqual(outcome.failing.case.draws[0].value, -5)

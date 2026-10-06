@@ -179,7 +179,7 @@ A call in a property's case states the kind of its case in `phase`:
 
 | `phase` | The case |
 |---|---|
-| `example` | A case whose values the caller states, through `prop.draws` or `prop.example` |
+| `example` | A case whose values the caller states, through `prop.draws`, `prop.example` or `prop.examples` |
 | `stored` | A case that the store keeps |
 | `simplest` | The case whose every choice is its target |
 | `random` | A random case before the first coverage check |

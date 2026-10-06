@@ -101,7 +101,8 @@
             ],
             "relaxations": [
                 "equate-empty",
-                "equate-nans"
+                "equate-nans",
+                "by-identity"
             ],
             "summary": "Text contains a substring, a sequence an element, or a map a key. An element or a key compares as equal compares, so an int does not match a float.\n"
         },
@@ -141,7 +142,8 @@
             ],
             "relaxations": [
                 "equate-empty",
-                "equate-nans"
+                "equate-nans",
+                "by-identity"
             ],
             "summary": "Structural equality. A null collection does not equal an empty one, no type coercion, NaN is unequal to itself, floats compare exactly and by value so -0 equals +0, cycles stop, functions compare by identity.\n"
         },
@@ -415,7 +417,8 @@
             ],
             "relaxations": [
                 "equate-empty",
-                "equate-nans"
+                "equate-nans",
+                "by-identity"
             ],
             "summary": "One iteration of a subject yields each element at most once. got is the first element equal to an earlier one, and index its position.\n"
         },
@@ -434,7 +437,8 @@
             ],
             "relaxations": [
                 "equate-empty",
-                "equate-nans"
+                "equate-nans",
+                "by-identity"
             ],
             "summary": "Negation of contains.\n"
         },
@@ -450,7 +454,8 @@
             ],
             "relaxations": [
                 "equate-empty",
-                "equate-nans"
+                "equate-nans",
+                "by-identity"
             ],
             "summary": "Negation of equal.\n"
         },
@@ -502,7 +507,8 @@
             ],
             "relaxations": [
                 "equate-empty",
-                "equate-nans"
+                "equate-nans",
+                "by-identity"
             ],
             "summary": "A sequence contains the same elements as another, each as often, in any order. Elements compare as equal compares them.\n"
         },
@@ -645,7 +651,8 @@
             "package": "prop",
             "relaxations": [
                 "equate-empty",
-                "equate-nans"
+                "equate-nans",
+                "by-identity"
             ],
             "summary": "The property form of contains. Each case of a run generates the input, and contains runs on it as prop-for-all runs a body.\n"
         },
@@ -749,7 +756,8 @@
             "package": "prop",
             "relaxations": [
                 "equate-empty",
-                "equate-nans"
+                "equate-nans",
+                "by-identity"
             ],
             "summary": "The property form of equal. Each case of a run generates the input, and equal runs on it as prop-for-all runs a body.\n"
         },
@@ -1230,7 +1238,8 @@
             "package": "prop",
             "relaxations": [
                 "equate-empty",
-                "equate-nans"
+                "equate-nans",
+                "by-identity"
             ],
             "summary": "The property form of not-contains. Each case of a run generates the input, and not-contains runs on it as prop-for-all runs a body.\n"
         },
@@ -1282,7 +1291,8 @@
             "package": "prop",
             "relaxations": [
                 "equate-empty",
-                "equate-nans"
+                "equate-nans",
+                "by-identity"
             ],
             "summary": "The property form of not-equal. Each case of a run generates the input, and not-equal runs on it as prop-for-all runs a body.\n"
         },
@@ -1410,7 +1420,8 @@
             "package": "prop",
             "relaxations": [
                 "equate-empty",
-                "equate-nans"
+                "equate-nans",
+                "by-identity"
             ],
             "summary": "The property form of permutation. Each case of a run generates the input, and permutation runs on it as prop-for-all runs a body.\n"
         },
@@ -1736,6 +1747,9 @@
         }
     },
     "relaxations": {
+        "by-identity": {
+            "summary": "A reference equals another reference only when both refer to the same object, whatever the object's value. A value that is no reference compares as without it. The modifier applies wherever the comparison meets a reference: at the top, in an element of a list, in a value of a map and in a field of a record. What a reference is in each language is stated where the encoding states the reference literal.\n"
+        },
         "equate-empty": {
             "summary": "An absent container equals an empty one of the same type. Without it a null map and an empty map are different values, which is what the standard states by default.\n"
         },
@@ -1851,7 +1865,13 @@
         },
         "yields-in-order": {
             "summary": "Yields the integers 1 to 5 in order, on every iteration.\n"
+        },
+        "yields-one-object-twice": {
+            "summary": "Yields one object twice. The object's value is 1.\n"
+        },
+        "yields-two-equal-objects": {
+            "summary": "Yields two objects, and the value of each is 1.\n"
         }
     },
-    "version": "5.1.0"
+    "version": "5.2.0"
 }

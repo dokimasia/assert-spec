@@ -3,7 +3,7 @@
 # A qualified name names a member of the subpackage the assertion table
 # gives it. The separator is the language's own: a dot in Go, Java,
 # Kotlin, Python and TypeScript, two colons in Rust.
-version: "5.1.0"
+version: "5.2.0"
 
 languages: [go, java, kotlin, php, python, rust, typescript]
 
@@ -521,6 +521,12 @@ relaxations:
     kotlin: "Option.EQUATE_NANS"
     python: "equate_nans"
     typescript: "equateNans"
+  "by-identity":
+    go: "ByIdentity"
+    java: "Option.BY_IDENTITY"
+    kotlin: "Option.BY_IDENTITY"
+    python: "by_identity"
+    typescript: "byIdentity"
 
 # The rest of what a caller touches: the seam, the seats, and the types
 # and helpers beside the assertions. Same rules as the assertion names,
@@ -1482,6 +1488,13 @@ surface:
       typescript: "prop.example"
       java: "Prop.example"
       kotlin: "Prop.example"
+    "prop.examples":
+      go: "prop.Examples"
+      python: "prop.examples"
+      rust: "prop::examples"
+      typescript: "prop.examples"
+      java: "Prop.examples"
+      kotlin: "Prop.examples"
     "prop.draws":
       go: "prop.Draws"
       python: "prop.draws"

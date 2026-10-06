@@ -365,15 +365,19 @@ def recording(case: Mapping[str, Any]) -> Vector:
 def form_run(case: Mapping[str, Any]) -> Vector:
     """Run a property form, and return the detail of the run.
 
-    The form runs twice: once with its subjects kept across cases, and
-    once with subjects built anew for each case. A failing run's failure
-    is the record of the minimal case.
+    The form generates its arguments from the vector's shape or its
+    generator, and tries its examples first. It runs twice: once with its
+    subjects kept across cases, and once with subjects built anew for each
+    case. A failing run's failure is the record of the minimal case.
 
     Raises:
-        VectorError: the form does not run, or the two runs differ because
-            the run depends on what earlier cases leave in a subject.
+        VectorError: the form does not run, the vector states both a shape
+            and a generator or neither, or the two runs differ because the
+            run depends on what earlier cases leave in a subject.
     """
-    generator = _shape(case["shape"])
+    if ("shape" in case) == ("generator" in case):
+        raise VectorError(f"prop: {case.get('id')!r} states one of shape and generator")
+    generator = _shape(case["shape"]) if "shape" in case else build(case["generator"])
     settings = Settings(_seed(case))
     kept = _form_detail(case, generator, settings, fresh=False)
     fresh = _form_detail(case, generator, settings, fresh=True)

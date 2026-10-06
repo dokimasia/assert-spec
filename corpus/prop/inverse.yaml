@@ -7,7 +7,8 @@
 # greedy match of a pattern, absent before present, the base before the
 # extension, and a map's entries and a set's elements in shortlex order of
 # their own choices. A zoned-date-time and a wall-time run back through
-# the whole range. `make render` writes the outputs.
+# the whole range. A map has no inverse, so its vector pins the refusal.
+# `make render` writes the outputs.
 kind: inverse
 cases:
   - id: integer/a-value-is-its-own-choice
@@ -76,6 +77,11 @@ cases:
       gen: filter
       of: {gen: integer, min: 0, max: 9}
       keep: {kind: divisible-by, n: 2}
+    value: {type: int, value: 4}
+  # A map applies a function that the engine cannot run backwards, so it
+  # refuses even a value that its source produces.
+  - id: map/has-no-inverse
+    generator: {gen: map, of: {gen: integer, min: 0, max: 9}, subject: identity}
     value: {type: int, value: 4}
 
   - id: bool/true

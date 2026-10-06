@@ -1563,6 +1563,68 @@
         ]
       },
       "rejected": false
+    },
+    {
+      "id": "map/decodes-the-function-of-its-sources-value",
+      "generator": {
+        "gen": "map",
+        "of": {
+          "gen": "integer",
+          "min": -9,
+          "max": 9
+        },
+        "subject": "is-non-negative"
+      },
+      "choices": [
+        -3
+      ],
+      "recorded": [
+        -3
+      ],
+      "value": {
+        "type": "bool",
+        "value": false
+      },
+      "rejected": false
+    },
+    {
+      "id": "map/sorts-the-list-its-source-decodes",
+      "generator": {
+        "gen": "map",
+        "of": {
+          "gen": "list",
+          "of": {
+            "gen": "integer",
+            "min": 0,
+            "max": 9
+          },
+          "max_size": 3
+        },
+        "subject": "sorts"
+      },
+      "choices": [
+        1,
+        7,
+        1,
+        2,
+        0
+      ],
+      "recorded": [
+        1,
+        7,
+        1,
+        2,
+        0
+      ],
+      "value": {
+        "type": "list",
+        "of": "int",
+        "value": [
+          2,
+          7
+        ]
+      },
+      "rejected": false
     }
   ]
 }

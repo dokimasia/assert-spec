@@ -8,8 +8,8 @@ from typing import Any, final
 from .case import Case, Generating, Rejected, Replaying
 from .choice import Choice
 from .generator import build
-from .generator_test import EVERY
-from .inverse import CannotInvert, invert, no_draw
+from .generator_test import DIGIT, EVERY
+from .inverse import CannotInvert, NoInverse, invert, no_draw
 from .shape import BUDGET, read
 from .shape_test import TREE, UINT8
 from .source import case_source
@@ -18,6 +18,9 @@ from .zone import zones
 
 #: Cases per generator in the round-trip check.
 CASES = 60
+
+#: A map of a digit, which returns the digit and has no inverse.
+IDENTITY: dict[str, Any] = {"gen": "map", "of": DIGIT, "subject": "identity"}
 
 #: One shape of each id, for the round trip.
 SHAPES: dict[str, dict[str, Any]] = {
@@ -88,9 +91,11 @@ class RoundTripTest(unittest.TestCase):
             inverted += 1
         self.assertGreater(inverted, CASES // 2, name)
 
-    def test_every_generator_runs_backwards(self) -> None:
-        """The vocabulary, with a filter through its source."""
+    def test_every_generator_but_map_runs_backwards(self) -> None:
+        """The vocabulary, with a filter through its source. map has no inverse."""
         for name, spec in EVERY.items():
+            if spec["gen"] == "map":
+                continue
             with self.subTest(generator=name):
                 self.check(name, build(spec))
 
@@ -325,13 +330,64 @@ class CannotInvertTest(unittest.TestCase):
         with self.assertRaises(AssertionError):
             no_draw(None)
 
-    def test_a_generator_that_applies_a_function_raises(self) -> None:
-        """A generator of the vocabulary's functions has no inverse."""
+
+@final
+class NoInverseTest(unittest.TestCase):
+    """A generator that applies a function, which the engine cannot run backwards."""
+
+    def test_map_and_a_generator_without_an_emitter_have_no_inverse(self) -> None:
+        """map, and a language's generator that applies a function."""
 
         class Mapped:
             def decode(self, case: Case) -> object:
                 del case
                 return 0
 
-        with self.assertRaisesRegex(CannotInvert, "Mapped does not run backwards"):
+        with self.assertRaisesRegex(NoInverse, "Mapped does not run backwards"):
             invert(Mapped(), 0)
+        with self.assertRaisesRegex(NoInverse, "Map does not run backwards"):
+            invert(build(EVERY["map"]), [1, 2])
+
+    def test_a_generator_around_one_without_an_inverse_has_none(self) -> None:
+        """A list, an optional and a filter pass on the refusal inside them."""
+        mapped = EVERY["map"]
+        keep = {"kind": "length-at-least", "n": 1}
+        for spec in (
+            {"gen": "list", "of": mapped},
+            {"gen": "optional", "of": mapped},
+            {"gen": "filter", "of": mapped, "keep": keep},
+        ):
+            with self.subTest(gen=spec["gen"]), self.assertRaises(NoInverse):
+                invert(build(spec), [[1]] if spec["gen"] == "list" else [1])
+
+    def test_one_of_runs_back_through_an_alternative_with_an_inverse(self) -> None:
+        """The map has none, so the digit after it produces 3."""
+        spec = {"gen": "one-of", "of": [IDENTITY, DIGIT]}
+        self.assertEqual(
+            invert(build(spec), 3), (Choice("integer", 1), Choice("integer", 3))
+        )
+
+    def test_one_of_and_recursive_have_no_inverse_where_a_branch_has_none(
+        self,
+    ) -> None:
+        """No branch produces the value, and the map might."""
+        one_of = build({"gen": "one-of", "of": [DIGIT, IDENTITY]})
+        with self.assertRaisesRegex(NoInverse, "and one of them has no inverse"):
+            invert(one_of, 11)
+        tree = build(
+            {
+                "gen": "recursive",
+                "base": IDENTITY,
+                "extend": {"gen": "list", "of": {"gen": "self"}, "max_size": 3},
+            }
+        )
+        with self.assertRaisesRegex(NoInverse, "neither the base nor the extension"):
+            invert(tree, "x")
+
+    def test_a_value_outside_every_invertible_branch_is_outside_the_domain(
+        self,
+    ) -> None:
+        """Every alternative has an inverse, so 11 is no value of the one-of."""
+        with self.assertRaises(CannotInvert) as raised:
+            invert(build({"gen": "one-of", "of": [DIGIT]}), 11)
+        self.assertNotIsInstance(raised.exception, NoInverse)

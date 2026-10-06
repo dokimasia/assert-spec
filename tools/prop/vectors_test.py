@@ -15,11 +15,8 @@ from .vectors import (
     parse_choice,
 )
 
-DIGITS: dict[str, Any] = {
-    "gen": "list",
-    "of": {"gen": "integer", "min": 0, "max": 9},
-    "max_size": 3,
-}
+DIGIT: dict[str, Any] = {"gen": "integer", "min": 0, "max": 9}
+DIGITS: dict[str, Any] = {"gen": "list", "of": DIGIT, "max_size": 3}
 
 
 @final
@@ -367,6 +364,44 @@ class ComputeTest(unittest.TestCase):
         case = {"form": "prop-invented", "shape": {"shape": "bool"}, "seed": "7"}
         with self.assertRaisesRegex(VectorError, "is no form of the definition"):
             compute("forms", case)
+
+    def test_a_form_vector_over_a_map_fails_at_its_example_as_found(self) -> None:
+        """-5 is no digit, and the run states it with no choices to replay."""
+        case = {
+            "form": "prop-true",
+            "subjects": ["is-non-negative"],
+            "generator": {"gen": "map", "of": DIGIT, "subject": "identity"},
+            "examples": [{"type": "int", "value": -5}],
+            "seed": "7",
+        }
+        detail = compute("forms", case)["detail"]
+        self.assertEqual(
+            (detail["outcome"], detail["cases"], detail["choices"], detail["others"]),
+            ("counterexample", 0, None, []),
+        )
+        self.assertEqual(
+            detail["counterexample"],
+            [
+                {
+                    "label": "input",
+                    "value": {"type": "int", "value": -5},
+                    "any-value-fails": None,
+                    "nearest-passing": None,
+                }
+            ],
+        )
+
+    def test_a_form_vector_states_one_of_a_shape_and_a_generator(self) -> None:
+        """Both, and neither."""
+        shape = {"shape": "int", "width": 8, "signed": True, "min": 0, "max": 9}
+        base = {"form": "prop-true", "subjects": ["is-non-negative"], "seed": "7"}
+        refusal = "states one of shape and generator"
+        for case in ({**base, "shape": shape, "generator": DIGIT}, base):
+            with (
+                self.subTest(keys=sorted(case)),
+                self.assertRaisesRegex(VectorError, refusal),
+            ):
+                compute("forms", case)
 
     def test_a_recording_vector_states_each_call_with_its_run_and_phase(self) -> None:
         """A failing token: one call of true, in the one call of the body."""

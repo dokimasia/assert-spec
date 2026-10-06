@@ -194,6 +194,36 @@
         }
       ],
       "expect": "fail"
+    },
+    {
+      "id": "not-contains/an-object-of-an-equal-value-by-identity-passes",
+      "args": [
+        {
+          "type": "list",
+          "items": [
+            {
+              "type": "reference",
+              "id": "a",
+              "value": {
+                "type": "int",
+                "value": 1
+              }
+            }
+          ]
+        },
+        {
+          "type": "reference",
+          "id": "b",
+          "value": {
+            "type": "int",
+            "value": 1
+          }
+        }
+      ],
+      "options": [
+        "by-identity"
+      ],
+      "expect": "pass"
     }
   ]
 }

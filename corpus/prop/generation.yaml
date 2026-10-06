@@ -184,3 +184,11 @@ cases:
       keep: {kind: sum-above, n: 10}
     seed: "7"
     count: 6
+
+  - id: map/draws-what-its-source-draws
+    generator:
+      gen: map
+      of: {gen: list, of: {gen: integer, min: 0, max: 9}, max_size: 4}
+      subject: sorts
+    seed: "42"
+    count: 6

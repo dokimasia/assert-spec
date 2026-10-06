@@ -10,21 +10,23 @@
 # package is empty for an assertion in the language's root namespace,
 # and names a subpackage otherwise.
 #
-# relaxations lists the modifiers an assertion accepts. A relaxation
-# widens what counts as equal for one call, and never for a whole run.
+# relaxations lists the modifiers an assertion accepts. A modifier widens
+# or narrows what counts as equal for one call, and never for a whole run.
 #
 # detail_fields names the values a failure carries, and a failing
 # assertion carries exactly these. got is what the assertion observed
 # and want is what it required, so an assertion whose failure holds
 # neither states no fields and reports the caller's message alone.
-version: "5.1.0"
+version: "5.2.0"
 
-# What a caller may relax, for one call.
+# What a caller may change about equality, for one call.
 #
-# Both exist because a dynamically typed language cannot tell two cases
-# apart that a statically typed one keeps separate. A language whose
-# types already settle the question declares the relaxation absent in
-# its overlay rather than shipping one that does nothing.
+# equate-empty and equate-nans widen it, because a dynamically typed
+# language cannot tell two cases apart that a statically typed one keeps
+# separate. by-identity narrows it for references. A language whose types
+# already settle the question, or that cannot offer a modifier, declares
+# the modifier absent in its overlay with the reason, rather than shipping
+# one that does nothing.
 relaxations:
   "equate-empty":
     summary: >
@@ -36,6 +38,15 @@ relaxations:
       A NaN equals another NaN of the same type. Without it NaN is
       unequal to itself, which is what IEEE 754 states and what the
       standard states by default.
+  "by-identity":
+    summary: >
+      A reference equals another reference only when both refer to the
+      same object, whatever the object's value. A value that is no
+      reference compares as without it. The modifier applies wherever the
+      comparison meets a reference: at the top, in an element of a list, in
+      a value of a map and in a field of a record. What a reference is in
+      each language is stated where the encoding states the reference
+      literal.
 
 # What a corpus case may hand an assertion in place of a value.
 #
@@ -122,6 +133,12 @@ subjects:
   "repeats-an-element":
     summary: >
       Yields 1, 2, 2 and 3.
+  "yields-one-object-twice":
+    summary: >
+      Yields one object twice. The object's value is 1.
+  "yields-two-equal-objects":
+    summary: >
+      Yields two objects, and the value of each is 1.
   "wraps-around":
     summary: >
       A counter that starts at 0, rises by one per advance and returns to 0
@@ -320,14 +337,14 @@ assertions:
       exactly and by value so -0 equals +0, cycles stop, functions
       compare by identity.
     detail_fields: [want, got]
-    relaxations: [equate-empty, equate-nans]
+    relaxations: [equate-empty, equate-nans, by-identity]
 
   "not-equal":
     arity: 3
     summary: >
       Negation of equal.
     detail_fields: [got]
-    relaxations: [equate-empty, equate-nans]
+    relaxations: [equate-empty, equate-nans, by-identity]
 
   "true":
     arity: 2
@@ -384,14 +401,14 @@ assertions:
       An element or a key compares as equal compares, so an int does not
       match a float.
     detail_fields: [haystack, needle]
-    relaxations: [equate-empty, equate-nans]
+    relaxations: [equate-empty, equate-nans, by-identity]
 
   "not-contains":
     arity: 3
     summary: >
       Negation of contains.
     detail_fields: [haystack, needle]
-    relaxations: [equate-empty, equate-nans]
+    relaxations: [equate-empty, equate-nans, by-identity]
 
   "contains-in-order":
     arity: 3
@@ -405,7 +422,7 @@ assertions:
       A sequence contains the same elements as another, each as often, in
       any order. Elements compare as equal compares them.
     detail_fields: [want, got]
-    relaxations: [equate-empty, equate-nans]
+    relaxations: [equate-empty, equate-nans, by-identity]
 
   "has-prefix":
     arity: 3
@@ -596,7 +613,7 @@ assertions:
       One iteration of a subject yields each element at most once. got is
       the first element equal to an earlier one, and index its position.
     detail_fields: [got, index]
-    relaxations: [equate-empty, equate-nans]
+    relaxations: [equate-empty, equate-nans, by-identity]
 
   "monotonic":
     arity: 4

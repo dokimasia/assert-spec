@@ -381,6 +381,24 @@
       "error": false
     },
     {
+      "id": "map/has-no-inverse",
+      "generator": {
+        "gen": "map",
+        "of": {
+          "gen": "integer",
+          "min": 0,
+          "max": 9
+        },
+        "subject": "identity"
+      },
+      "value": {
+        "type": "int",
+        "value": 4
+      },
+      "choices": null,
+      "error": true
+    },
+    {
       "id": "bool/true",
       "shape": {
         "shape": "bool"

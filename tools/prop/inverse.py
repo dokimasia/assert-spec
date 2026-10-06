@@ -8,10 +8,14 @@ and the case records them unchanged. A value the generator cannot produce
 raises CannotInvert: a value of another type, one outside its bounds, a
 collection of another size, or a set or a map with a repeated element.
 
-Every generator of the vocabulary and every shape runs backwards, and a
-filter does through the generator it filters. map, bind and composite
-apply a function the engine cannot invert, so a language's generator
-built with one of them does not run backwards.
+Every generator of the vocabulary but map, and every shape, runs
+backwards, and a filter does through the generator it filters. map, bind
+and composite apply a function the engine cannot invert, so a generator
+built with one of them does not run backwards. Its refusal is NoInverse,
+which tells it from a value outside a domain: a one-of and a recursive
+report NoInverse when no branch produces the value and one of them has
+no inverse, and every other generator passes on the refusal of the
+generator inside it.
 
 Where more than one sequence of choices decodes to a value, the inverse
 takes the first in a fixed order:
@@ -96,6 +100,14 @@ class CannotInvert(ValueError):
     """A value that a generator cannot produce from any sequence of choices."""
 
 
+class NoInverse(CannotInvert):
+    """A value whose choices the engine cannot compute.
+
+    A generator on the way applies a function that the engine cannot run
+    backwards, so whether the generator produces the value is unknown.
+    """
+
+
 @dataclass(frozen=True)
 class Step:
     """One emitted choice: the bounds its request states, and its value."""
@@ -119,6 +131,8 @@ def invert(generator: Generator, value: object) -> tuple[Choice, ...]:
     """Return the choices that decode to value.
 
     Raises:
+        NoInverse: a generator on the way applies a function that the
+            engine cannot run backwards.
         CannotInvert: the generator cannot produce value.
     """
     steps, normal = emit(generator, value)
@@ -137,13 +151,13 @@ def emit(generator: Generator, value: object) -> Emitted:
     """Return the steps one generator emits for value, each within its bounds.
 
     Raises:
-        CannotInvert: a step falls outside its bounds, the value is of a
-            type the generator never decodes, or the generator applies a
-            function it cannot run backwards.
+        CannotInvert: a step falls outside its bounds, or the value is of a
+            type the generator never decodes.
+        NoInverse: the generator applies a function it cannot run backwards.
     """
     emitter = _EMITTERS.get(type(generator))
     if emitter is None:
-        raise CannotInvert(f"prop: {type(generator).__name__} does not run backwards")
+        raise NoInverse(f"prop: {type(generator).__name__} does not run backwards")
     return emitter(generator, value)
 
 
@@ -199,16 +213,41 @@ def _emit_sampled_from(generator: Any, value: object) -> Emitted:
     return [Step(IntegerBounds(0, len(values) - 1), index)], value
 
 
+def _first_branch(
+    branches: Sequence[tuple[int, Generator]],
+    value: object,
+    bounds: IntegerBounds,
+    refusal: str,
+) -> Emitted:
+    """Return the index of the first branch that produces value, then its steps.
+
+    refusal is the reason of the refusal when no branch produces value.
+
+    Raises:
+        NoInverse: no branch produces value, and one of them has no inverse.
+        CannotInvert: no branch produces value.
+    """
+    unknown = False
+    for index, branch in branches:
+        try:
+            steps, normal = emit(branch, value)
+        except NoInverse:
+            unknown = True
+            continue
+        except CannotInvert:
+            continue
+        return [Step(bounds, index), *steps], normal
+    if unknown:
+        raise NoInverse(f"prop: {refusal}, and one of them has no inverse")
+    raise CannotInvert(f"prop: {refusal}")
+
+
 def _emit_one_of(generator: Any, value: object) -> Emitted:
     """Return the index of the first alternative that produces value, then its steps."""
     alternatives: tuple[Generator, ...] = generator.of
-    for index, alternative in enumerate(alternatives):
-        try:
-            steps, normal = emit(alternative, value)
-        except CannotInvert:
-            continue
-        return [Step(IntegerBounds(0, len(alternatives) - 1), index), *steps], normal
-    raise CannotInvert(f"prop: no alternative produces {value!r}")
+    bounds = IntegerBounds(0, len(alternatives) - 1)
+    refusal = f"no alternative produces {value!r}"
+    return _first_branch(list(enumerate(alternatives)), value, bounds, refusal)
 
 
 def _emit_optional(generator: Any, value: object) -> Emitted:
@@ -381,13 +420,9 @@ def _emit_filter(generator: Any, value: object) -> Emitted:
 
 def _emit_recursive(generator: Any, value: object) -> Emitted:
     """Return one position of a recursive value: the base, or else the extension."""
-    for index, branch in ((0, generator.base), (1, generator.extend)):
-        try:
-            steps, normal = emit(branch, value)
-        except CannotInvert:
-            continue
-        return [Step(IntegerBounds(0, 1), index), *steps], normal
-    raise CannotInvert(f"prop: neither the base nor the extension produces {value!r}")
+    branches = [(0, generator.base), (1, generator.extend)]
+    refusal = f"neither the base nor the extension produces {value!r}"
+    return _first_branch(branches, value, IntegerBounds(0, 1), refusal)
 
 
 def _emit_self(generator: Any, value: object) -> Emitted:

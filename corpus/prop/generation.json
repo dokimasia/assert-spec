@@ -3574,6 +3574,130 @@
           "rejected": false
         }
       ]
+    },
+    {
+      "id": "map/draws-what-its-source-draws",
+      "generator": {
+        "gen": "map",
+        "of": {
+          "gen": "list",
+          "of": {
+            "gen": "integer",
+            "min": 0,
+            "max": 9
+          },
+          "max_size": 4
+        },
+        "subject": "sorts"
+      },
+      "seed": "42",
+      "count": 6,
+      "cases": [
+        {
+          "choices": [
+            0
+          ],
+          "value": {
+            "type": "list",
+            "items": []
+          },
+          "rejected": false
+        },
+        {
+          "choices": [
+            0
+          ],
+          "value": {
+            "type": "list",
+            "items": []
+          },
+          "rejected": false
+        },
+        {
+          "choices": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            0
+          ],
+          "value": {
+            "type": "list",
+            "of": "int",
+            "value": [
+              1,
+              1,
+              1,
+              1
+            ]
+          },
+          "rejected": false
+        },
+        {
+          "choices": [
+            1,
+            9,
+            1,
+            5,
+            0
+          ],
+          "value": {
+            "type": "list",
+            "of": "int",
+            "value": [
+              5,
+              9
+            ]
+          },
+          "rejected": false
+        },
+        {
+          "choices": [
+            1,
+            1,
+            1,
+            1,
+            1,
+            5,
+            0
+          ],
+          "value": {
+            "type": "list",
+            "of": "int",
+            "value": [
+              1,
+              1,
+              5
+            ]
+          },
+          "rejected": false
+        },
+        {
+          "choices": [
+            1,
+            3,
+            1,
+            5,
+            1,
+            5,
+            0
+          ],
+          "value": {
+            "type": "list",
+            "of": "int",
+            "value": [
+              3,
+              5,
+              5
+            ]
+          },
+          "rejected": false
+        }
+      ]
     }
   ]
 }

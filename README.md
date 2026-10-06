@@ -57,7 +57,7 @@ tools/stateful/        the machines' and the scheduler's executable reference
 tools/files/           the trees' and the file assertions' executable reference
 tools/spec-sync.sh     how an implementation vendors the definition
 tools/spec-check.sh    how an implementation checks its copy
-VERSION                5.1.0
+VERSION                5.2.0
 ```
 
 People edit the YAML. `make render` produces the JSON, which is
@@ -146,12 +146,13 @@ remaining 22 take an error value, a predicate, a callable that no subject
 describes, a golden file, a benchmark measurement, a property's body, a
 model or a recorded history, and none of those is a typed literal
 either. The property engine
-itself is data in and data out, so 419 vectors under `corpus/prop/` pin
+itself is data in and data out, so 430 vectors under `corpus/prop/` pin
 its decoding, generation, shrinking, coverage test, fuzz bridge, replay
 token, run detail and store. They also pin the values each shape
 generates, the choices that produce a value, the shape each fixture type
 reads as, a passing and a failing run of every property form but
-`prop-max-allocs`, and the call records of a property's runs. The history
+`prop-max-allocs`, the runs of a form's examples, and the call records of
+a property's runs. The history
 and the checkers are data in and data out too. 80 vectors under
 `corpus/history/` pin the events that calls record, the entries that the
 history refuses, the verdict, steps and record of a check against each
@@ -297,7 +298,7 @@ differently.
 | TypeScript | [assert-typescript](https://github.com/dokimasia/assert-typescript) | 104 of 110 |
 
 Each count is what the language's overlay declares against version
-5.1.0. An implementation that has not synced to it yet has a drift issue
+5.2.0. An implementation that has not synced to it yet has a drift issue
 open until it does.
 
 Java and Kotlin ship from one repository and are named identically, so
@@ -305,7 +306,9 @@ a test reads the same in both. Neither states a ceiling on allocation
 count in a test, a property or a benchmark. The JVM reports bytes
 allocated per thread and no count of allocations. Python states none of
 the three, because CPython reports the memory alive at one moment and no
-running count. TypeScript states none of the four
+running count. For the same reason its ceiling on bytes bounds the peak
+of an iteration and not the bytes it allocates, which its overlay
+declares as a limit. TypeScript states none of the four
 allocation ceilings, because V8 reports allocation only as a heap-usage
 delta that moves with whether the collector ran. Each gap is in that
 language's overlay with the measurement behind it.
@@ -321,9 +324,10 @@ partial: the six
 allocation ceilings need a counting allocator installed as the test
 binary's global allocator, and no-task-leaks sees tasks on a runtime but
 not a thread, because nothing in Rust's standard library enumerates
-threads. Rust also declines both relaxations, since its types keep an
-absent container and an empty one apart and its own equality already
-says NaN is unequal to itself.
+threads. Rust also declines the three relaxations. Its types keep an
+absent container and an empty one apart, and its own equality already
+treats NaN as unequal to itself. Its assertions compare through
+`PartialEq`, which has no identity to compare by.
 
 Go, Java, Kotlin and Rust declare a limit on the history's recorder
 because their threads run on more than one core. The recorder's counter

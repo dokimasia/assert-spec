@@ -188,6 +188,62 @@
         "equate-nans"
       ],
       "expect": "fail"
+    },
+    {
+      "id": "not-equal/two-objects-of-equal-values-by-identity-pass",
+      "args": [
+        {
+          "type": "reference",
+          "id": "a",
+          "value": {
+            "type": "int",
+            "value": 1
+          }
+        },
+        {
+          "type": "reference",
+          "id": "b",
+          "value": {
+            "type": "int",
+            "value": 1
+          }
+        }
+      ],
+      "options": [
+        "by-identity"
+      ],
+      "expect": "pass"
+    },
+    {
+      "id": "not-equal/one-object-by-identity-fails",
+      "args": [
+        {
+          "type": "reference",
+          "id": "a",
+          "value": {
+            "type": "int",
+            "value": 1
+          }
+        },
+        {
+          "type": "reference",
+          "id": "a",
+          "value": {
+            "type": "int",
+            "value": 1
+          }
+        }
+      ],
+      "options": [
+        "by-identity"
+      ],
+      "expect": "fail",
+      "detail": {
+        "got": {
+          "type": "int",
+          "value": 1
+        }
+      }
     }
   ]
 }

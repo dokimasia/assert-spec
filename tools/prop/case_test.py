@@ -18,6 +18,7 @@ from .case import (
     Request,
     Span,
     Step,
+    Valuing,
     Where,
 )
 from .choice import INT64_MAX, INT64_MIN, Choice, IntegerBounds, SequenceBounds, Value
@@ -233,6 +234,32 @@ class ReplayingTest(unittest.TestCase):
         case = Case(Replaying([Choice("integer", 12)]))
         case.choose(_digit())
         self.assertEqual(case.choices, [Choice("integer", 0)])
+
+
+@final
+class ValuingTest(unittest.TestCase):
+    """A case whose draws take stated values, which no choice decodes."""
+
+    def test_each_draw_takes_the_next_value_without_a_choice(self) -> None:
+        """A value outside the generator's domain too, and no span opens."""
+        case = Case(Valuing([5, "x"]))
+        drawn = [case.draw(_Digit(), label) for label in ("a", "b")]
+        self.assertEqual(drawn, [5, "x"])
+        self.assertEqual((case.choices, case.spans), ([], []))
+        recorded = [(d.label, d.value) for d in case.draws]
+        self.assertEqual(recorded, [("a", 5), ("b", "x")])
+
+    def test_a_draw_past_the_last_value_decodes_the_targets(self) -> None:
+        """The second draw decodes, and its request takes the target."""
+        case = Case(Valuing([5]))
+        case.draw(_Digit(), "a")
+        self.assertEqual(case.draw(_Digit(), "b"), 0)
+        self.assertEqual(case.choices, [Choice("integer", 0)])
+
+    def test_a_provider_that_states_values_is_the_valuer(self) -> None:
+        """A replay states no value."""
+        self.assertIsNotNone(Case(Valuing([])).valuer)
+        self.assertIsNone(Case(Replaying([])).valuer)
 
 
 @final

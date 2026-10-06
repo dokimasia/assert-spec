@@ -310,6 +310,126 @@
         "equate-empty"
       ],
       "expect": "pass"
+    },
+    {
+      "id": "permutation/the-same-objects-in-another-order-by-identity-pass",
+      "args": [
+        {
+          "type": "list",
+          "items": [
+            {
+              "type": "reference",
+              "id": "a",
+              "value": {
+                "type": "int",
+                "value": 1
+              }
+            },
+            {
+              "type": "reference",
+              "id": "b",
+              "value": {
+                "type": "int",
+                "value": 2
+              }
+            }
+          ]
+        },
+        {
+          "type": "list",
+          "items": [
+            {
+              "type": "reference",
+              "id": "b",
+              "value": {
+                "type": "int",
+                "value": 2
+              }
+            },
+            {
+              "type": "reference",
+              "id": "a",
+              "value": {
+                "type": "int",
+                "value": 1
+              }
+            }
+          ]
+        }
+      ],
+      "options": [
+        "by-identity"
+      ],
+      "expect": "pass"
+    },
+    {
+      "id": "permutation/an-object-of-an-equal-value-in-place-of-one-by-identity-fails",
+      "args": [
+        {
+          "type": "list",
+          "items": [
+            {
+              "type": "reference",
+              "id": "a",
+              "value": {
+                "type": "int",
+                "value": 1
+              }
+            },
+            {
+              "type": "reference",
+              "id": "b",
+              "value": {
+                "type": "int",
+                "value": 2
+              }
+            }
+          ]
+        },
+        {
+          "type": "list",
+          "items": [
+            {
+              "type": "reference",
+              "id": "c",
+              "value": {
+                "type": "int",
+                "value": 1
+              }
+            },
+            {
+              "type": "reference",
+              "id": "b",
+              "value": {
+                "type": "int",
+                "value": 2
+              }
+            }
+          ]
+        }
+      ],
+      "options": [
+        "by-identity"
+      ],
+      "expect": "fail",
+      "detail": {
+        "want": {
+          "type": "list",
+          "of": "int",
+          "value": [
+            1,
+            2
+          ]
+        },
+        "got": {
+          "type": "list",
+          "of": "int",
+          "value": [
+            1,
+            2
+          ]
+        }
+      }
     }
   ]
 }

@@ -535,6 +535,88 @@
       "skip": {
         "rust": "a std map needs keys that implement Eq and Hash, or Ord, and f64 implements none of them"
       }
+    },
+    {
+      "id": "equal/one-object-by-identity-passes",
+      "args": [
+        {
+          "type": "reference",
+          "id": "a",
+          "value": {
+            "type": "int",
+            "value": 1
+          }
+        },
+        {
+          "type": "reference",
+          "id": "a",
+          "value": {
+            "type": "int",
+            "value": 1
+          }
+        }
+      ],
+      "options": [
+        "by-identity"
+      ],
+      "expect": "pass"
+    },
+    {
+      "id": "equal/two-objects-of-equal-values-by-identity-fail",
+      "args": [
+        {
+          "type": "reference",
+          "id": "a",
+          "value": {
+            "type": "int",
+            "value": 1
+          }
+        },
+        {
+          "type": "reference",
+          "id": "b",
+          "value": {
+            "type": "int",
+            "value": 1
+          }
+        }
+      ],
+      "options": [
+        "by-identity"
+      ],
+      "expect": "fail",
+      "detail": {
+        "want": {
+          "type": "int",
+          "value": 1
+        },
+        "got": {
+          "type": "int",
+          "value": 1
+        }
+      }
+    },
+    {
+      "id": "equal/two-objects-of-equal-values-pass",
+      "args": [
+        {
+          "type": "reference",
+          "id": "a",
+          "value": {
+            "type": "int",
+            "value": 1
+          }
+        },
+        {
+          "type": "reference",
+          "id": "b",
+          "value": {
+            "type": "int",
+            "value": 1
+          }
+        }
+      ],
+      "expect": "pass"
     }
   ]
 }

@@ -8,7 +8,8 @@ structure, and the spans around them are the definition. Two
 implementations that agree on them decode the same value from the same
 choices.
 
-Every generator decodes inside a span labelled with its id. A list and a
+Every generator but map decodes inside a span labelled with its id. map
+makes its source's choices and opens no span of its own. A list and a
 dict decode their elements as collection.collect states, each in a span
 that starts at the element's continue flag.
 
@@ -33,6 +34,7 @@ from .choice import (
     SequenceBounds,
 )
 from .collection import ELEMENT, ENTRY, Sizes, collect
+from .function import FUNCTIONS
 from .predicate import Predicate, predicate
 from .value import Pairs, canonical
 
@@ -349,6 +351,23 @@ class Filter:
             return self.of.decode(case)
 
 
+@dataclass(frozen=True)
+class Map:
+    """The value that a subject kind's function returns for the source's value.
+
+    It makes the source's choices and opens no span of its own. It has no
+    inverse, because the engine cannot run a function backwards.
+    """
+
+    ID: ClassVar[str] = "map"
+    of: Generator
+    subject: str
+
+    def decode(self, case: Case) -> object:
+        """Return the function of the value the source decodes."""
+        return FUNCTIONS[self.subject](self.of.decode(case))
+
+
 @dataclass(eq=False)
 class Recursive:
     """A base value, or an extension whose positions are recursive values.
@@ -576,6 +595,14 @@ def _bytes(spec: Spec) -> Bytes:
     return Bytes(SequenceBounds(BYTE_VALUES, sizes.min_size, sizes.max_size))
 
 
+def _map(spec: Spec, scope: Recursive | None) -> Map:
+    """Build map, over the function of a subject kind that takes one input."""
+    subject = _text(spec, "subject")
+    if subject not in FUNCTIONS:
+        raise SpecError(f"prop: the subject {subject!r} is none of {sorted(FUNCTIONS)}")
+    return Map(build(spec["of"], scope), subject)
+
+
 def _recursive(spec: Spec) -> Recursive:
     """Build recursive, binding each self in its extension to the result.
 
@@ -624,6 +651,7 @@ _COMPOSITES: Final[dict[str, Callable[[Spec, Recursive | None], Generator]]] = {
         build(s["keys"], scope), build(s["values"], scope), _sizes(s)
     ),
     Filter.ID: lambda s, scope: Filter(build(s["of"], scope), predicate(s["keep"])),
+    Map.ID: _map,
 }
 
 #: The ids of the vocabulary's generators. ``self`` is a position inside a

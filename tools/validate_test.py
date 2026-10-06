@@ -877,6 +877,40 @@ class Validator(unittest.TestCase):
         )
         self.assert_caught("names an option twice")
 
+    def test_a_reference_to_null_is_caught(self) -> None:
+        """A reference refers to an object, and null is none."""
+        null = {"type": "reference", "id": "a", "value": {"type": "null"}}
+        _edit(
+            self.tree / "corpus" / "equal.json",
+            lambda d: d["cases"][0]["args"].__setitem__(0, null),
+        )
+        self.assert_caught("the reference 'a' refers to null, no object")
+
+    def test_two_values_for_one_reference_are_caught(self) -> None:
+        """Every reference of one id in a case is one object, of one value."""
+
+        def differ(document: Any) -> None:
+            document["cases"][0]["args"] = [
+                {"type": "reference", "id": "a", "value": {"type": "int", "value": n}}
+                for n in (1, 2)
+            ]
+
+        _edit(self.tree / "corpus" / "equal.json", differ)
+        self.assert_caught(
+            "states two values for the reference 'a', which is one object"
+        )
+
+    def test_a_reference_in_a_record_is_caught(self) -> None:
+        """A record states the value that a reference refers to."""
+        inner = {"type": "reference", "id": "a", "value": {"type": "int", "value": 1}}
+        _edit(
+            self.tree / "corpus" / "equal.json",
+            lambda d: d["cases"][1]["detail"].update(
+                got={"type": "list", "items": [inner]}
+            ),
+        )
+        self.assert_caught("states a reference; a record states the value it refers to")
+
     def test_a_corpus_with_no_files_is_caught(self) -> None:
         """A corpus without a file checks no meaning at all."""
         for path in (self.tree / "corpus").glob("*.json"):

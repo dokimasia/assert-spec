@@ -52,7 +52,9 @@ class FormsTest(unittest.TestCase):
         entry = _tables()[0]["assertions"]["prop-equal"]
         self.assertEqual(entry["arity"], 3)
         self.assertEqual(entry["package"], "prop")
-        self.assertEqual(entry["relaxations"], ["equate-empty", "equate-nans"])
+        self.assertEqual(
+            entry["relaxations"], ["equate-empty", "equate-nans", "by-identity"]
+        )
         self.assertEqual(
             entry["form"], {"of": "equal", "kind": "function", "generates": ["input"]}
         )

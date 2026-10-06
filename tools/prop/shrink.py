@@ -68,7 +68,8 @@ from .execution import (
     execute,
     unobserved,
 )
-from .generator import Integer
+from .function import FUNCTIONS
+from .generator import Integer, Map
 from .replay import encode
 from .source import MASK, Source
 
@@ -1057,14 +1058,27 @@ def _fails_with(shrinker: Shrinker, failure: Failure, choices: list[Choice]) -> 
 def _nearest(
     shrinker: Shrinker, nodes: Nodes, span: Span, drawn: Drawn
 ) -> object | None:
-    """Return an integer draw's value one step towards its target, when it passes."""
-    value = drawn.value
-    if not isinstance(drawn.generator, Integer) or not isinstance(value, int):
+    """Return an integer draw's value one step towards its target, when it passes.
+
+    A map of an integer is an integer draw too: its integer is its choice,
+    and its nearest passing value is what the map returns for the step.
+    """
+    generator = drawn.generator
+    maps: list[Map] = []
+    while isinstance(generator, Map):
+        maps.append(generator)
+        generator = generator.of
+    value = nodes[span.start].choice.value if maps else drawn.value
+    if not isinstance(generator, Integer) or not isinstance(value, int):
         return None
-    target = drawn.generator.bounds.target
+    target = generator.bounds.target
     if value == target:
         return None
     stepped = value - 1 if value > target else value + 1
     choices = [node.choice for node in _replace(nodes, span.start, stepped)]
-    passed = shrinker.run(choices, Phase.EXPLAIN).status is Status.PASSED
-    return stepped if passed else None
+    if shrinker.run(choices, Phase.EXPLAIN).status is not Status.PASSED:
+        return None
+    nearest: object = stepped
+    for mapped in reversed(maps):
+        nearest = FUNCTIONS[mapped.subject](nearest)
+    return nearest

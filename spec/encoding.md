@@ -20,6 +20,7 @@ A value is an object with a `type` key.
 | `record` | `fields`, a list of name and value literal pairs | The value `prop.OfShape` decodes |
 | `variant` | `name`, and `payload` when the variant has one | The value `prop.OfShape` decodes |
 | `tree` | `entries`, a list of entries in path order | `files.Tree` |
+| `reference` | `id`, and `value`, the literal of the object's value | A pointer to the value |
 
 `of` and `key` name a scalar type: `bool`, `int`, `float`, `string`.
 
@@ -98,6 +99,37 @@ A record states a file whose content is longer than 65,536 bytes by
 and 64 lowercase hexadecimal digits, and `size` is the number of bytes. A
 case states the content of every file it writes, so only a record states
 this form.
+
+## References
+
+A `reference` states one object of a case: its `id`, and the literal of
+the object's value.
+
+```json
+{ "type": "reference", "id": "a", "value": { "type": "int", "value": 1 } }
+```
+
+- Within one case, every `reference` of one `id` is one object, and each
+  states the same value. A runner decodes the first literal of an id to a
+  new object of the value, and each later literal of the id to that
+  object.
+- The value is not `null`, because a reference refers to an object.
+- A record states a reference by the literal of its value. The record is
+  kept after the objects of its run are gone.
+
+`by-identity` compares two references by the objects that they refer to.
+Each language states what a reference is, and when two references refer
+to the same object:
+
+| Language | References | The same object |
+|---|---|---|
+| Go | Pointers, maps, slices, channels and functions | The same address. Two slices are the same object when they start at the same address and have the same length |
+| Python | Every object but `None`, a `bool`, an `int`, a `float`, a `str`, `bytes` and a `tuple`, whose items compare one by one | `is` |
+| Java, Kotlin | Every object but a `String` and the box of a primitive | `==` in Java, `===` in Kotlin |
+| TypeScript | Objects, arrays and functions | `===` |
+
+A value that is no reference compares as it compares without
+`by-identity`. Rust's overlay declines the modifier.
 
 ## Opaque values
 

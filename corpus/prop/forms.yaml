@@ -8,12 +8,18 @@
 # states. err-is and err-as take the subject's own failure as their
 # sentinel and its type as their type.
 #
-# The form generates its arguments from the shape, under the labels of
-# the forms rule. Each case pins the detail of the run, as a behaviour
-# vector does. A failing run's failure is the assertion's record of the
-# minimal case: its assertion, and the detail fields that a typed literal
-# can state and that no earlier case decides. The runner passes the form a
-# message, and both records state it as their contract.
+# The form generates its arguments from the shape, or from the generator
+# that a case states in its place, under the labels of the forms rule. A
+# case of a form over one input may state examples, a list of typed
+# literals that the runner passes through prop.examples. Each value is one
+# case, run before the generated cases. The example of an input without an
+# inverse runs on its value, and fails as found, without a replay token.
+#
+# Each case pins the detail of the run, as a behaviour vector does. A
+# failing run's failure is the assertion's record of the minimal case: its
+# assertion, and the detail fields that a typed literal can state and that
+# no earlier case decides. The runner passes the form a message, and both
+# records state it as their contract.
 #
 # Every form has a passing case and a failing case, except prop-max-allocs:
 # no case can state an allocation count. `make render` writes the outputs,
@@ -30,6 +36,10 @@ shapes:
   positives: &positives {shape: list, of: {shape: int, width: 32, signed: true, min: 1, max: 1000}}
   text: &text {shape: string}
 
+# The generators the cases generate from in place of a shape.
+generators:
+  digit: &digit {gen: integer, min: 0, max: 9}
+
 cases:
   - id: prop-equal/passes-when-both-functions-return-the-input
     form: prop-equal
@@ -40,6 +50,14 @@ cases:
     form: prop-equal
     subjects: [sorts, identity]
     shape: *ints
+    seed: "7"
+  # The example of a map is a case without choices, which passes. Its value
+  # is no value of the map, which sorts.
+  - id: prop-equal/passes-an-example-of-a-map
+    form: prop-equal
+    subjects: [identity, identity]
+    generator: {gen: map, of: {gen: list, of: *digit, max_size: 4}, subject: sorts}
+    examples: [{type: list, of: int, value: [3, 1]}]
     seed: "7"
 
   - id: prop-not-equal/passes-when-a-zero-is-prepended
@@ -62,6 +80,39 @@ cases:
     form: prop-true
     subjects: [is-non-negative]
     shape: *int
+    seed: "7"
+  # Each example is a case of its own, run first, and counts as a valid case.
+  - id: prop-true/passes-its-three-examples
+    form: prop-true
+    subjects: [is-non-negative]
+    shape: *natural
+    examples: [{type: int, value: 0}, {type: int, value: 500}, {type: int, value: 1000}]
+    seed: "7"
+  # The second example fails after the first passes, and shrinks as a
+  # generated case does.
+  - id: prop-true/fails-at-its-second-example
+    form: prop-true
+    subjects: [is-non-negative]
+    shape: *int
+    examples: [{type: int, value: 3}, {type: int, value: -700}, {type: int, value: 5}]
+    seed: "7"
+  # A map has no inverse, so its example runs on its value, which is
+  # outside the domain of the map's source.
+  - id: prop-true/fails-at-an-example-of-a-map-as-found
+    form: prop-true
+    subjects: [is-non-negative]
+    generator: {gen: map, of: *digit, subject: identity}
+    examples: [{type: int, value: -5}]
+    seed: "7"
+  # No alternative of the one-of produces -5, and the map has no inverse, so
+  # the one-of has none for -5 either.
+  - id: prop-true/fails-at-an-example-that-only-a-map-might-produce
+    form: prop-true
+    subjects: [is-non-negative]
+    generator:
+      gen: one-of
+      of: [*digit, {gen: map, of: *digit, subject: identity}]
+    examples: [{type: int, value: -5}]
     seed: "7"
 
   - id: prop-false/passes-for-negative-inputs

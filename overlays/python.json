@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@5.1.0",
+  "extends": "spec://assertions@5.2.0",
   "language": "python",
   "diverge": [
     {
@@ -31,6 +31,13 @@
       "stance": "blocked",
       "why": "The form runs max-allocs-with-setup on each input, and max-allocs-with-setup is absent for the reason its entry gives.",
       "remedy": "The cumulative allocation counter that bench-max-allocs needs."
+    }
+  ],
+  "limits": [
+    {
+      "id": "bench-max-bytes",
+      "what": "Checks the most bytes that are live at once during an iteration: the peak of the memory that tracemalloc traces, above the memory that was live when the iteration started, averaged over the iterations. A body that frees each block before it allocates the next counts one block, so the ceiling bounds the peak of an iteration and not the bytes that the iteration allocates in total.",
+      "why": "CPython keeps no running total of allocated bytes. tracemalloc.get_traced_memory returns the current and the peak traced memory, and sys.getallocatedblocks the blocks allocated now. Each of them is a level of live memory, and the peak is the one that a body's allocations raise and its frees do not lower."
     }
   ],
   "surface": [

@@ -1039,6 +1039,73 @@
       "choices": null,
       "token": null,
       "runs": 0
+    },
+    {
+      "id": "map/shrinks-the-choices-of-its-source",
+      "generator": {
+        "gen": "map",
+        "of": {
+          "gen": "list",
+          "of": {
+            "gen": "integer",
+            "min": 0,
+            "max": 9
+          },
+          "max_size": 6
+        },
+        "subject": "prepends-zero"
+      },
+      "fails-when": {
+        "kind": "length-at-least",
+        "n": 3
+      },
+      "seed": "7",
+      "outcome": "counterexample",
+      "cases": 1,
+      "value": {
+        "type": "list",
+        "of": "int",
+        "value": [
+          0,
+          0,
+          0
+        ]
+      },
+      "choices": [
+        1,
+        0,
+        1,
+        0,
+        0
+      ],
+      "token": "prop1:AAEAAAABAAAAAA",
+      "runs": 21
+    },
+    {
+      "id": "map/passes-when-no-value-fails",
+      "generator": {
+        "gen": "map",
+        "of": {
+          "gen": "list",
+          "of": {
+            "gen": "integer",
+            "min": 0,
+            "max": 9
+          },
+          "max_size": 6
+        },
+        "subject": "prepends-zero"
+      },
+      "fails-when": {
+        "kind": "never"
+      },
+      "seed": "7",
+      "outcome": "passed",
+      "cases": 100,
+      "value": null,
+      "choices": null,
+      "token": null,
+      "runs": 0
     }
   ]
 }

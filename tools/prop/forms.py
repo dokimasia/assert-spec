@@ -31,14 +31,17 @@ import json
 import re
 from collections import Counter
 from collections.abc import Callable, Collection, Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from itertools import pairwise
 from pathlib import Path
 from typing import Any, Final
 
 from . import literal
 from .case import Case, Generator
-from .runner import Outcome, Settings, run
+from .choice import Choice
+from .function import FUNCTIONS
+from .inverse import CannotInvert, NoInverse, invert
+from .runner import Outcome, Settings, Values, run
 from .value import canonical
 
 #: The table whose forms rule states each form's assertion and labels.
@@ -65,17 +68,6 @@ Builder = Callable[[object, Sequence[object]], Judge]
 class FormError(ValueError):
     """A form vector that names no form a case can state, or misstates its arguments."""
 
-
-#: The functions of the generated input, by subject kind.
-FUNCTIONS: Final[dict[str, Callable[[Any], object]]] = {
-    "identity": lambda x: x,
-    "is-non-negative": lambda x: x >= 0,
-    "returns-null": lambda x: None,
-    "drops-the-first": lambda x: x[1:],
-    "prepends-zero": lambda x: [0, *x],
-    "sorts": sorted,
-    "wraps-in-a-and-b": lambda x: f"a{x}b",
-}
 
 #: The predicates over two adjacent items, by subject kind.
 PREDICATES: Final[dict[str, Callable[[Any, Any], bool]]] = {
@@ -577,13 +569,46 @@ def build(spec: Mapping[str, Any]) -> Form:
     return Form(assertion, generates, judge)
 
 
+def examples(
+    spec: Mapping[str, Any], form: Form, generator: Generator
+) -> tuple[tuple[Choice, ...] | Values, ...]:
+    """Return the cases of the examples a vector states, one value per case.
+
+    An example's case is the choices that decode to its value. An example
+    whose generator has no inverse runs on its value.
+
+    Raises:
+        FormError: the form generates more than one argument, or a value
+            is outside the generator's domain.
+        LiteralError: a value is no typed literal.
+    """
+    stated = spec.get("examples", [])
+    if not isinstance(stated, list):
+        raise FormError(f"prop: examples is {stated!r}, not a list of typed literals")
+    if stated and len(form.generates) != 1:
+        raise FormError(
+            f"prop: examples states one value per case, and the form generates "
+            f"{len(form.generates)}"
+        )
+    cases: list[tuple[Choice, ...] | Values] = []
+    for value in map(literal.decode, stated):
+        try:
+            cases.append(invert(generator, value))
+        except NoInverse:
+            cases.append(Values((value,)))
+        except CannotInvert as bad:
+            raise FormError(f"prop: the example {value!r}: {bad}") from bad
+    return tuple(cases)
+
+
 def run_form(
     spec: Mapping[str, Any], generator: Generator, settings: Settings, *, fresh: bool
 ) -> tuple[Outcome, dict[str, Any] | None]:
     """Run the form a vector states, and return the outcome and the minimal record.
 
-    The record is None when the run found no failing case. It names the
-    assertion and states the record's detail, or None in place of the
+    The run tries the vector's examples first, as examples() states their
+    cases. The record is None when the run found no failing case. It names
+    the assertion and states the record's detail, or None in place of the
     detail when the minimal case passes when it is judged again.
 
     With fresh, each case and the judgement of the record get subjects
@@ -593,6 +618,7 @@ def run_form(
         FormError: the vector does not state a form a case can run.
     """
     kept = build(spec)
+    settings = replace(settings, examples=examples(spec, kept, generator))
 
     def body(case: Case) -> None:
         form = build(spec) if fresh else kept

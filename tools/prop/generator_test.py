@@ -35,6 +35,7 @@ PINNED_IDS = frozenset(
         "string-matching",
         "recursive",
         "filter",
+        "map",
     }
 )
 
@@ -58,6 +59,7 @@ KEEP_EVEN: dict[str, Any] = {
     "of": DIGIT,
     "keep": {"kind": "divisible-by", "n": 2},
 }
+SORTED: dict[str, Any] = {"gen": "map", "of": DIGITS, "subject": "sorts"}
 
 #: One spec per generator of the vocabulary, for the checks that hold for
 #: every one.
@@ -80,6 +82,7 @@ EVERY: dict[str, dict[str, Any]] = {
     "permutation": {"gen": "permutation", "values": LETTERS["values"]},
     "recursive": TREE,
     "filter": KEEP_EVEN,
+    "map": SORTED,
 }
 
 
@@ -506,6 +509,23 @@ class FilterTest(unittest.TestCase):
 
 
 @final
+class MapTest(unittest.TestCase):
+    """map: a subject kind's function of the source's value."""
+
+    def test_the_value_is_the_function_of_the_sources_value(self) -> None:
+        """The source decodes [3, 1], and sorts returns [1, 3]."""
+        self.assertEqual(decode(SORTED, 1, 3, 1, 1, 0)[0], [1, 3])
+
+    def test_it_makes_the_sources_choices_and_opens_no_span(self) -> None:
+        """The spans are the integer's alone, as an integer's draw has them."""
+        spec = {"gen": "map", "of": DIGIT, "subject": "is-non-negative"}
+        value, case = decode(spec, 4)
+        self.assertIs(value, True)
+        self.assertEqual(case.choices, [Choice("integer", 4)])
+        self.assertEqual(case.spans, [Span("integer", 0, 1, 0, None)])
+
+
+@final
 class GenerationTest(unittest.TestCase):
     """What every generator does with a random source."""
 
@@ -541,8 +561,8 @@ class GenerationTest(unittest.TestCase):
 class BuildTest(unittest.TestCase):
     """build(): a spec it cannot turn into a generator raises SpecError."""
 
-    def test_the_vocabulary_is_the_sixteen_stated_ids(self) -> None:
-        """IDS names the sixteen generators, and EVERY has a spec of each."""
+    def test_the_vocabulary_is_the_seventeen_stated_ids(self) -> None:
+        """IDS names the seventeen generators, and EVERY has a spec of each."""
         self.assertEqual(IDS, PINNED_IDS)
         self.assertEqual({spec["gen"] for spec in EVERY.values()}, IDS)
 
@@ -592,6 +612,10 @@ class BuildTest(unittest.TestCase):
             {"gen": "string-matching", "pattern": "a**"},
             {"gen": "filter", "of": DIGIT},
             {"gen": "filter", "of": DIGIT, "keep": {"kind": "odd"}},
+            {"gen": "map", "of": DIGIT},
+            {"gen": "map", "of": DIGIT, "subject": 1},
+            {"gen": "map", "of": DIGIT, "subject": "ascending"},
+            {"gen": "map", "subject": "identity"},
         ]
         for spec in malformed:
             with self.assertRaises(SpecError, msg=str(spec)):

@@ -111,7 +111,7 @@ in the naming table, and the completeness gate checks the row is real.
 `isNull` in Java. Same assertion, three spellings, and none of them is a
 divergence.
 
-**Every relaxation.** Two of them, named the same way.
+**Every relaxation.** Three of them, named the same way.
 
 **Every type a caller touches**, and every member on it. The seats, the
 scrubbers, the benchmark contract, the machine and the task scheduler.
@@ -162,9 +162,15 @@ synchronization can supply a memory barrier that the subject lacks. Go,
 Java, Kotlin and Rust run threads on more than one core. The validator
 requires each of their overlays to state a limit on `history`.
 
-**A relaxation the language does not offer.** Rust offers neither,
-because its types keep an absent container and an empty one apart and its
-own equality already says NaN is unequal to itself.
+**A relaxation the language does not offer.** Rust offers none of the
+three:
+
+- `equate-empty`, because its types keep an absent container and an empty
+  one apart.
+- `equate-nans`, because its `==` already treats NaN as unequal to itself,
+  as the standard states by default.
+- `by-identity`, because its assertions compare through `PartialEq`, which
+  compares values and states no identity.
 
 **The artifact that contains the call records.** A language's `records`
 entry states what its runner writes for a run. It also states where

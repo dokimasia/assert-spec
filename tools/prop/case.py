@@ -120,6 +120,15 @@ class Tracer(Protocol):
         ...
 
 
+@runtime_checkable
+class Valuer(Protocol):
+    """A provider that states the values of the draws, which no choice decodes."""
+
+    def valued(self) -> tuple[bool, object]:
+        """Return the value of the next draw, and whether the provider states one."""
+        ...
+
+
 @dataclass(frozen=True)
 class Step:
     """One step a machine took: its action's name, and where it ran.
@@ -221,6 +230,33 @@ class Replaying:
         return request.bounds.coerce(self._choices[index])
 
 
+@final
+class Valuing:
+    """A provider that states the values of a case's draws, in order.
+
+    A draw takes the next value without a choice. A draw past the last value
+    decodes, and every request takes the target of its bounds, as a replay
+    that runs out of choices does.
+    """
+
+    def __init__(self, values: Sequence[object]) -> None:
+        """State values for the draws, from the first."""
+        self._values = list(values)
+        self._at = 0
+
+    def value(self, request: Request, index: int) -> Value:
+        """Return the target of the request, which no stated value serves."""
+        del index
+        return request.bounds.target
+
+    def valued(self) -> tuple[bool, object]:
+        """Return the next stated value, and whether one is left."""
+        if self._at == len(self._values):
+            return False, None
+        self._at += 1
+        return True, self._values[self._at - 1]
+
+
 @dataclass
 class Span:
     """The choices one generator, element or entry made: [start, end)."""
@@ -279,13 +315,15 @@ class Case:
         """Start an empty case whose values come from provider.
 
         observer, when given, sees every choice after the case records it.
-        A provider that is a Tracer is the case's tracer.
+        A provider that is a Tracer is the case's tracer, and one that is a
+        Valuer its valuer.
         """
         self._provider = provider
         self._max_choices = max_choices
         self._observer = observer
         self._cost = 0
         self.tracer: Tracer | None = provider if isinstance(provider, Tracer) else None
+        self.valuer: Valuer | None = provider if isinstance(provider, Valuer) else None
         self.choices: list[Choice] = []
         self.requests: list[Request] = []
         self.spans: list[Span] = []
@@ -392,8 +430,15 @@ class Case:
 
         The draw's span is the first span the generator opens. Two draws
         may share a label. A case with a tracer lets it prepare the draw's
-        values first. Every request of the draw is made under its label.
+        values first. A case with a valuer takes the value that it states,
+        and the draw makes no choice and opens no span. Every request of the
+        draw is made under its label.
         """
+        if self.valuer is not None:
+            stated, value = self.valuer.valued()
+            if stated:
+                self.draws.append(Drawn(label, value, len(self.spans), generator))
+                return value
         if self.tracer is not None:
             self.tracer.drawing(generator, label)
         span = len(self.spans)

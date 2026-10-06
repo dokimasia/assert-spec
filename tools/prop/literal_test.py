@@ -89,6 +89,12 @@ class DecodeTest(unittest.TestCase):
         self.assertEqual(absent, Variant("note", None))
         self.assertNotEqual(canonical(bare), canonical(Variant("pending", None)))
 
+    def test_a_reference_decodes_to_the_value_it_refers_to(self) -> None:
+        """The id names the object, and the codec returns its value."""
+        literal = {"type": "reference", "id": "a", "value": {"type": "int", "value": 1}}
+        self.assertEqual(decode(literal), 1)
+        self.assertEqual(encode(decode(literal)), {"type": "int", "value": 1})
+
     def test_an_absent_list_or_map_of_a_stated_type_decodes_to_none(self) -> None:
         """A null value in the of form states an absent container."""
         self.assertIsNone(decode({"type": "list", "of": "int", "value": None}))
@@ -128,6 +134,11 @@ class DecodeTest(unittest.TestCase):
             {"type": "variant"},
             {"type": "variant", "name": ""},
             {"type": "variant", "name": "x", "payload": 1},
+            {"type": "reference", "value": {"type": "int", "value": 1}},
+            {"type": "reference", "id": "", "value": {"type": "int", "value": 1}},
+            {"type": "reference", "id": 1, "value": {"type": "int", "value": 1}},
+            {"type": "reference", "id": "a", "value": {"type": "null"}},
+            {"type": "reference", "id": "a", "value": 1},
         ]
         for literal in malformed:
             with self.assertRaises(LiteralError, msg=str(literal)):

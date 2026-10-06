@@ -57,6 +57,7 @@ FORMS: dict[str, tuple[frozenset[str], ...]] = {
     "record": (frozenset({"fields"}),),
     "variant": (frozenset({"name"}), frozenset({"name", "payload"})),
     "tree": (frozenset({"entries"}),),
+    "reference": (frozenset({"id", "value"}),),
 }
 
 #: JSON has no NaN or infinity, so a float states them by these names.
@@ -520,7 +521,8 @@ def check_literal(
     reports a value the type cannot take, such as a JavaScript-unsafe
     integer stated as a number or bytes that are not lowercase hex. The
     files reference decodes a tree, and admits a file stated by its digest
-    only in a record.
+    only in a record. A record states no reference, because it states the
+    value that a reference refers to.
     """
     if not isinstance(value, dict):
         problems.at(where, f"is {type(value).__name__}, not a typed literal")
@@ -530,14 +532,12 @@ def check_literal(
     if kind not in FORMS:
         problems.at(where, f"states type {kind!r}, which the encoding does not define")
         return
+    if record and next(_references(value), None) is not None:
+        problems.at(where, "states a reference; a record states the value it refers to")
+        return
 
     keys = frozenset(value) - {"type"}
-    form = max(FORMS[kind], key=lambda f: len(f & keys))
-    for key in sorted(keys - form):
-        problems.at(where, f"states {key!r}, which type {kind!r} does not take")
-    for key in sorted(form - keys):
-        problems.at(where, f"type {kind!r} needs {key!r}")
-    if keys != form:
+    if not _fits(str(kind), keys, where, problems):
         return
 
     for key in ("of", "key"):
@@ -561,6 +561,48 @@ def check_literal(
             files.tree.decode(value)
     except (literal.LiteralError, files.tree.TreeError) as bad:
         problems.at(where, str(bad).removeprefix("prop: ").removeprefix("files: "))
+
+
+def _fits(kind: str, keys: frozenset[str], where: str, problems: Problems) -> bool:
+    """Report whether a literal's keys are a form of its type, and each key that is not.
+
+    The form compared is the one that shares the most keys with the literal.
+    """
+    form = max(FORMS[kind], key=lambda f: len(f & keys))
+    for key in sorted(keys - form):
+        problems.at(where, f"states {key!r}, which type {kind!r} does not take")
+    for key in sorted(form - keys):
+        problems.at(where, f"type {kind!r} needs {key!r}")
+    return keys == form
+
+
+def _references(node: Any) -> Iterator[dict[str, Any]]:
+    """Yield every reference literal in node, each before the ones it contains."""
+    if isinstance(node, dict):
+        if node.get("type") == "reference":
+            yield node
+        for child in node.values():
+            yield from _references(child)
+    elif isinstance(node, list):
+        for child in node:
+            yield from _references(child)
+
+
+def _check_references(args: list[Any], where: str, problems: Problems) -> None:
+    """Check that the references of one case's arguments state one value per id.
+
+    Every reference of one id is one object, so each of them states the
+    value of that object.
+    """
+    stated: dict[str, Any] = {}
+    for reference in _references(args):
+        rid = str(reference.get("id"))
+        value = reference.get("value")
+        problems.unless(
+            stated.setdefault(rid, value) == value,
+            where,
+            f"states two values for the reference {rid!r}, which is one object",
+        )
 
 
 @dataclass(frozen=True)
@@ -616,6 +658,7 @@ def check_case(
     if isinstance(args, list):
         for index, arg in enumerate(args):
             check_literal(arg, f"{where} [{cid}] arg {index}", problems)
+        _check_references(args, f"{where} [{cid}]", problems)
     elif args is not None:
         problems.at(f"{where} [{cid}]", "states args that are not a list")
 

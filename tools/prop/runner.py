@@ -4,11 +4,12 @@ The runner calls a body once per case, in four phases, and stops at the
 first failing case:
 
 1. Traces, examples and stored: each trace of a case whose draws and
-   steps the caller states, then each choice sequence of a case whose
-   values the caller states, in order, then each stored choice sequence,
-   oldest first. These cases do not enter the case tree. A trace that the
-   body cannot follow raises TraceError, which ends the run before any
-   other case runs.
+   steps the caller states, then each example of a case whose values the
+   caller states, in order, then each stored choice sequence, oldest
+   first. An example is a choice sequence, or the values of its draws
+   when its generator has no inverse. These cases do not enter the case
+   tree. A trace that the body cannot follow raises TraceError, which
+   ends the run before any other case runs.
 2. Simplest: one case whose every choice is its target.
 3. Random: case i of the seed, for i = 0, 1, 2, ..., until ``cases``
    valid cases have run, the domain is exhausted, or GENERATION_FACTOR
@@ -35,6 +36,8 @@ A failing case is replayed, shrunk and explained, as the shrink module
 states, and the run ends as a counterexample, or as flaky when the replay
 differs. A diverging body ends the run as flaky. A shrink budget of 0
 reports the first failing case as found, without replay or explanation.
+A failing example of values has no choices, so the run reports it as
+found, without replay, explanation or token.
 
 A run that found no failing case fails anyway when it rejected more than
 MAX_REJECTIONS times as many cases as were valid, when no case requested
@@ -57,7 +60,7 @@ from enum import StrEnum
 from typing import Final, final
 
 from . import coverage, shrink
-from .case import MAX_CHOICES, Generating, Provider, Replaying
+from .case import MAX_CHOICES, Generating, Provider, Replaying, Valuing
 from .choice import Choice
 from .edge import BOUNDARIES, Edge
 from .execution import (
@@ -116,15 +119,23 @@ class Requirement:
 
 
 @dataclass(frozen=True)
+class Values:
+    """An example of a generator without an inverse: the values of its draws."""
+
+    values: tuple[object, ...]
+
+
+@dataclass(frozen=True)
 class Settings:
     """What a run is asked to do.
 
     traces are the cases whose draws and machine steps the caller states,
-    which run first, and examples the choice sequences of the cases whose
-    values the caller states, which run next. shrink is the budget of runs
-    that shrinking and explaining every failure may spend, and 0 turns
-    both off. replay, when set, is the one case the run tries: a failure is
-    reported as found, and a pass passes.
+    which run first, and examples the cases whose values the caller
+    states, which run next: each the choice sequence that decodes to its
+    values, or its Values. shrink is the budget of runs that shrinking and
+    explaining every failure may spend, and 0 turns both off. replay, when
+    set, is the one case the run tries: a failure is reported as found,
+    and a pass passes.
     """
 
     seed: int
@@ -132,7 +143,7 @@ class Settings:
     max_choices: int = MAX_CHOICES
     requirements: tuple[Requirement, ...] = ()
     traces: tuple[tuple[Entry, ...], ...] = ()
-    examples: tuple[tuple[Choice, ...], ...] = ()
+    examples: tuple[tuple[Choice, ...] | Values, ...] = ()
     stored: tuple[tuple[Choice, ...], ...] = ()
     shrink: int = shrink.DEFAULT_BUDGET
     explain: bool = True
@@ -168,6 +179,8 @@ class Outcome:
     failures, in the order they were found. divergence is the difference
     that made a run flaky, and shortfall the requirement a coverage-unmet
     run missed. runs counts the runs that shrinking and explaining spent.
+    valued is set for a counterexample that an example of values found,
+    which has no choices and so no token.
     """
 
     kind: Kind
@@ -181,6 +194,7 @@ class Outcome:
     explanation: tuple[shrink.Explained, ...] = ()
     token: str | None = None
     runs: int = 0
+    valued: bool = False
 
 
 def rejects_too_many(valid: int, rejected: int) -> bool:
@@ -260,9 +274,12 @@ def _shortfall(
 def _conclude(
     body: Body, settings: Settings, outcome: Outcome, observer: Observer
 ) -> Outcome:
-    """Replay, shrink and explain the failing case of a counterexample."""
+    """Replay, shrink and explain the failing case of a counterexample.
+
+    A counterexample of values is reported as found.
+    """
     failing = outcome.failing
-    if outcome.kind is not Kind.COUNTEREXAMPLE or failing is None:
+    if outcome.kind is not Kind.COUNTEREXAMPLE or failing is None or outcome.valued:
         return outcome
     if settings.shrink == 0:
         return replace(outcome, token=encode(failing.case.choices))
@@ -380,17 +397,25 @@ def _explore(body: Body, settings: Settings, observer: Observer) -> Outcome:
     known: list[tuple[Phase, Provider]] = [
         (Phase.EXAMPLE, Tracing(trace)) for trace in settings.traces
     ]
-    known += [(Phase.EXAMPLE, Replaying(example)) for example in settings.examples]
+    known += [(Phase.EXAMPLE, _example(example)) for example in settings.examples]
     known += [(Phase.STORED, Replaying(stored)) for stored in settings.stored]
     for phase, provider in known:
         execution = execute(body, provider, settings.max_choices)
         observer(phase, execution)
         if (outcome := tally.take(execution)) is not None:
-            return outcome
+            valued = isinstance(provider, Valuing) and outcome.failing is not None
+            return replace(outcome, valued=valued)
     phases = _Phases(body, settings, tally, observer)
     if (outcome := phases.attempt(Replaying(()), Phase.SIMPLEST)) is not None:
         return outcome
     return _checks(phases) or tally.outcome(Kind.PASSED)
+
+
+def _example(example: tuple[Choice, ...] | Values) -> Provider:
+    """Return the provider of an example: its values, or a replay of its choices."""
+    if isinstance(example, Values):
+        return Valuing(example.values)
+    return Replaying(example)
 
 
 def _checks(phases: _Phases) -> Outcome | None:

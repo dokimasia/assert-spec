@@ -906,6 +906,13 @@
         }
     },
     "relaxations": {
+        "by-identity": {
+            "go": "ByIdentity",
+            "java": "Option.BY_IDENTITY",
+            "kotlin": "Option.BY_IDENTITY",
+            "python": "by_identity",
+            "typescript": "byIdentity"
+        },
         "equate-empty": {
             "go": "EquateEmpty",
             "java": "Option.EQUATE_EMPTY",
@@ -1138,6 +1145,14 @@
                 "python": "prop.example",
                 "rust": "prop::example",
                 "typescript": "prop.example"
+            },
+            "prop.examples": {
+                "go": "prop.Examples",
+                "java": "Prop.examples",
+                "kotlin": "Prop.examples",
+                "python": "prop.examples",
+                "rust": "prop::examples",
+                "typescript": "prop.examples"
             },
             "prop.explain": {
                 "go": "prop.Explain",
@@ -2150,5 +2165,5 @@
             }
         }
     },
-    "version": "5.1.0"
+    "version": "5.2.0"
 }

@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@5.1.0",
+  "extends": "spec://assertions@5.2.0",
   "language": "rust",
   "diverge": [],
   "relaxations": [
@@ -10,6 +10,10 @@
     {
       "id": "equate-nans",
       "why": "Rust's == already says NaN is unequal to itself, which is what the standard states by default. A caller wanting the other answer compares f64::to_bits or names the case, and a relaxation reaching inside a generic T: PartialEq is not expressible without a comparison routine this implementation does not have."
+    },
+    {
+      "id": "by-identity",
+      "why": "Rust's assertions compare through PartialEq, which compares values and has no notion of an object's identity. A caller compares two references with std::ptr::eq. A modifier that compares the references inside a generic T: PartialEq by address is not expressible without a comparison routine this implementation does not have."
     }
   ],
   "limits": [

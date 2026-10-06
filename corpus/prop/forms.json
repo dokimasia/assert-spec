@@ -98,6 +98,50 @@
       }
     },
     {
+      "id": "prop-equal/passes-an-example-of-a-map",
+      "form": "prop-equal",
+      "subjects": [
+        "identity",
+        "identity"
+      ],
+      "generator": {
+        "gen": "map",
+        "of": {
+          "gen": "list",
+          "of": {
+            "gen": "integer",
+            "min": 0,
+            "max": 9
+          },
+          "max_size": 4
+        },
+        "subject": "sorts"
+      },
+      "examples": [
+        {
+          "type": "list",
+          "of": "int",
+          "value": [
+            3,
+            1
+          ]
+        }
+      ],
+      "seed": "7",
+      "detail": {
+        "outcome": "passed",
+        "cases": 100,
+        "rejected": 0,
+        "seed": "7",
+        "counterexample": null,
+        "failure": null,
+        "choices": null,
+        "others": null,
+        "divergence": null,
+        "coverage": null
+      }
+    },
+    {
       "id": "prop-not-equal/passes-when-a-zero-is-prepended",
       "form": "prop-not-equal",
       "subjects": [
@@ -239,6 +283,210 @@
           "detail": {}
         },
         "choices": "prop1:AQE",
+        "others": [],
+        "divergence": null,
+        "coverage": null
+      }
+    },
+    {
+      "id": "prop-true/passes-its-three-examples",
+      "form": "prop-true",
+      "subjects": [
+        "is-non-negative"
+      ],
+      "shape": {
+        "shape": "int",
+        "width": 32,
+        "signed": true,
+        "min": 0,
+        "max": 1000
+      },
+      "examples": [
+        {
+          "type": "int",
+          "value": 0
+        },
+        {
+          "type": "int",
+          "value": 500
+        },
+        {
+          "type": "int",
+          "value": 1000
+        }
+      ],
+      "seed": "7",
+      "detail": {
+        "outcome": "passed",
+        "cases": 100,
+        "rejected": 0,
+        "seed": "7",
+        "counterexample": null,
+        "failure": null,
+        "choices": null,
+        "others": null,
+        "divergence": null,
+        "coverage": null
+      }
+    },
+    {
+      "id": "prop-true/fails-at-its-second-example",
+      "form": "prop-true",
+      "subjects": [
+        "is-non-negative"
+      ],
+      "shape": {
+        "shape": "int",
+        "width": 32,
+        "signed": true,
+        "min": -1000,
+        "max": 1000
+      },
+      "examples": [
+        {
+          "type": "int",
+          "value": 3
+        },
+        {
+          "type": "int",
+          "value": -700
+        },
+        {
+          "type": "int",
+          "value": 5
+        }
+      ],
+      "seed": "7",
+      "detail": {
+        "outcome": "counterexample",
+        "cases": 1,
+        "rejected": 0,
+        "seed": "7",
+        "counterexample": [
+          {
+            "label": "input",
+            "value": {
+              "type": "int",
+              "value": -1
+            },
+            "any-value-fails": false,
+            "nearest-passing": {
+              "type": "int",
+              "value": 0
+            }
+          }
+        ],
+        "failure": {
+          "assertion": "true",
+          "detail": {}
+        },
+        "choices": "prop1:AQE",
+        "others": [],
+        "divergence": null,
+        "coverage": null
+      }
+    },
+    {
+      "id": "prop-true/fails-at-an-example-of-a-map-as-found",
+      "form": "prop-true",
+      "subjects": [
+        "is-non-negative"
+      ],
+      "generator": {
+        "gen": "map",
+        "of": {
+          "gen": "integer",
+          "min": 0,
+          "max": 9
+        },
+        "subject": "identity"
+      },
+      "examples": [
+        {
+          "type": "int",
+          "value": -5
+        }
+      ],
+      "seed": "7",
+      "detail": {
+        "outcome": "counterexample",
+        "cases": 0,
+        "rejected": 0,
+        "seed": "7",
+        "counterexample": [
+          {
+            "label": "input",
+            "value": {
+              "type": "int",
+              "value": -5
+            },
+            "any-value-fails": null,
+            "nearest-passing": null
+          }
+        ],
+        "failure": {
+          "assertion": "true",
+          "detail": {}
+        },
+        "choices": null,
+        "others": [],
+        "divergence": null,
+        "coverage": null
+      }
+    },
+    {
+      "id": "prop-true/fails-at-an-example-that-only-a-map-might-produce",
+      "form": "prop-true",
+      "subjects": [
+        "is-non-negative"
+      ],
+      "generator": {
+        "gen": "one-of",
+        "of": [
+          {
+            "gen": "integer",
+            "min": 0,
+            "max": 9
+          },
+          {
+            "gen": "map",
+            "of": {
+              "gen": "integer",
+              "min": 0,
+              "max": 9
+            },
+            "subject": "identity"
+          }
+        ]
+      },
+      "examples": [
+        {
+          "type": "int",
+          "value": -5
+        }
+      ],
+      "seed": "7",
+      "detail": {
+        "outcome": "counterexample",
+        "cases": 0,
+        "rejected": 0,
+        "seed": "7",
+        "counterexample": [
+          {
+            "label": "input",
+            "value": {
+              "type": "int",
+              "value": -5
+            },
+            "any-value-fails": null,
+            "nearest-passing": null
+          }
+        ],
+        "failure": {
+          "assertion": "true",
+          "detail": {}
+        },
+        "choices": null,
         "others": [],
         "divergence": null,
         "coverage": null
