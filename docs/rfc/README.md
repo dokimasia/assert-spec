@@ -26,3 +26,4 @@ they record why not.
 | [0018](0018-warm-up-iterations-in-a-benchmark-contract.md) | Warm-up iterations in a benchmark contract | Accepted |
 | [0019](0019-parallel-bodies-in-a-benchmark-contract.md) | Parallel bodies in a benchmark contract | Accepted |
 | [0020](0020-an-allocation-ceiling-that-leaves-out-setup.md) | An allocation ceiling that leaves out setup | Accepted |
+| [0021](0021-trees-of-files.md) | Trees of files | Accepted |
