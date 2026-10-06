@@ -29,3 +29,5 @@ they record why not.
 | [0021](0021-trees-of-files.md) | Trees of files | Accepted |
 | [0022](0022-examples-without-an-inverse.md) | Examples without an inverse, and any number of examples in one option | Accepted |
 | [0023](0023-comparing-references-by-identity.md) | Comparing references by identity | Accepted |
+| [0024](0024-accessors-of-the-failure-record.md) | Accessors of the failure record | Accepted |
+| [0025](0025-rounding-an-allocation-count.md) | Rounding an allocation count to the nearest whole number | Accepted |
