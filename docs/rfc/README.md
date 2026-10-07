@@ -32,3 +32,5 @@ they record why not.
 | [0024](0024-accessors-of-the-failure-record.md) | Accessors of the failure record | Accepted |
 | [0025](0025-rounding-an-allocation-count.md) | Rounding an allocation count to the nearest whole number | Accepted |
 | [0026](0026-the-sequential-specification-of-a-history-check.md) | The sequential specification of a history check | Accepted |
+| [0027](0027-the-values-in-the-records-of-empty-and-matches.md) | The values in the records of empty, not-empty and matches | Accepted |
+| [0028](0028-writing-a-tree-into-a-directory-that-exists.md) | Writing a tree into a directory that exists | Accepted |
