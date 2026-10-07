@@ -34,3 +34,4 @@ they record why not.
 | [0026](0026-the-sequential-specification-of-a-history-check.md) | The sequential specification of a history check | Accepted |
 | [0027](0027-the-values-in-the-records-of-empty-and-matches.md) | The values in the records of empty, not-empty and matches | Accepted |
 | [0028](0028-writing-a-tree-into-a-directory-that-exists.md) | Writing a tree into a directory that exists | Accepted |
+| [0029](0029-the-cancellation-handle-of-a-seat.md) | The cancellation handle of a seat | Accepted |
