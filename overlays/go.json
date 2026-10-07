@@ -15,33 +15,33 @@
     },
     {
       "id": "max-allocs",
-      "what": "Checks the ceiling in an ordinary build. In a build with the race detector, msan or asan, in a build whose -gcflags turn off optimisation (-N) or inlining (-l), and in a test binary that a mutation run instrumented, it calls the callable as an ordinary build does and checks no ceiling. It reads those flags from the binary's build information. It detects an instrumented binary by DOKIMI_MUTATE_INSTRUMENTED in the environment, which a mutation run sets in every run of that binary, its control runs included. The ordinary build of one mutant, which a mutation run builds to confirm a survivor, runs without the variable, and the ceiling applies there.",
-      "why": "Those builds allocate differently from the one that ships. Under the race detector sync.Pool drops a quarter of the items it is given, and the compiler's own allocation test counts 8 allocations under -race where the ordinary build makes 1. With inlining off, a constructor returning a pointer allocated once per call where the ordinary build allocated nothing. A mutation run builds every mutant of a package into one binary, behind a switch, so the compiler inlines fewer functions: an iterator that allocates nothing in an ordinary build allocated 3 times per call there. A ceiling checked there would fail code that meets it. The assertion passes rather than skipping, because a skip would stop every check after it in the caller's test."
+      "what": "Checks the ceiling in an ordinary build. In a build with the race detector, msan or asan, in a build whose -gcflags turn off optimisation (-N) or inlining (-l), and in a test binary that a mutation run instrumented, it calls the callable as an ordinary build does and checks no ceiling. It reads those flags from the binary's build information. It detects an instrumented binary by DOKIMI_MUTATE_INSTRUMENTED in the environment, which a mutation run sets in every run of that binary, its control runs included. The ordinary build of one mutant, which a mutation run builds to confirm a survivor, runs without the variable, and the ceiling applies there. It checks no ceiling either in a run that writes the test log of go test, which go test passes through -test.testlogfile to every run whose result it can cache. A run with -count=1, -covermode or -bench turns the cache off and writes no test log. Where the test log alone stops the check, the assertion writes a note into the test's output that a run with -count=1 checks the ceiling.",
+      "why": "Those builds allocate differently from the one that ships. Under the race detector sync.Pool drops a quarter of the items it is given, and the compiler's own allocation test counts 8 allocations under -race where the ordinary build makes 1. With inlining off, a constructor returning a pointer allocated once per call where the ordinary build allocated nothing. A mutation run builds every mutant of a package into one binary, behind a switch, so the compiler inlines fewer functions: an iterator that allocates nothing in an ordinary build allocated 3 times per call there. The test log records each file that a run opens and stats, for the cache of go test. An entry of an os.Root allocates, so on Go 1.27.1 an Open and a Close through a Root allocate 6 times with the log and 5 times without it. A ceiling checked there would fail code that meets it. The assertion passes rather than skipping, because a skip would stop every check after it in the caller's test."
     },
     {
       "id": "bench-max-allocs",
-      "what": "Checks the ceiling in an ordinary build. In the builds the max-allocs entry names, the contract publishes the count and does not check the ceiling.",
-      "why": "Those builds allocate differently from the one that ships, as the max-allocs entry states, so a count from such a build does not describe the code."
+      "what": "Checks the ceiling in an ordinary build. In the builds and the runs that the max-allocs entry names, the contract publishes the count and does not check the ceiling.",
+      "why": "Those builds and runs allocate differently from the one that ships, as the max-allocs entry states, so a count from one of them does not describe the code."
     },
     {
       "id": "bench-max-bytes",
-      "what": "Checks the ceiling in an ordinary build. In the builds the max-allocs entry names, the contract publishes the bytes and does not check the ceiling.",
-      "why": "Those builds allocate differently from the one that ships, as the max-allocs entry states, so the bytes from such a build do not describe the code."
+      "what": "Checks the ceiling in an ordinary build. In the builds and the runs that the max-allocs entry names, the contract publishes the bytes and does not check the ceiling.",
+      "why": "Those builds and runs allocate differently from the one that ships, as the max-allocs entry states, so the bytes from one of them do not describe the code."
     },
     {
       "id": "prop-max-allocs",
-      "what": "Checks the ceiling for each generated input in an ordinary build. In the builds the max-allocs entry names, it calls the callable for each input and checks no ceiling.",
-      "why": "The form runs max-allocs on each input, and those builds allocate differently from the one that ships, as the max-allocs entry states."
+      "what": "Checks the ceiling for each generated input in an ordinary build. In the builds and the runs that the max-allocs entry names, it calls the callable for each input and checks no ceiling.",
+      "why": "The form runs max-allocs on each input, and those builds and runs allocate differently from the one that ships, as the max-allocs entry states."
     },
     {
       "id": "max-allocs-with-setup",
-      "what": "Checks the ceiling in an ordinary build. In the builds the max-allocs entry names, it calls the setup and the callable as an ordinary build does and checks no ceiling.",
-      "why": "Those builds allocate differently from the one that ships, as the max-allocs entry states."
+      "what": "Checks the ceiling in an ordinary build. In the builds and the runs that the max-allocs entry names, it calls the setup and the callable as an ordinary build does and checks no ceiling.",
+      "why": "Those builds and runs allocate differently from the one that ships, as the max-allocs entry states."
     },
     {
       "id": "prop-max-allocs-with-setup",
-      "what": "Checks the ceiling for each generated input in an ordinary build. In the builds the max-allocs entry names, it calls the setup and the callable for each input and checks no ceiling.",
-      "why": "The form runs max-allocs-with-setup on each input, and those builds allocate differently from the one that ships, as the max-allocs entry states."
+      "what": "Checks the ceiling for each generated input in an ordinary build. In the builds and the runs that the max-allocs entry names, it calls the setup and the callable for each input and checks no ceiling.",
+      "why": "The form runs max-allocs-with-setup on each input, and those builds and runs allocate differently from the one that ships, as the max-allocs entry states."
     },
     {
       "id": "prop.of",
