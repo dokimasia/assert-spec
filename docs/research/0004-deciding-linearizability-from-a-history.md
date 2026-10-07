@@ -399,8 +399,8 @@ taken from the test's choices, two clients cover what Lu et al. found.
 | 7 | Porcupine issue #6, <https://github.com/anishathalye/porcupine/issues/6> | Maintainer and Knossos author in an issue thread | 2026-10-02 | 251 against 252 lines, O(c!) |
 | 8 | Comments on Porcupine issue #40, <https://api.github.com/repos/anishathalye/porcupine/issues/40/comments>. The issue page itself returns 404 on the web and through the API | Maintainer's reproduction | 2026-10-02 | Reordered timestamps on arm64 |
 | 9 | Knossos README, <https://github.com/jepsen-io/knossos> | Maintainer's documentation | 2026-10-02 | `ok`, `fail`, `info`, crashed processes, the report fields |
-| 10 | Our measurement: a step counter in a copy of Porcupine v1.3.1, Go 1.27, four cores, `~/.cache/assert-spec-porcupine/measure` | Own measurement | 2026-10-02 | The 108-history table |
-| 11 | Our probe: four register histories through Porcupine v1.3.1, `~/.cache/assert-spec-porcupine/exp` | Own measurement | 2026-10-02 | Sub-histories are not explanations |
+| 10 | Our measurement: a step counter in a copy of Porcupine v1.3.1, Go 1.27, four cores | Own measurement | 2026-10-02 | The 108-history table |
+| 11 | Our probe: four register histories through Porcupine v1.3.1 | Own measurement | 2026-10-02 | Sub-histories are not explanations |
 | 12 | Claessen, Pałka, Smallbone, Hughes, Svensson, Arts and Wiger, "Finding race conditions in Erlang with QuickCheck and PULSE", ICFP 2009 | Peer-reviewed paper, §4 | 2026-10-02 | One model for both tests, two branches, 16 commands, minimally parallel shrinking |
 | 13 | Midtgaard, Nicole and Osborne, "Multicoretests: parallel testing libraries for OCaml 5.0", OCaml Workshop 2022 | Workshop paper | 2026-10-02 | Lin and STM |
 | 14 | Tarides, "Multicore property-based tests for OCaml 5: challenges and lessons learned", 2024-12-23 | Maintainers' report | 2026-10-02 | Lin and hidden state |
@@ -408,7 +408,7 @@ taken from the test's choices, two clients cover what Lu et al. found.
 | 16 | Burckhardt, Dern, Musuvathi and Tan, "Line-Up: a complete and automatic linearizability checker", PLDI 2010, <https://doi.org/10.1145/1809028.1806634> | Peer-reviewed paper, abstract | 2026-10-02 | Seven errors in .NET 4.0 |
 | 17 | Lu, Park, Seo and Zhou, "Learning from mistakes", ASPLOS 2008, <https://doi.org/10.1145/1346281.1346323> | Peer-reviewed paper | 2026-10-02 | Two threads, four accesses |
 | 18 | Ozkan, Majumdar and Niksic, "Checking linearizability using hitting families", PPoPP 2019 | Peer-reviewed paper, §6 | 2026-10-02 | Linearizability depth |
-| 19 | Our measurement: synthetic register and queue histories through the same copy, `~/.cache/assert-spec-porcupine/measure/workload_test.go` | Own measurement | 2026-10-02 | The register and queue tables |
+| 19 | Our measurement: synthetic register and queue histories through the same copy, from a Go test | Own measurement | 2026-10-02 | The register and queue tables |
 
 ## What we searched
 
