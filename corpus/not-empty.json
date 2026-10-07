@@ -23,7 +23,14 @@
           "value": []
         }
       ],
-      "expect": "fail"
+      "expect": "fail",
+      "detail": {
+        "got": {
+          "type": "list",
+          "of": "int",
+          "value": []
+        }
+      }
     },
     {
       "id": "not-empty/empty-string-fails",
@@ -33,7 +40,13 @@
           "value": ""
         }
       ],
-      "expect": "fail"
+      "expect": "fail",
+      "detail": {
+        "got": {
+          "type": "string",
+          "value": ""
+        }
+      }
     },
     {
       "id": "not-empty/null-is-no-container",
@@ -42,7 +55,12 @@
           "type": "null"
         }
       ],
-      "expect": "fail"
+      "expect": "fail",
+      "detail": {
+        "got": {
+          "type": "null"
+        }
+      }
     }
   ]
 }

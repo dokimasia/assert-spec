@@ -130,9 +130,10 @@
         "empty": {
             "arity": 2,
             "detail_fields": [
+                "got",
                 "length"
             ],
-            "summary": "The container has no items. A null value is no container, and fails.\n"
+            "summary": "The container has no items. A null value is no container, and fails. got is the value, and length its number of items, or null for a value that has no length.\n"
         },
         "equal": {
             "arity": 3,
@@ -366,9 +367,10 @@
             "arity": 3,
             "detail_fields": [
                 "got",
-                "pattern"
+                "pattern",
+                "reason"
             ],
-            "summary": "A pattern of the portable subset that string-matching reads matches anywhere in the text. $ matches at the end of the text only, \\d, \\w and \\s are their ASCII classes, and . matches no line terminator. A pattern outside the subset is a failure, not an error.\n"
+            "summary": "A pattern of the portable subset that string-matching reads matches anywhere in the text. $ matches at the end of the text only, \\d, \\w and \\s are their ASCII classes, and . matches no line terminator. A pattern outside the subset is a failure, not an error, and reason is the text with which the language's parser of the subset refuses it. reason is null for a pattern inside the subset.\n"
         },
         "max-allocs": {
             "arity": 3,
@@ -444,8 +446,10 @@
         },
         "not-empty": {
             "arity": 2,
-            "detail_fields": [],
-            "summary": "The container has at least one item. A null value is no container, and fails.\n"
+            "detail_fields": [
+                "got"
+            ],
+            "summary": "The container has at least one item. A null value is no container, and fails. got is the value.\n"
         },
         "not-equal": {
             "arity": 3,
@@ -1873,5 +1877,5 @@
             "summary": "Yields two objects, and the value of each is 1.\n"
         }
     },
-    "version": "7.0.0"
+    "version": "7.1.0"
 }

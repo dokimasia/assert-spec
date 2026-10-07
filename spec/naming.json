@@ -986,6 +986,14 @@
                 "rust": "files::workspace",
                 "typescript": "files.workspace"
             },
+            "files.write": {
+                "go": "files.Write",
+                "java": "FileTrees.write",
+                "kotlin": "FileTrees.write",
+                "python": "files.write",
+                "rust": "files::write",
+                "typescript": "files.write"
+            },
             "golden.scrub-hashes": {
                 "go": "golden.ScrubHashes",
                 "java": "Golden.scrubHashes",
@@ -2229,5 +2237,5 @@
             }
         }
     },
-    "version": "7.0.0"
+    "version": "7.1.0"
 }

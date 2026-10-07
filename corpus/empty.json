@@ -36,6 +36,14 @@
       ],
       "expect": "fail",
       "detail": {
+        "got": {
+          "type": "list",
+          "of": "int",
+          "value": [
+            1,
+            2
+          ]
+        },
         "length": {
           "type": "int",
           "value": 2
@@ -51,6 +59,9 @@
       ],
       "expect": "fail",
       "detail": {
+        "got": {
+          "type": "null"
+        },
         "length": {
           "type": "null"
         }

@@ -17,7 +17,7 @@
 # assertion carries exactly these. got is what the assertion observed
 # and want is what it required, so an assertion whose failure holds
 # neither states no fields and reports the caller's message alone.
-version: "7.0.0"
+version: "7.1.0"
 
 # What a caller may change about equality, for one call.
 #
@@ -383,15 +383,16 @@ assertions:
     arity: 2
     summary: >
       The container has no items. A null value is no container, and
-      fails.
-    detail_fields: [length]
+      fails. got is the value, and length its number of items, or null
+      for a value that has no length.
+    detail_fields: [got, length]
 
   "not-empty":
     arity: 2
     summary: >
       The container has at least one item. A null value is no container,
-      and fails.
-    detail_fields: []
+      and fails. got is the value.
+    detail_fields: [got]
 
   "contains":
     arity: 3
@@ -441,8 +442,10 @@ assertions:
       A pattern of the portable subset that string-matching reads matches
       anywhere in the text. $ matches at the end of the text only, \d, \w
       and \s are their ASCII classes, and . matches no line terminator. A
-      pattern outside the subset is a failure, not an error.
-    detail_fields: [got, pattern]
+      pattern outside the subset is a failure, not an error, and reason is
+      the text with which the language's parser of the subset refuses it.
+      reason is null for a pattern inside the subset.
+    detail_fields: [got, pattern, reason]
 
   "close-to":
     arity: 4

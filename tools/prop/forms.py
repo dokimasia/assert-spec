@@ -226,12 +226,12 @@ def _length(got: Any, want: Any) -> Detail | None:
 
 def _empty(got: Any) -> Detail | None:
     """Decide empty: the container has no item."""
-    return None if len(got) == 0 else {"length": len(got)}
+    return None if len(got) == 0 else {"got": got, "length": len(got)}
 
 
 def _not_empty(got: Any) -> Detail | None:
     """Decide not-empty: the container has an item."""
-    return {} if len(got) == 0 else None
+    return {"got": got} if len(got) == 0 else None
 
 
 def _contains(got: Any, needle: Any) -> Detail | None:
@@ -274,12 +274,17 @@ def _has_suffix(got: Any, suffix: Any) -> Detail | None:
 def _matches(got: Any, pattern: Any) -> Detail | None:
     """Decide matches: the pattern matches somewhere in the text.
 
+    A plain pattern is inside the portable subset, so the reason of a
+    failure is null.
+
     Raises:
         FormError: the pattern is not one of PLAIN_PATTERN's.
     """
     if not PLAIN_PATTERN.fullmatch(pattern):
         raise FormError(f"prop: the reference matches no pattern such as {pattern!r}")
-    return None if re.search(pattern, got) else {"got": got, "pattern": pattern}
+    if re.search(pattern, got):
+        return None
+    return {"got": got, "pattern": pattern, "reason": None}
 
 
 def _close_to(got: Any, want: Any, tolerance: Any) -> Detail | None:

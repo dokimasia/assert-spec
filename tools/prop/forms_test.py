@@ -173,14 +173,15 @@ class ValueTest(unittest.TestCase):
             {"want": 3, "got": 4},
         )
 
-    def test_empty_and_not_empty_count_the_items(self) -> None:
+    def test_empty_and_not_empty_state_the_value_and_count_its_items(self) -> None:
         """Dropping the first of one item leaves none, and of two leaves one."""
         self.assertIsNone(judged("prop-empty", ["drops-the-first"], [5]))
         self.assertEqual(
-            judged("prop-empty", ["drops-the-first"], [5, 6]), {"length": 1}
+            judged("prop-empty", ["drops-the-first"], [5, 6]),
+            {"got": [6], "length": 1},
         )
         self.assertIsNone(judged("prop-not-empty", ["prepends-zero"], []))
-        self.assertEqual(judged("prop-not-empty", ["identity"], []), {})
+        self.assertEqual(judged("prop-not-empty", ["identity"], []), {"got": []})
 
     def test_contains_finds_an_element_or_a_substring(self) -> None:
         """A list contains an equal element, and text a substring."""
@@ -234,19 +235,23 @@ class ValueTest(unittest.TestCase):
         )
 
     def test_the_text_assertions_state_the_text_and_their_value(self) -> None:
-        """Text wrapped in a and b meets each, and ba misses each."""
-        cases = [
-            ("prop-has-prefix", "a", "prefix"),
-            ("prop-has-suffix", "b", "suffix"),
-            ("prop-matches", "^a", "pattern"),
+        """Text wrapped in a and b meets each, and ba misses each.
+
+        matches also states the reason of a refused pattern, which is null
+        for a pattern inside the portable subset.
+        """
+        cases: list[tuple[str, str, dict[str, object]]] = [
+            ("prop-has-prefix", "a", {"prefix": "a"}),
+            ("prop-has-suffix", "b", {"suffix": "b"}),
+            ("prop-matches", "^a", {"pattern": "^a", "reason": None}),
         ]
-        for form, value, name in cases:
+        for form, value, fields in cases:
             with self.subTest(form=form):
                 args = [_string(value)]
                 self.assertIsNone(judged(form, ["wraps-in-a-and-b"], "x", args=args))
                 self.assertEqual(
                     judged(form, ["identity"], "ba", args=args),
-                    {"got": "ba", name: value},
+                    {"got": "ba", **fields},
                 )
 
     def test_matches_finds_a_pattern_anywhere_in_the_text(self) -> None:

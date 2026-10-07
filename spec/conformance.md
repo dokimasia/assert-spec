@@ -81,10 +81,12 @@ language.
 states paths, the bytes of its files, the targets of its links, and the
 modes that a test states. Where its tree states no mode, a workspace sets
 0644 on a file and 0755 on an executable file and on a directory. It then
-writes the same tree under any umask. A comparison reads a mode only where
-the wanted tree states one. Its record lists the first 64 paths that
-differ. The files vectors pin the verdict and the record of each
-assertion that reads files, and the golden tree that an update leaves.
+writes the same tree under any umask. A write into a directory that exists
+sets the same modes on each entry that its tree states, and keeps every
+other entry as it is. A comparison reads a mode only where the wanted tree
+states one. Its record lists the first 64 paths that differ. The files
+vectors pin the verdict and the record of each assertion that reads files,
+and the golden tree that an update leaves.
 
 A runner on a platform that does not record permission bits skips each
 vector that states a mode or an executable file. It also skips each vector
