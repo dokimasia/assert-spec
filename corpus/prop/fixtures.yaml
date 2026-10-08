@@ -1,44 +1,59 @@
 # Fixtures: native types and the shape each must read as. Each
 # implementation declares every fixture type natively, as it builds the
 # named subjects, and its reader must produce the stated shape. A language
-# that has no type for a shape declares a skip for that fixture. Between
-# them the fixtures cover every shape a native type reads as, which is
-# every shape but wall-time, and every row of the constraint table. A time
-# fixture states its unit as a constraint, because a unit otherwise
-# follows the language's type. Nothing is computed: `make render` checks
-# that each shape reads.
+# that has no type for a shape, or no type to read at run time, declares a
+# skip for that fixture. Between them the fixtures cover every shape a
+# native type reads as, which is every shape but wall-time, and every row of
+# the constraint table. A time fixture states its unit as a constraint,
+# because a unit otherwise follows the language's type. Nothing is computed:
+# `make render` checks that each shape reads.
 kind: fixtures
+
+# The skip of a language whose compiler erases its types, so that no type
+# remains at run time for a reader.
+skips:
+  erased: &erased
+    typescript: >-
+      the TypeScript compiler erases every type, so no type remains at run
+      time to read into a shape
+
 cases:
   - id: fixtures/flag
     fixture: flag
     covers: bool
     summary: A record of one boolean field, enabled.
     shape: {shape: record, fields: [[enabled, {shape: bool}]]}
+    skip: *erased
   - id: fixtures/counter
     fixture: counter
     covers: int
     summary: A record of one signed 32-bit integer field, count.
     shape: {shape: record, fields: [[count, {shape: int, width: 32, signed: true}]]}
+    skip: *erased
   - id: fixtures/ratio
     fixture: ratio
     covers: float
     summary: A record of one 64-bit float field, value.
     shape: {shape: record, fields: [[value, {shape: float, width: 64}]]}
+    skip: *erased
   - id: fixtures/initial
     fixture: initial
     covers: char
     summary: A record of one character field, letter.
     shape: {shape: record, fields: [[letter, {shape: char}]]}
+    skip: *erased
   - id: fixtures/person
     fixture: person
     covers: string
     summary: A record of one text field, name.
     shape: {shape: record, fields: [[name, {shape: string}]]}
+    skip: *erased
   - id: fixtures/blob
     fixture: blob
     covers: bytes
     summary: A record of one byte-string field, payload.
     shape: {shape: record, fields: [[payload, {shape: bytes}]]}
+    skip: *erased
   - id: fixtures/readings
     fixture: readings
     covers: list
@@ -46,6 +61,7 @@ cases:
     shape:
       shape: record
       fields: [[values, {shape: list, of: {shape: int, width: 32, signed: true}}]]
+    skip: *erased
   - id: fixtures/colour
     fixture: colour
     covers: fixed-list
@@ -53,11 +69,13 @@ cases:
     shape:
       shape: record
       fields: [[rgb, {shape: fixed-list, of: {shape: int, width: 8, signed: false}, size: 3}]]
+    skip: *erased
   - id: fixtures/tags
     fixture: tags
     covers: set
     summary: A record of one field, tags, a set of text.
     shape: {shape: record, fields: [[tags, {shape: set, of: {shape: string}}]]}
+    skip: *erased
   - id: fixtures/inventory
     fixture: inventory
     covers: map
@@ -66,11 +84,13 @@ cases:
       shape: record
       fields:
         - [counts, {shape: map, key: {shape: string}, of: {shape: int, width: 32, signed: true}}]
+    skip: *erased
   - id: fixtures/memo
     fixture: memo
     covers: optional
     summary: A record of one field, note, an optional text.
     shape: {shape: record, fields: [[note, {shape: optional, of: {shape: string}}]]}
+    skip: *erased
   - id: fixtures/order
     fixture: order
     covers: record
@@ -90,6 +110,7 @@ cases:
                 - [sku, {shape: string}]
                 - [qty, {shape: int, width: 32, signed: true}]
         - [note, {shape: optional, of: {shape: string}}]
+    skip: *erased
   - id: fixtures/payment
     fixture: payment
     covers: enum
@@ -103,6 +124,7 @@ cases:
         - [pending, null]
         - [paid, {shape: int, width: 64, signed: true}]
         - [refunded, {shape: string}]
+    skip: *erased
   - id: fixtures/status
     fixture: status
     covers: literal
@@ -113,6 +135,7 @@ cases:
         - {type: string, value: pending}
         - {type: string, value: paid}
         - {type: string, value: shipped}
+    skip: *erased
   - id: fixtures/tree
     fixture: tree
     covers: ref
@@ -128,61 +151,73 @@ cases:
           fields:
             - [value, {shape: int, width: 32, signed: true}]
             - [children, {shape: list, of: {shape: ref, name: tree}}]
+    skip: *erased
   - id: fixtures/account
     fixture: account
     covers: uuid
     summary: A record of one UUID field, id.
     shape: {shape: record, fields: [[id, {shape: uuid}]]}
+    skip: *erased
   - id: fixtures/host
     fixture: host
     covers: ip-address
     summary: A record of one IP address field of either version, address.
     shape: {shape: record, fields: [[address, {shape: ip-address}]]}
+    skip: *erased
   - id: fixtures/price
     fixture: price
     covers: decimal
     summary: A record of one decimal field, amount, with two digits after the point.
     shape: {shape: record, fields: [[amount, {shape: decimal, scale: 2}]]}
+    skip: *erased
   - id: fixtures/event
     fixture: event
     covers: instant
     summary: A record of one instant field, at, at microseconds.
     shape: {shape: record, fields: [[at, {shape: instant, unit: us}]]}
+    skip: *erased
   - id: fixtures/due
     fixture: due
     covers: date
     summary: A record of one date field, day.
     shape: {shape: record, fields: [[day, {shape: date}]]}
+    skip: *erased
   - id: fixtures/opening
     fixture: opening
     covers: time-of-day
     summary: A record of one time-of-day field, opens, at microseconds.
     shape: {shape: record, fields: [[opens, {shape: time-of-day, unit: us}]]}
+    skip: *erased
   - id: fixtures/appointment
     fixture: appointment
     covers: local-date-time
     summary: A record of one date-and-time field without a zone, starts, at microseconds.
     shape: {shape: record, fields: [[starts, {shape: local-date-time, unit: us}]]}
+    skip: *erased
   - id: fixtures/timeout
     fixture: timeout
     covers: duration
     summary: A record of one duration field, after, at microseconds.
     shape: {shape: record, fields: [[after, {shape: duration, unit: us}]]}
+    skip: *erased
   - id: fixtures/offset
     fixture: offset
     covers: offset
     summary: A record of one UTC-offset field, offset.
     shape: {shape: record, fields: [[offset, {shape: offset}]]}
+    skip: *erased
   - id: fixtures/locale
     fixture: locale
     covers: zone
     summary: A record of one time-zone field, zone.
     shape: {shape: record, fields: [[zone, {shape: zone}]]}
+    skip: *erased
   - id: fixtures/meeting
     fixture: meeting
     covers: zoned-date-time
     summary: A record of one field, starts, an instant in a time zone, at microseconds.
     shape: {shape: record, fields: [[starts, {shape: zoned-date-time, unit: us}]]}
+    skip: *erased
 
   - id: fixtures/quantity
     fixture: quantity
@@ -191,6 +226,7 @@ cases:
     shape:
       shape: record
       fields: [[qty, {shape: int, width: 32, signed: true, min: 1, max: 99}]]
+    skip: *erased
   - id: fixtures/batch
     fixture: batch
     covers: sizes
@@ -198,6 +234,7 @@ cases:
     shape:
       shape: record
       fields: [[lines, {shape: list, of: {shape: string}, min_size: 1, max_size: 10}]]
+    skip: *erased
   - id: fixtures/sku
     fixture: sku
     covers: pattern
@@ -205,6 +242,7 @@ cases:
     shape:
       shape: record
       fields: [[code, {shape: string, pattern: "[A-Z]{3}-[0-9]{4}"}]]
+    skip: *erased
   - id: fixtures/hex
     fixture: hex
     covers: alphabet
@@ -212,6 +250,7 @@ cases:
     shape:
       shape: record
       fields: [[digits, {shape: string, alphabet: "0123456789abcdef"}]]
+    skip: *erased
   - id: fixtures/measurement
     fixture: measurement
     covers: nan-and-infinity
@@ -219,18 +258,22 @@ cases:
     shape:
       shape: record
       fields: [[value, {shape: float, width: 64, allow_nan: true, allow_infinity: true}]]
+    skip: *erased
   - id: fixtures/stamp
     fixture: stamp
     covers: unit
     summary: A record of one instant field, at, at milliseconds.
     shape: {shape: record, fields: [[at, {shape: instant, unit: ms}]]}
+    skip: *erased
   - id: fixtures/fee
     fixture: fee
     covers: scale
     summary: A record of one decimal field, amount, with four digits after the point, from 0.0001.
     shape: {shape: record, fields: [[amount, {shape: decimal, scale: 4, min: "0.0001"}]]}
+    skip: *erased
   - id: fixtures/gateway
     fixture: gateway
     covers: version
     summary: A record of one IP address field of version 4, address.
     shape: {shape: record, fields: [[address, {shape: ip-address, version: 4}]]}
+    skip: *erased

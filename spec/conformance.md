@@ -159,11 +159,11 @@ stance and a reason. The mechanism exists because a gap nobody could
 close and a gap nobody got to look identical until someone writes down
 which it is.
 
-**A corpus case the language cannot run.** A `skip` on the case, with
-the reason, or a relaxation that the overlay declines. A runner that
-cannot build a subject the case names, or cannot call the assertion,
-fails the case. A skip that the definition does not declare is a gap
-that nobody wrote down.
+**A corpus case or a vector the language cannot run.** A `skip` on it,
+with the reason, or a relaxation of the case that the overlay declines. A
+runner that cannot build a subject the case names, or cannot call the
+assertion, fails the case. A skip that the definition does not declare is
+a gap that nobody wrote down.
 
 **An assertion supplied partly.** A `limit` entry with what it misses and
 why. Rust's `no-task-leaks` sees tasks on a runtime and not a thread,

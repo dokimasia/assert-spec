@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@7.2.0",
+  "extends": "spec://assertions@7.2.1",
   "language": "typescript",
   "diverge": [
     {
@@ -41,16 +41,6 @@
   ],
   "limits": [
     {
-      "id": "pure",
-      "what": "Accepts no relaxations, where the other implementations let a caller equate NaNs or an absent container with an empty one for this call.",
-      "why": "An oversight rather than a decision: equal, notEqual, contains and notContains all take them here and isPure does not. It is recorded rather than fixed quietly so the gap is visible until it closes."
-    },
-    {
-      "id": "honours-cancellation",
-      "what": "Reports no call site. The assertion awaits the subject, and by the time it reports, the caller's frame has left the stack.",
-      "why": "V8 gives an async function no synchronous caller frame once it has awaited. The standard states a location as optional for this reason, and every assertion that does not await carries one."
-    },
-    {
       "id": "recorder-seat",
       "what": "Carries no lock. The runtime has one thread, so two assertions cannot report at the same instant.",
       "why": "The standard asks that a seat be usable from more than one thread. A runtime with one thread meets that without doing anything, and says so here rather than leaving a reader to work out which it is."
@@ -59,6 +49,11 @@
       "id": "prop.workers",
       "what": "Runs one case at a time, whatever the number of workers. The run reports what a run on one worker reports, as it does in every language.",
       "why": "A body runs on the runtime's one thread. An asynchronous body would interleave with another case at each await instead of running beside it, and a body that is not safe to interleave with itself would then fail in a way that a run on one worker never shows."
+    },
+    {
+      "id": "prop.fuzz",
+      "what": "Does not run a fuzzer under vitest. Under vitest, prop.fuzz replays the cases that the store keeps for the property, as Go's prop.Fuzz does under go test without -fuzz. It returns the target that a fuzzer runs on its byte inputs, such as Jazzer.js.",
+      "why": "vitest has no fuzzing mode, and Node has no fuzzer in its standard library. The library depends on no fuzzer, so a suite that fuzzes exports the target to a fuzzer that it installs itself."
     },
     {
       "id": "history.workers",
@@ -90,6 +85,10 @@
     {
       "id": "that",
       "why": "equal and notEqual hold want to the type of got through NoInfer, so the static form already rejects a mismatched pair at compile time. A chain would be a second way to write what is checked either way."
+    },
+    {
+      "id": "steps.repeat",
+      "why": "repeat sets the number of runs of a case whose concurrent section runs on real threads. A section runs here only as tasks of the task scheduler, which replays it from the case."
     }
   ],
   "sections": ["tasks"],

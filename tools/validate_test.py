@@ -959,6 +959,25 @@ class Validator(unittest.TestCase):
         )
         self.assert_caught("corpus/prop/token.json: states no cases")
 
+    def test_a_vector_skip_with_no_reason_is_caught(self) -> None:
+        """A vector's skip states a reason, as a corpus case's skip does."""
+        _edit(
+            self.tree / "corpus" / "prop" / "fixtures.json",
+            lambda d: d["cases"][0].update(skip={"go": "   "}),
+        )
+        self.assert_caught("fixtures.json [fixtures/flag] skip.go: states no reason")
+
+    def test_a_vector_skip_that_is_not_an_object_is_caught(self) -> None:
+        """A vector's skip maps each language to its reason."""
+        _edit(
+            self.tree / "corpus" / "history" / "seam.json",
+            lambda d: d["cases"][0].update(skip="go"),
+        )
+        self.assert_caught(
+            "seam.json [history/a-client-continues-on-a-new-process-after-unknown]: "
+            "skip is not an object"
+        )
+
     def test_a_definition_with_no_relaxations_is_caught(self) -> None:
         """The definition states the relaxations a caller may apply."""
 

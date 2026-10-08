@@ -707,17 +707,20 @@ def check_case(
                 value, f"{where} [{cid}] detail.{name}", problems, record=True
             )
 
+    _check_skip(case, f"{where} [{cid}]", problems)
+    return str(cid)
+
+
+def _check_skip(case: dict[str, Any], where: str, problems: Problems) -> None:
+    """Check that a case's or a vector's skip maps each language to a reason."""
     skip = case.get("skip", {})
-    if problems.unless(
-        isinstance(skip, dict), f"{where} [{cid}]", "skip is not an object"
-    ):
+    if problems.unless(isinstance(skip, dict), where, "skip is not an object"):
         for language, reason in sorted(skip.items()):
             problems.unless(
                 bool(str(reason).strip()),
-                f"{where} [{cid}] skip.{language}",
+                f"{where} skip.{language}",
                 "states no reason; a skip is a claim people read",
             )
-    return str(cid)
 
 
 def check_corpus(
@@ -986,7 +989,7 @@ def _vector_cases(
 
     Each id is <subject>/<case> in hyphenated lowercase, appears once, and
     begins with one of the prefixes, which name what named states. The
-    typed literals of each vector are checked.
+    typed literals of each vector are checked, and so is its skip.
     """
     prefixes, what = named
     seen: set[str] = set()
@@ -1011,6 +1014,7 @@ def _vector_cases(
         )
         for path, value in literals(case):
             check_literal(value, f"{where} [{cid}] {path}", problems)
+        _check_skip(case, f"{where} [{cid}]", problems)
         yield cid, prefix, case
 
 

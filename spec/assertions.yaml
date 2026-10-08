@@ -17,7 +17,7 @@
 # assertion carries exactly these. got is what the assertion observed
 # and want is what it required, so an assertion whose failure holds
 # neither states no fields and reports the caller's message alone.
-version: "7.2.0"
+version: "7.2.1"
 
 # What a caller may change about equality, for one call.
 #

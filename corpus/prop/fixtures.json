@@ -16,6 +16,9 @@
             }
           ]
         ]
+      },
+      "skip": {
+        "typescript": "the TypeScript compiler erases every type, so no type remains at run time to read into a shape"
       }
     },
     {
@@ -35,6 +38,9 @@
             }
           ]
         ]
+      },
+      "skip": {
+        "typescript": "the TypeScript compiler erases every type, so no type remains at run time to read into a shape"
       }
     },
     {
@@ -53,6 +59,9 @@
             }
           ]
         ]
+      },
+      "skip": {
+        "typescript": "the TypeScript compiler erases every type, so no type remains at run time to read into a shape"
       }
     },
     {
@@ -70,6 +79,9 @@
             }
           ]
         ]
+      },
+      "skip": {
+        "typescript": "the TypeScript compiler erases every type, so no type remains at run time to read into a shape"
       }
     },
     {
@@ -87,6 +99,9 @@
             }
           ]
         ]
+      },
+      "skip": {
+        "typescript": "the TypeScript compiler erases every type, so no type remains at run time to read into a shape"
       }
     },
     {
@@ -104,6 +119,9 @@
             }
           ]
         ]
+      },
+      "skip": {
+        "typescript": "the TypeScript compiler erases every type, so no type remains at run time to read into a shape"
       }
     },
     {
@@ -126,6 +144,9 @@
             }
           ]
         ]
+      },
+      "skip": {
+        "typescript": "the TypeScript compiler erases every type, so no type remains at run time to read into a shape"
       }
     },
     {
@@ -149,6 +170,9 @@
             }
           ]
         ]
+      },
+      "skip": {
+        "typescript": "the TypeScript compiler erases every type, so no type remains at run time to read into a shape"
       }
     },
     {
@@ -169,6 +193,9 @@
             }
           ]
         ]
+      },
+      "skip": {
+        "typescript": "the TypeScript compiler erases every type, so no type remains at run time to read into a shape"
       }
     },
     {
@@ -194,6 +221,9 @@
             }
           ]
         ]
+      },
+      "skip": {
+        "typescript": "the TypeScript compiler erases every type, so no type remains at run time to read into a shape"
       }
     },
     {
@@ -214,6 +244,9 @@
             }
           ]
         ]
+      },
+      "skip": {
+        "typescript": "the TypeScript compiler erases every type, so no type remains at run time to read into a shape"
       }
     },
     {
@@ -267,6 +300,9 @@
             }
           ]
         ]
+      },
+      "skip": {
+        "typescript": "the TypeScript compiler erases every type, so no type remains at run time to read into a shape"
       }
     },
     {
@@ -296,6 +332,9 @@
             }
           ]
         ]
+      },
+      "skip": {
+        "typescript": "the TypeScript compiler erases every type, so no type remains at run time to read into a shape"
       }
     },
     {
@@ -319,6 +358,9 @@
             "value": "shipped"
           }
         ]
+      },
+      "skip": {
+        "typescript": "the TypeScript compiler erases every type, so no type remains at run time to read into a shape"
       }
     },
     {
@@ -354,6 +396,9 @@
             ]
           }
         }
+      },
+      "skip": {
+        "typescript": "the TypeScript compiler erases every type, so no type remains at run time to read into a shape"
       }
     },
     {
@@ -371,6 +416,9 @@
             }
           ]
         ]
+      },
+      "skip": {
+        "typescript": "the TypeScript compiler erases every type, so no type remains at run time to read into a shape"
       }
     },
     {
@@ -388,6 +436,9 @@
             }
           ]
         ]
+      },
+      "skip": {
+        "typescript": "the TypeScript compiler erases every type, so no type remains at run time to read into a shape"
       }
     },
     {
@@ -406,6 +457,9 @@
             }
           ]
         ]
+      },
+      "skip": {
+        "typescript": "the TypeScript compiler erases every type, so no type remains at run time to read into a shape"
       }
     },
     {
@@ -424,6 +478,9 @@
             }
           ]
         ]
+      },
+      "skip": {
+        "typescript": "the TypeScript compiler erases every type, so no type remains at run time to read into a shape"
       }
     },
     {
@@ -441,6 +498,9 @@
             }
           ]
         ]
+      },
+      "skip": {
+        "typescript": "the TypeScript compiler erases every type, so no type remains at run time to read into a shape"
       }
     },
     {
@@ -459,6 +519,9 @@
             }
           ]
         ]
+      },
+      "skip": {
+        "typescript": "the TypeScript compiler erases every type, so no type remains at run time to read into a shape"
       }
     },
     {
@@ -477,6 +540,9 @@
             }
           ]
         ]
+      },
+      "skip": {
+        "typescript": "the TypeScript compiler erases every type, so no type remains at run time to read into a shape"
       }
     },
     {
@@ -495,6 +561,9 @@
             }
           ]
         ]
+      },
+      "skip": {
+        "typescript": "the TypeScript compiler erases every type, so no type remains at run time to read into a shape"
       }
     },
     {
@@ -512,6 +581,9 @@
             }
           ]
         ]
+      },
+      "skip": {
+        "typescript": "the TypeScript compiler erases every type, so no type remains at run time to read into a shape"
       }
     },
     {
@@ -529,6 +601,9 @@
             }
           ]
         ]
+      },
+      "skip": {
+        "typescript": "the TypeScript compiler erases every type, so no type remains at run time to read into a shape"
       }
     },
     {
@@ -547,6 +622,9 @@
             }
           ]
         ]
+      },
+      "skip": {
+        "typescript": "the TypeScript compiler erases every type, so no type remains at run time to read into a shape"
       }
     },
     {
@@ -568,6 +646,9 @@
             }
           ]
         ]
+      },
+      "skip": {
+        "typescript": "the TypeScript compiler erases every type, so no type remains at run time to read into a shape"
       }
     },
     {
@@ -590,6 +671,9 @@
             }
           ]
         ]
+      },
+      "skip": {
+        "typescript": "the TypeScript compiler erases every type, so no type remains at run time to read into a shape"
       }
     },
     {
@@ -608,6 +692,9 @@
             }
           ]
         ]
+      },
+      "skip": {
+        "typescript": "the TypeScript compiler erases every type, so no type remains at run time to read into a shape"
       }
     },
     {
@@ -626,6 +713,9 @@
             }
           ]
         ]
+      },
+      "skip": {
+        "typescript": "the TypeScript compiler erases every type, so no type remains at run time to read into a shape"
       }
     },
     {
@@ -646,6 +736,9 @@
             }
           ]
         ]
+      },
+      "skip": {
+        "typescript": "the TypeScript compiler erases every type, so no type remains at run time to read into a shape"
       }
     },
     {
@@ -664,6 +757,9 @@
             }
           ]
         ]
+      },
+      "skip": {
+        "typescript": "the TypeScript compiler erases every type, so no type remains at run time to read into a shape"
       }
     },
     {
@@ -683,6 +779,9 @@
             }
           ]
         ]
+      },
+      "skip": {
+        "typescript": "the TypeScript compiler erases every type, so no type remains at run time to read into a shape"
       }
     },
     {
@@ -701,6 +800,9 @@
             }
           ]
         ]
+      },
+      "skip": {
+        "typescript": "the TypeScript compiler erases every type, so no type remains at run time to read into a shape"
       }
     }
   ]

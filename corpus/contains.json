@@ -157,6 +157,9 @@
         }
       ],
       "expect": "fail",
+      "skip": {
+        "typescript": "JavaScript has one number type, so the int 1 and the float 1.0 are one value"
+      },
       "detail": {
         "haystack": {
           "type": "list",

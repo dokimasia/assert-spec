@@ -57,7 +57,7 @@ tools/stateful/        the machines' and the scheduler's executable reference
 tools/files/           the trees' and the file assertions' executable reference
 tools/spec-sync.sh     how an implementation vendors the definition
 tools/spec-check.sh    how an implementation checks its copy
-VERSION                7.2.0
+VERSION                7.2.1
 ```
 
 People edit the YAML. `make render` produces the JSON, which is
@@ -298,7 +298,7 @@ differently.
 | TypeScript | [assert-typescript](https://github.com/dokimasia/assert-typescript) | 104 of 110 |
 
 Each count is what the language's overlay declares against version
-7.2.0. An implementation that has not synced to it yet has a drift issue
+7.2.1. An implementation that has not synced to it yet has a drift issue
 open until it does.
 
 Java and Kotlin ship from one repository and are named identically, so
@@ -334,6 +334,12 @@ because their threads run on more than one core. The recorder's counter
 synchronizes the clients that record into it. That synchronization can
 supply a memory barrier that the subject lacks. TypeScript searches the
 partitions of a history one at a time for any number of workers.
+
+The TypeScript compiler erases every type, so the TypeScript library reads
+no type into a shape. It skips the 34 fixture vectors. A property derives
+its inputs from shape files alone. The library runs the concurrent section
+of a machine only as tasks and declines `repeat`. Its overlay also limits
+`prop.fuzz`, because vitest does not run a fuzzer.
 
 PHP is declared as a target language and the naming table carries no
 names for it yet, so adding it starts by filling that column.

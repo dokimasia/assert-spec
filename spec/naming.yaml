@@ -3,7 +3,7 @@
 # A qualified name names a member of the subpackage the assertion table
 # gives it. The separator is the language's own: a dot in Go, Java,
 # Kotlin, Python and TypeScript, two colons in Rust.
-version: "7.2.0"
+version: "7.2.1"
 
 languages: [go, java, kotlin, php, python, rust, typescript]
 
@@ -618,6 +618,10 @@ relaxations:
 # keyword. Python and Kotlin decline it: an await in an asyncio task, and
 # yield() in a coroutine, already suspend the task at a point the
 # scheduler sees.
+#
+# TypeScript declines repeat, the number of runs of a case whose concurrent
+# section runs on real threads, because it runs a section only as tasks of
+# the scheduler.
 #
 # Java and Kotlin name the tree of files FileTree, and the class of its
 # assertions and helpers FileTrees, as the JDK pairs Path with Paths. A
@@ -1692,7 +1696,6 @@ surface:
       go: "stateful.Repeat"
       python: "stateful.repeat"
       rust: "stateful::repeat"
-      typescript: "stateful.repeat"
       java: "Stateful.repeat"
       kotlin: "Stateful.repeat"
     "scheduler.new":

@@ -1467,8 +1467,7 @@
                 "java": "Stateful.repeat",
                 "kotlin": "Stateful.repeat",
                 "python": "stateful.repeat",
-                "rust": "stateful::repeat",
-                "typescript": "stateful.repeat"
+                "rust": "stateful::repeat"
             },
             "steps.scheduler": {
                 "go": "stateful.Tasks",
@@ -2247,5 +2246,5 @@
             }
         }
     },
-    "version": "7.2.0"
+    "version": "7.2.1"
 }
