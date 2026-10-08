@@ -930,6 +930,10 @@
     },
     "surface": {
         "helpers": {
+            "cancellation-of": {
+                "go": "Context",
+                "typescript": "signalOf"
+            },
             "files.bytes": {
                 "go": "files.Bytes",
                 "java": "FileTrees.bytes",
@@ -1963,6 +1967,12 @@
                 "rust": "yield_now",
                 "typescript": "yield"
             },
+            "seat.cancellation": {
+                "go": "Context",
+                "java": "cancelled",
+                "rust": "cancellation",
+                "typescript": "signal"
+            },
             "seat.clock": {
                 "go": "Clock",
                 "java": "clock",
@@ -2237,5 +2247,5 @@
             }
         }
     },
-    "version": "7.1.0"
+    "version": "7.2.0"
 }

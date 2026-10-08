@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@7.1.0",
+  "extends": "spec://assertions@7.2.0",
   "language": "rust",
   "diverge": [],
   "relaxations": [
@@ -78,6 +78,10 @@
     {
       "id": "that",
       "why": "equal takes two references of one type parameter, so a mismatched pair is already a compile error. A chain would hold a borrow of the subject across every method for no check the static form is missing."
+    },
+    {
+      "id": "cancellation-of",
+      "why": "The trait Seat gives cancellation() a default, as it gives clock() one, so a helper calls the member on any seat and needs no function to read it."
     }
   ],
   "sections": ["tasks", "threads"],

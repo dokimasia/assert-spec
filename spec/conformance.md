@@ -61,6 +61,17 @@ A language whose runtime has one thread meets this without doing
 anything, and says so in its overlay rather than leaving a reader to
 work out which it is.
 
+**What cancellation handle a seat states.** In a language that names
+`seat.cancellation`, a seat returns the handle that `honours-cancellation`
+hands a subject, and a seat that states none returns one that is never
+cancelled. The seat that `rejects` hands its check, and the seat that
+`eventually` hands each attempt, return a handle that derives from the
+handle of the assertion's seat. A derived handle is cancelled when its
+parent is, and the assertion cancels it when the body ends. A case's
+handle derives from the handle of the property's seat in the same way. A
+handle is an input of a test, so no vector pins it, and each language
+checks it in its own tests.
+
 **What a recorded run states.** `recording.md` fixes the fields of a
 call record and their encoding, the verdicts, the phases of a property's
 cases, the opaque literal, the numbering, the switch and its values,

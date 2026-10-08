@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@7.1.0",
+  "extends": "spec://assertions@7.2.0",
   "language": "kotlin",
   "diverge": [
     {
@@ -53,6 +53,14 @@
     {
       "id": "case.cancellation",
       "why": "Kotlin cancels a coroutine through its Job, and honoursCancellation hands a subject no handle. A case has no handle to return that the code under test would read."
+    },
+    {
+      "id": "seat.cancellation",
+      "why": "Kotlin cancels a coroutine through its Job, and honoursCancellation hands a subject no handle. A seat has no handle to return that the code under test would read."
+    },
+    {
+      "id": "cancellation-of",
+      "why": "The helper reads the seat's cancellation handle, and a Kotlin seat states none, for the reason the seat.cancellation entry gives."
     },
     {
       "id": "scheduler.yield",

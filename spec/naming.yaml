@@ -3,7 +3,7 @@
 # A qualified name names a member of the subpackage the assertion table
 # gives it. The separator is the language's own: a dot in Go, Java,
 # Kotlin, Python and TypeScript, two colons in Rust.
-version: "7.1.0"
+version: "7.2.0"
 
 languages: [go, java, kotlin, php, python, rust, typescript]
 
@@ -591,6 +591,16 @@ relaxations:
 # to cancel. Python and Kotlin cancel a coroutine through its task or its
 # job and hand a subject no handle, so both decline the member.
 #
+# Every seat states the same handle, under the case's spelling. Go and
+# TypeScript state it as a member that a seat may lack. Go states it as the
+# Context method that testing.TB declares, and TypeScript as an optional
+# member. Each of the two names a helper that reads the member and supplies
+# a handle that is never cancelled for a seat without it. Go names the
+# helper Context after the method, and TypeScript names it signalOf. Rust
+# and Java give the member a default on the seat. A helper there calls the
+# member, and both decline the helper. Python and Kotlin decline the member
+# and the helper, as they decline the case's.
+#
 # Each language constructs a history as it constructs any value: Go and
 # Rust through a function, Python and Kotlin by calling the class, and
 # TypeScript and Java with new. A scheduler is constructed the same way.
@@ -874,6 +884,11 @@ surface:
       typescript: "clock"
       java: "clock"
       kotlin: "clock"
+    "seat.cancellation":
+      go: "Context"
+      rust: "cancellation"
+      typescript: "signal"
+      java: "cancelled"
     "clock.now":
       go: "Now"
       python: "now"
@@ -1271,6 +1286,9 @@ surface:
       go: "That"
       java: "Check.that"
       kotlin: "Check.that"
+    "cancellation-of":
+      go: "Context"
+      typescript: "signalOf"
     "golden.scrub-timestamps":
       go: "golden.ScrubTimestamps"
       python: "golden.scrub_timestamps"
