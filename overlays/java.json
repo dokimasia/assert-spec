@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@7.2.1",
+  "extends": "spec://assertions@8.0.0",
   "language": "java",
   "diverge": [
     {
@@ -43,6 +43,16 @@
       "id": "history",
       "what": "Records every invocation and completion through one counter that all clients share, whose increment is sequentially consistent. A subject whose correctness depends on a memory barrier it lacks can pass under the recorder and fail without it.",
       "why": "JVM threads run on more than one core at once. Each increment of the counter orders the recording client's memory operations against every other client's, and that order can supply the barrier that the subject lacks."
+    },
+    {
+      "id": "prop.of",
+      "what": "A zone resolves through the time-zone data of the JDK that runs the test, so a ZonedDateTime can show another wall time than the definition's tzdata 2026e states. A char reads as a char shape whose alphabet stops at the end of the Basic Multilingual Plane.",
+      "why": "The JDK ships its own copy of the IANA time-zone data, and an update of the JDK can contain another release. A Java char is one UTF-16 unit, so it cannot represent a character outside the Basic Multilingual Plane."
+    },
+    {
+      "id": "prop.of-shape",
+      "what": "A zone resolves through the time-zone data of the JDK that runs the test, as the prop.of entry states.",
+      "why": "The JDK ships its own copy of the IANA time-zone data, and an update of the JDK can contain another release."
     }
   ],
   "surface": [

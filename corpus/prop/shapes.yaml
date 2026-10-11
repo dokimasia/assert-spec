@@ -284,6 +284,10 @@ cases:
     shape: {shape: zoned-date-time, unit: ns}
     seed: "5100"
     count: 8
+    skip:
+      python: >-
+        datetime has a resolution of one microsecond, and no Python type
+        represents a zoned date and time at nanoseconds
   - id: zoned-date-time/seconds
     shape: {shape: zoned-date-time, unit: s}
     seed: "5200"

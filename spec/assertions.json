@@ -376,17 +376,19 @@
             "arity": 3,
             "detail_fields": [
                 "want",
-                "got"
+                "got",
+                "total"
             ],
-            "summary": "A callable makes at most a stated number of heap allocations per call. One call warms it first, and the count is the average over the calls after it, rounded to the nearest whole number, with a half rounded up.\n"
+            "summary": "A callable makes at most a stated number of heap allocations per call. A count calls it once to warm it and counts the allocations of the 100 calls after it. A ceiling of 0 admits one allocation in all, and any other ceiling compares with the average per call, rounded to the nearest whole number, with a half rounded up. A count that exceeds the ceiling is taken again, and the assertion fails when three counts exceed it. got is the rounded average and total the allocations of the count with the lowest total.\n"
         },
         "max-allocs-with-setup": {
             "arity": 4,
             "detail_fields": [
                 "want",
-                "got"
+                "got",
+                "total"
             ],
-            "summary": "A callable makes at most a stated number of heap allocations per call on an input that a setup builds before each call. The setup is not counted. One setup and one call warm both first, and the count is the average over the calls after them, rounded to the nearest whole number, with a half rounded up.\n"
+            "summary": "A callable makes at most a stated number of heap allocations per call on an input that a setup builds before each call. The setup is not counted. A count calls the setup and the callable once to warm both and counts the allocations of the 100 calls after them, with the ceilings, the counts, got and total of max-allocs.\n"
         },
         "monotonic": {
             "arity": 4,
@@ -1877,5 +1879,5 @@
             "summary": "Yields two objects, and the value of each is 1.\n"
         }
     },
-    "version": "7.2.1"
+    "version": "8.0.0"
 }
