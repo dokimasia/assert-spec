@@ -36,3 +36,4 @@ they record why not.
 | [0028](0028-writing-a-tree-into-a-directory-that-exists.md) | Writing a tree into a directory that exists | Accepted |
 | [0029](0029-the-cancellation-handle-of-a-seat.md) | The cancellation handle of a seat | Accepted |
 | [0030](0030-an-allocation-ceiling-of-zero.md) | An allocation ceiling of zero | Accepted |
+| [0031](0031-a-wrapper-around-each-run-of-a-property.md) | A wrapper around each run of a property | Draft |
