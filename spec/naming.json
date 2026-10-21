@@ -86,7 +86,7 @@
             "kotlin": "closeTo",
             "python": "close_to",
             "rust": "close_to",
-            "typescript": "closeTo"
+            "typescript": "isCloseTo"
         },
         "commutative": {
             "go": "Commutative",
@@ -110,7 +110,7 @@
             "kotlin": "contains",
             "python": "contains",
             "rust": "contains",
-            "typescript": "contains"
+            "typescript": "doesContain"
         },
         "contains-in-order": {
             "go": "ContainsInOrder",
@@ -142,7 +142,7 @@
             "kotlin": "equal",
             "python": "equal",
             "rust": "equal",
-            "typescript": "equal"
+            "typescript": "isEqualTo"
         },
         "err-absent": {
             "go": "NoError",
@@ -326,7 +326,7 @@
             "kotlin": "length",
             "python": "length",
             "rust": "length",
-            "typescript": "length"
+            "typescript": "hasLength"
         },
         "linearizable": {
             "go": "history.Linearizable",
@@ -350,7 +350,7 @@
             "kotlin": "matches",
             "python": "matches",
             "rust": "matches",
-            "typescript": "matches"
+            "typescript": "doesMatch"
         },
         "max-allocs": {
             "go": "MaxAllocs",
@@ -414,7 +414,7 @@
             "kotlin": "notContains",
             "python": "not_contains",
             "rust": "not_contains",
-            "typescript": "notContains"
+            "typescript": "doesNotContain"
         },
         "not-empty": {
             "go": "NotEmpty",
@@ -430,7 +430,7 @@
             "kotlin": "notEqual",
             "python": "not_equal",
             "rust": "not_equal",
-            "typescript": "notEqual"
+            "typescript": "isNotEqualTo"
         },
         "not-nil": {
             "go": "NotNil",
@@ -510,7 +510,7 @@
             "kotlin": "Prop.closeTo",
             "python": "prop.close_to",
             "rust": "prop::close_to",
-            "typescript": "prop.closeTo"
+            "typescript": "prop.isCloseTo"
         },
         "prop-commutative": {
             "go": "prop.Commutative",
@@ -526,7 +526,7 @@
             "kotlin": "Prop.contains",
             "python": "prop.contains",
             "rust": "prop::contains",
-            "typescript": "prop.contains"
+            "typescript": "prop.doesContain"
         },
         "prop-contains-in-order": {
             "go": "prop.ContainsInOrder",
@@ -558,7 +558,7 @@
             "kotlin": "Prop.equal",
             "python": "prop.equal",
             "rust": "prop::equal",
-            "typescript": "prop.equal"
+            "typescript": "prop.isEqualTo"
         },
         "prop-err-absent": {
             "go": "prop.NoError",
@@ -670,7 +670,7 @@
             "kotlin": "Prop.length",
             "python": "prop.length",
             "rust": "prop::length",
-            "typescript": "prop.length"
+            "typescript": "prop.hasLength"
         },
         "prop-matches": {
             "go": "prop.Matches",
@@ -678,7 +678,7 @@
             "kotlin": "Prop.matches",
             "python": "prop.matches",
             "rust": "prop::matches",
-            "typescript": "prop.matches"
+            "typescript": "prop.doesMatch"
         },
         "prop-max-allocs": {
             "go": "prop.MaxAllocs",
@@ -718,7 +718,7 @@
             "kotlin": "Prop.notContains",
             "python": "prop.not_contains",
             "rust": "prop::not_contains",
-            "typescript": "prop.notContains"
+            "typescript": "prop.doesNotContain"
         },
         "prop-not-empty": {
             "go": "prop.NotEmpty",
@@ -734,7 +734,7 @@
             "kotlin": "Prop.notEqual",
             "python": "prop.not_equal",
             "rust": "prop::not_equal",
-            "typescript": "prop.notEqual"
+            "typescript": "prop.isNotEqualTo"
         },
         "prop-not-nil": {
             "go": "prop.NotNil",
@@ -798,7 +798,7 @@
             "kotlin": "Prop.throwsException",
             "python": "prop.raises",
             "rust": "prop::panics",
-            "typescript": "prop.throws"
+            "typescript": "prop.doesThrow"
         },
         "prop-true": {
             "go": "prop.True",
@@ -822,7 +822,7 @@
             "kotlin": "rejects",
             "python": "rejects",
             "rust": "rejects",
-            "typescript": "rejects"
+            "typescript": "doesReject"
         },
         "round-trip": {
             "go": "RoundTrip",
@@ -862,7 +862,7 @@
             "kotlin": "throwsException",
             "python": "raises",
             "rust": "panics",
-            "typescript": "throws"
+            "typescript": "doesThrow"
         },
         "total": {
             "go": "Total",
@@ -1003,7 +1003,7 @@
                 "java": "Golden.scrubHashes",
                 "kotlin": "Golden.scrubHashes",
                 "python": "golden.scrub_hashes",
-                "rust": "golden.scrub_hashes",
+                "rust": "golden::scrub_hashes",
                 "typescript": "golden.scrubHashes"
             },
             "golden.scrub-json-fields": {
@@ -1011,7 +1011,7 @@
                 "java": "Golden.scrubJsonFields",
                 "kotlin": "Golden.scrubJsonFields",
                 "python": "golden.scrub_json_fields",
-                "rust": "golden.scrub_json_fields",
+                "rust": "golden::scrub_json_fields",
                 "typescript": "golden.scrubJsonFields"
             },
             "golden.scrub-run-ids": {
@@ -1019,7 +1019,7 @@
                 "java": "Golden.scrubRunIds",
                 "kotlin": "Golden.scrubRunIds",
                 "python": "golden.scrub_run_ids",
-                "rust": "golden.scrub_run_ids",
+                "rust": "golden::scrub_run_ids",
                 "typescript": "golden.scrubRunIds"
             },
             "golden.scrub-timestamps": {
@@ -1027,7 +1027,7 @@
                 "java": "Golden.scrubTimestamps",
                 "kotlin": "Golden.scrubTimestamps",
                 "python": "golden.scrub_timestamps",
-                "rust": "golden.scrub_timestamps",
+                "rust": "golden::scrub_timestamps",
                 "typescript": "golden.scrubTimestamps"
             },
             "golden.should-update": {
@@ -1035,7 +1035,7 @@
                 "java": "Golden.shouldUpdate",
                 "kotlin": "Golden.shouldUpdate",
                 "python": "golden.should_update",
-                "rust": "golden.should_update",
+                "rust": "golden::should_update",
                 "typescript": "golden.shouldUpdate"
             },
             "history.budget": {
@@ -1496,7 +1496,8 @@
             "that": {
                 "go": "That",
                 "java": "Check.that",
-                "kotlin": "Check.that"
+                "kotlin": "Check.that",
+                "typescript": "expect"
             }
         },
         "members": {
@@ -2057,7 +2058,8 @@
             "assertion": {
                 "go": "Assertion",
                 "java": "Assertion",
-                "kotlin": "Assertion"
+                "kotlin": "Assertion",
+                "typescript": "Assertion"
             },
             "call": {
                 "go": "history.Call",
@@ -2101,7 +2103,7 @@
                 "java": "Contract",
                 "kotlin": "Contract",
                 "python": "bench.Contract",
-                "rust": "bench.Contract",
+                "rust": "bench::Contract",
                 "typescript": "bench.Contract"
             },
             "controlled-clock": {
@@ -2202,7 +2204,7 @@
                 "java": "Golden.Scrubber",
                 "kotlin": "Golden.Scrubber",
                 "python": "golden.Scrubber",
-                "rust": "golden.Scrubber",
+                "rust": "golden::Scrubber",
                 "typescript": "golden.Scrubber"
             },
             "seat": {
@@ -2254,5 +2256,5 @@
             }
         }
     },
-    "version": "8.1.0"
+    "version": "9.0.0"
 }

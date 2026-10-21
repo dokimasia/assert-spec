@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@8.1.0",
+  "extends": "spec://assertions@9.0.0",
   "language": "rust",
   "diverge": [],
   "relaxations": [
@@ -59,7 +59,7 @@
     },
     {
       "id": "prop.of",
-      "what": "A zone resolves through the time-zone database of jiff, behind the feature jiff of the derive crate, so a value in a zone can show another wall time than the definition's tzdata 2026e states.",
+      "what": "A zone resolves through the time-zone database of jiff, behind the feature jiff of dokimi-assert, so a value in a zone can show another wall time than the definition's tzdata 2026e states.",
       "why": "Rust's standard library has no time zones, and jiff reads the system's time-zone database or a copy of its own."
     },
     {
@@ -83,11 +83,11 @@
     },
     {
       "id": "assertion",
-      "why": "equal takes two references of one type parameter, so a mismatched pair is already a compile error. A chain would hold a borrow of the subject across every method for no check the static form is missing."
+      "why": "equal compares its two operands through PartialEq, as assert_eq! compares them, so a pair of types that does not compare fails to compile. A chain would borrow the subject across every method of the chain, and the function form already makes every check that a chain makes."
     },
     {
       "id": "that",
-      "why": "equal takes two references of one type parameter, so a mismatched pair is already a compile error. A chain would hold a borrow of the subject across every method for no check the static form is missing."
+      "why": "equal compares its two operands through PartialEq, as assert_eq! compares them, so a pair of types that does not compare fails to compile. A chain would borrow the subject across every method of the chain, and the function form already makes every check that a chain makes."
     },
     {
       "id": "cancellation-of",

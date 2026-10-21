@@ -3,7 +3,20 @@
 # A qualified name names a member of the subpackage the assertion table
 # gives it. The separator is the language's own: a dot in Go, Java,
 # Kotlin, Python and TypeScript, two colons in Rust.
-version: "8.1.0"
+#
+# A TypeScript test calls each assertion on the expect of vitest or jest
+# as well as in the function form. No TypeScript name of an assertion is a
+# member of the chain that expect returns, or a property of expect, in a
+# major of either runner that the TypeScript library supports. The lists
+# change between releases, so the TypeScript library's completeness gate
+# reads them from the running engine of each major. TypeScript names seven
+# assertions isEqualTo, doesContain, hasLength, doesMatch, isCloseTo,
+# doesThrow and doesReject for that reason. It names not-equal and
+# not-contains isNotEqualTo and doesNotContain, so that each negative reads
+# as its positive does. Each of these names takes the auxiliary that its
+# word takes in an English sentence: is before an adjective, has before a
+# noun and does before a verb.
+version: "9.0.0"
 
 languages: [go, java, kotlin, php, python, rust, typescript]
 
@@ -12,14 +25,14 @@ names:
     go: "Equal"
     python: "equal"
     rust: "equal"
-    typescript: "equal"
+    typescript: "isEqualTo"
     java: "equal"
     kotlin: "equal"
   "not-equal":
     go: "NotEqual"
     python: "not_equal"
     rust: "not_equal"
-    typescript: "notEqual"
+    typescript: "isNotEqualTo"
     java: "notEqual"
     kotlin: "notEqual"
   "true":
@@ -54,7 +67,7 @@ names:
     go: "Length"
     python: "length"
     rust: "length"
-    typescript: "length"
+    typescript: "hasLength"
     java: "length"
     kotlin: "length"
   "empty":
@@ -75,14 +88,14 @@ names:
     go: "Contains"
     python: "contains"
     rust: "contains"
-    typescript: "contains"
+    typescript: "doesContain"
     java: "contains"
     kotlin: "contains"
   "not-contains":
     go: "NotContains"
     python: "not_contains"
     rust: "not_contains"
-    typescript: "notContains"
+    typescript: "doesNotContain"
     java: "notContains"
     kotlin: "notContains"
   "contains-in-order":
@@ -117,14 +130,14 @@ names:
     go: "Matches"
     python: "matches"
     rust: "matches"
-    typescript: "matches"
+    typescript: "doesMatch"
     java: "matches"
     kotlin: "matches"
   "close-to":
     go: "CloseTo"
     python: "close_to"
     rust: "close_to"
-    typescript: "closeTo"
+    typescript: "isCloseTo"
     java: "closeTo"
     kotlin: "closeTo"
   "in-range":
@@ -180,7 +193,7 @@ names:
     go: "Panics"
     python: "raises"
     rust: "panics"
-    typescript: "throws"
+    typescript: "doesThrow"
     java: "throwsException"
     kotlin: "throwsException"
   "not-throws":
@@ -474,7 +487,7 @@ names:
     go: "Rejects"
     python: "rejects"
     rust: "rejects"
-    typescript: "rejects"
+    typescript: "doesReject"
     java: "rejects"
     kotlin: "rejects"
   "prop-for-all":
@@ -629,6 +642,11 @@ relaxations:
 # second class of that name would make every such test qualify one of the
 # two. Go spells the directory constructor Dir, as io/fs spells ReadDir and
 # DirEntry.
+#
+# TypeScript's chain is the expect of vitest or jest, and its type is the
+# Assertion that vitest declares. Both rows name items that the test runner
+# supplies, as Go names testing.T for a seat. expect takes no seat, because
+# the runner supplies the running test as the seat.
 surface:
   types:
     "seat":
@@ -704,19 +722,20 @@ surface:
     "scrubber":
       go: "golden.Scrubber"
       python: "golden.Scrubber"
-      rust: "golden.Scrubber"
+      rust: "golden::Scrubber"
       typescript: "golden.Scrubber"
       java: "Golden.Scrubber"
       kotlin: "Golden.Scrubber"
     "contract":
       go: "bench.Contract"
       python: "bench.Contract"
-      rust: "bench.Contract"
+      rust: "bench::Contract"
       typescript: "bench.Contract"
       java: "Contract"
       kotlin: "Contract"
     "assertion":
       go: "Assertion"
+      typescript: "Assertion"
       java: "Assertion"
       kotlin: "Assertion"
     "generator":
@@ -1288,6 +1307,7 @@ surface:
   helpers:
     "that":
       go: "That"
+      typescript: "expect"
       java: "Check.that"
       kotlin: "Check.that"
     "cancellation-of":
@@ -1296,35 +1316,35 @@ surface:
     "golden.scrub-timestamps":
       go: "golden.ScrubTimestamps"
       python: "golden.scrub_timestamps"
-      rust: "golden.scrub_timestamps"
+      rust: "golden::scrub_timestamps"
       typescript: "golden.scrubTimestamps"
       java: "Golden.scrubTimestamps"
       kotlin: "Golden.scrubTimestamps"
     "golden.scrub-hashes":
       go: "golden.ScrubHashes"
       python: "golden.scrub_hashes"
-      rust: "golden.scrub_hashes"
+      rust: "golden::scrub_hashes"
       typescript: "golden.scrubHashes"
       java: "Golden.scrubHashes"
       kotlin: "Golden.scrubHashes"
     "golden.scrub-run-ids":
       go: "golden.ScrubRunIDs"
       python: "golden.scrub_run_ids"
-      rust: "golden.scrub_run_ids"
+      rust: "golden::scrub_run_ids"
       typescript: "golden.scrubRunIds"
       java: "Golden.scrubRunIds"
       kotlin: "Golden.scrubRunIds"
     "golden.scrub-json-fields":
       go: "golden.ScrubJSONFields"
       python: "golden.scrub_json_fields"
-      rust: "golden.scrub_json_fields"
+      rust: "golden::scrub_json_fields"
       typescript: "golden.scrubJsonFields"
       java: "Golden.scrubJsonFields"
       kotlin: "Golden.scrubJsonFields"
     "golden.should-update":
       go: "golden.ShouldUpdate"
       python: "golden.should_update"
-      rust: "golden.should_update"
+      rust: "golden::should_update"
       typescript: "golden.shouldUpdate"
       java: "Golden.shouldUpdate"
       kotlin: "Golden.shouldUpdate"

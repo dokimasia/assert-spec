@@ -93,7 +93,7 @@ class FormsTest(unittest.TestCase):
                 "go": "prop.Equal",
                 "python": "prop.equal",
                 "rust": "prop::equal",
-                "typescript": "prop.equal",
+                "typescript": "prop.isEqualTo",
                 "java": "Prop.equal",
                 "kotlin": "Prop.equal",
             },

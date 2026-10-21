@@ -282,6 +282,9 @@
         }
       ],
       "expect": "fail",
+      "skip": {
+        "rust": "is_permutation takes two slices, and a slice is never absent"
+      },
       "detail": {
         "want": {
           "type": "list",
