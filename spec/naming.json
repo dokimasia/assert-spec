@@ -1094,6 +1094,14 @@
                 "rust": "history::workers",
                 "typescript": "history.workers"
             },
+            "prop.around": {
+                "go": "prop.Around",
+                "java": "Prop.around",
+                "kotlin": "Prop.around",
+                "python": "prop.around",
+                "rust": "prop::around",
+                "typescript": "prop.around"
+            },
             "prop.boolean": {
                 "go": "prop.Boolean",
                 "java": "Prop.bool",
@@ -2246,5 +2254,5 @@
             }
         }
     },
-    "version": "8.0.0"
+    "version": "8.1.0"
 }
