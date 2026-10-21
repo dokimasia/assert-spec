@@ -2,7 +2,7 @@
 rfc: 0031
 title: A wrapper around each run of a property
 author: Roy Klopper <roy.klopper@stealthscale.io>
-status: Draft
+status: Accepted
 created: 2026-10-17
 updated: 2026-10-17
 discussion: https://github.com/dokimasia/assert-go/issues/55
@@ -87,8 +87,10 @@ of its own. Every run of a case then starts from the same fake time.
 ### The options belong to the definition
 
 The options of a property are members of the definition, and a test
-states them alike for `for-all`, for each form and for a fuzz target. A
-language cannot add an option without a name in the naming table.
+states them alike for `for-all`, for each form and for a fuzz target. An
+option that one language ships beyond the standard has no name in the
+naming table, so no other language states it alike. Every language has
+the need, with an environment of its own.
 
 ## Detailed design
 
