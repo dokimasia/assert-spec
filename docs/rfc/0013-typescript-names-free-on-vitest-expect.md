@@ -2,9 +2,9 @@
 rfc: 0013
 title: TypeScript names that vitest's expect does not define
 author: Roy Klopper <roy.klopper@stealthscale.io>
-status: Draft
+status: Accepted
 created: 2026-10-01
-updated: 2026-10-01
+updated: 2026-10-20
 discussion: none
 supersedes: none
 superseded-by: none
@@ -26,9 +26,9 @@ in the TypeScript column to `isEqualTo`, `doesContain`, `hasLength`,
 `notEqual` and `notContains` to `isNotEqualTo` and `doesNotContain`, so
 that each negative reads as its positive does. It names vitest's
 `expect` and `Assertion` as TypeScript's chain, and adds a rule that no
-TypeScript assertion name is a member of vitest's `expect`. The other 26
-assertions in the root namespace keep their TypeScript names. A rename
-is a major version, so the definition moves to 2.0.0.
+TypeScript assertion name is a member of the `expect` of vitest or jest.
+The other 41 assertions in the root namespace keep their TypeScript
+names. A rename is a major version, so the definition moves to 9.0.0.
 
 ## Motivation
 
@@ -170,24 +170,27 @@ names:
     typescript: "doesReject"
 ```
 
-### No TypeScript assertion name is taken on vitest's expect
+### No TypeScript assertion name is taken on the expect of vitest or jest
 
 The definition gains a rule for the TypeScript column. No TypeScript name
-of an assertion is a member of vitest's `expect` assertion, or an own
-property of `expect`, in a vitest major the TypeScript library supports.
-The assertion's prototype chain had 182 names at 4.1.11 and 185 at 5.0.3.
-`expect` had 25 own properties at 4.1.11 and 27 at 5.0.3.
+of an assertion is a member of the chain that `expect` returns, or a
+property of `expect`, in a major of vitest or jest that the TypeScript
+library supports. The assertion's prototype chain had 182 names at vitest
+4.1.11 and 185 at 5.0.3. `expect` had 25 own properties at 4.1.11 and 27
+at 5.0.3. Jest's chain had 50 names at 29.7.0 and 39 at 30.5.2, and its
+`expect` had 22 and 23 properties. None of them is a TypeScript name of an
+assertion.
 
-For each vitest major it supports, the TypeScript library's completeness
-gate reads both lists from the running engine and fails on an assertion
-name in either list. The definition's validator cannot check the rule,
+For each major of each runner it supports, the TypeScript library's
+completeness gate reads both lists from the running engine and fails on
+an assertion name in either list. The definition's validator cannot check the rule,
 because the lists change between vitest releases and a copy in the
 definition would go out of date.
 
 ### The chain in TypeScript
 
 The definition states every assertion as a function and as a method on a
-chain. TypeScript's chain is vitest's `expect`:
+chain. TypeScript's chain is the `expect` of vitest or jest:
 
 ```yaml
 surface:
@@ -202,10 +205,12 @@ surface:
 Both rows name items the test framework supplies, as Go names
 `testing.T` for its seats. The gate checks that the chain's methods exist
 under the names given, not that the library defines `expect`.
-`expect(got)` takes no seat. Vitest supplies the running test as the
+`expect(got)` takes no seat. The runner supplies the running test as the
 seat, as Go's `*testing.T` is the seat in `assert.Equal(t, got, want,
-msg)`. `expect.soft(got)` is the recording chain. The TypeScript
-overlay's `surface` entries for `assertion` and `that` are removed.
+msg)`. `expect.soft(got)` is the recording chain. Jest defines no
+`expect.soft`, so the TypeScript library adds it to jest's `expect`. The
+TypeScript overlay's `surface` entries for `assertion` and `that` are
+removed.
 
 On `expect`, the value an assertion is about becomes the argument to
 `expect`. The other arguments follow in the order of the function form.
@@ -242,30 +247,31 @@ negative assertion to use, or states that the assertion has none.
 
 ### Invariants
 
-- No TypeScript assertion name is a member of vitest's `expect` assertion
-  or an own property of `expect`, in any vitest major the library
-  supports.
-- Registering the library's matchers replaces no method that vitest or
-  chai defines. This follows from the first invariant.
+- No TypeScript assertion name is a member of the chain of vitest's or
+  jest's `expect`, or a property of `expect`, in any major of either
+  runner that the library supports.
+- Registering the library's matchers replaces no method that vitest,
+  chai or jest defines. This follows from the first invariant.
 - An assertion has one TypeScript name, and both call styles use it.
 
 ### What fails, and where
 
 | Event | Effect | Response |
 |---|---|---|
-| A vitest release adds a member whose name is a TypeScript assertion name | The TypeScript gate fails against that release | The definition renames the assertion in its next major version |
+| A vitest or jest release adds a member whose name is a TypeScript assertion name | The TypeScript gate fails against that release | The definition renames the assertion in its next major version |
 | A test file loads a chai plugin that defines a TypeScript assertion name as a property | Loaded before the library, the property makes the library's registration throw a TypeError, as vitest's `rejects` does. Loaded after it, the property replaces the matcher for the whole worker | None in the definition. chai-as-promised 8.0.2 defines `eventually` as a property |
 | A test calls a registered matcher with `.not` | The matcher fails | The failure gives the standard's negative to use |
 
 ### Version
 
 Renaming an assertion is a major version, so the definition moves from
-1.1.0 to 2.0.0. `VERSION`, the `version` key of both tables, the rendered
-JSON and the manifest change, and every overlay extends 2.0.0. Each
-implementation moves to 2.0.0 when it syncs. Only the TypeScript
-implementation changes code. It renames 18 exported functions: nine on
-`check`, eight on `soft`, which has no `rejects`, and the `rejects` that
-its root module exports.
+8.1.0 to 9.0.0. `VERSION`, the `version` key of both tables, the rendered
+JSON and the manifest change, and every overlay extends 9.0.0. Each
+implementation moves to 9.0.0 when it syncs. Only the TypeScript
+implementation changes code. It renames 26 exported functions: nine on
+`check`, eight on `soft`, which has no `rejects`, the `rejects` that its
+root module exports, and the eight property forms in `prop` whose
+assertions take a new name.
 
 ## Alternatives considered
 
@@ -364,23 +370,15 @@ another major version.
 - The version is major. Six overlays change their `extends`, and five
   implementations sync to a version whose renames all fall in the
   TypeScript column.
-- The TypeScript library renames 18 exported functions, and a TypeScript
+- The TypeScript library renames 26 exported functions, and a TypeScript
   caller of the nine assertions edits every such call.
-- The rule covers vitest's own `expect`. A chai plugin that a project
-  loads can still define one of the names, as chai-as-promised defines
-  `eventually`.
+- The rule covers the own `expect` of vitest and jest. A plugin that a
+  project loads can still define one of the names, as chai-as-promised
+  defines `eventually`.
 - `expect` means two things across the languages. In Go and Python,
   `expect` is the namespace that records a failure and continues. In
   TypeScript, vitest's `expect` stops at a failure, and `expect.soft`
   records.
-
-## Open questions
-
-- Should the rule also cover jest's `expect`, so that the TypeScript
-  library can register the same matchers under jest? jest defines
-  `rejects` as a modifier as well.
-- Should a matcher called with `.not` fail, or apply the standard's
-  negative where one exists?
 
 ## Unresolved and future work
 
@@ -389,7 +387,7 @@ another major version.
   assertions and the four error assertions `err-is`, `err-is-not`,
   `err-absent` and `err-present`. This proposal settles only
   TypeScript's.
-- A TypeScript chain outside vitest.
+- A TypeScript chain outside vitest and jest.
 
 ## References
 
@@ -410,3 +408,4 @@ another major version.
 | Truth's `isEqualTo`, `isNotEqualTo`, `hasLength`, `doesNotContain` and `doesNotMatch` | <https://truth.dev/api/latest/com/google/common/truth/StringSubject.html> |
 | AssertJ's `isEqualTo` and `isCloseTo` | <https://www.javadoc.io/static/org.assertj/assertj-core/3.26.3/org/assertj/core/api/AbstractDoubleAssert.html> |
 | Our measurements on vitest 4.1.11 and 5.0.3, Node 26.10.0, 2026-10-01: the member and property lists read from the running engine; one discriminating input per colliding name; registrations of `equal` and `rejects`; three registered assertions under `expect.soft`, `expect.assertions`, `context.expect`, `globals: true`, `resolves`, the default reporter and a custom reporter; an unawaited failing matcher; alternative C, a namespace property over matchers registered under hidden names, under `expect.soft`, `expect.assertions`, `context.expect`, `resolves` and the default reporter | Scratch projects, one per vitest version |
+| Our measurements on jest 29.7.0 and 30.5.2, vitest 4.1.12 and 5.0.5, Node 26.12.0, 2026-10-20: the member and property lists of each runner read from the running engine, against the 50 TypeScript names of the root namespace | Scratch projects, one per runner version |
