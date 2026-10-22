@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """The standard's equality over decoded values, and a key that agrees with it.
 
 equal() is the equality of the ``equal`` assertion. It is structural and
@@ -13,10 +16,12 @@ equal() decides the match.
 
 from __future__ import annotations
 
-from collections.abc import Hashable
-from typing import Final
+from typing import TYPE_CHECKING, Final
 
 from prop.value import NO_PAYLOAD, Pairs, Record, Variant
+
+if TYPE_CHECKING:
+    from collections.abc import Hashable
 
 #: The tags of the scalar types, which compare with Python's own equality.
 _SCALARS: Final[dict[type, str]] = {
@@ -95,4 +100,5 @@ def _tag(value: object) -> str:
         return tag
     if isinstance(value, list | Pairs | Record | Variant):
         return type(value).__name__
-    raise TypeError(f"history: {value!r} is not a decoded value")
+    msg = f"history: {value!r} is not a decoded value"
+    raise TypeError(msg)

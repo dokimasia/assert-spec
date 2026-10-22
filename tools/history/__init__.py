@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """The linearizability checker and the history it reads, as code that runs.
 
 This package is the exact definition of ``linearizable``, ``serializable``,

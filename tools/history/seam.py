@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """Events in one recording order, and the script form in which the corpus states them.
 
 A History records each invocation and each completion as the next event.
@@ -16,13 +19,15 @@ with args, keys and output as typed literals and an error as its text.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any, final
+from typing import TYPE_CHECKING, Any, final
 
 from prop.literal import decode, encode
 from prop.value import canonical
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Mapping, Sequence
 
 
 class UsageError(Exception):
@@ -142,17 +147,17 @@ class History:
                 that a typed literal decodes to.
         """
         if client in self._open:
-            raise UsageError(
+            msg = (
                 f"history: client {client} invokes {operation!r} while its call "
                 f"{self._open[client]} is open"
             )
+            raise UsageError(msg)
         for key in keys:
             try:
                 canonical(key)
             except TypeError as bad:
-                raise UsageError(
-                    f"history: the key {key!r} has no typed literal"
-                ) from bad
+                msg = f"history: the key {key!r} has no typed literal"
+                raise UsageError(msg) from bad
         if client not in self._process:
             self._process[client] = self._processes
             self._processes += 1
@@ -185,7 +190,8 @@ class History:
         invocation = self._events[call]
         client = invocation.client
         if self._open.get(client) != call:
-            raise UsageError(f"history: call {call} has completed already")
+            msg = f"history: call {call} has completed already"
+            raise UsageError(msg)
         del self._open[client]
         if kind is Kind.UNKNOWN:
             del self._process[client]

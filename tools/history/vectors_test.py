@@ -1,9 +1,14 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """The vector functions of the seam and the checker, and what they refuse."""
 
 from __future__ import annotations
 
 import unittest
 from typing import Any, final
+
+import pytest
 
 from prop.vectors import VectorError
 
@@ -51,36 +56,37 @@ class SeamTest(unittest.TestCase):
     def test_a_script_records_its_events(self) -> None:
         """The events are in the history's JSON form, and nothing is refused."""
         got = compute("seam", {"script": MISSED[:2]})
-        self.assertEqual(got["refused"], None)
-        self.assertEqual(
-            [(event["index"], event["kind"]) for event in got["events"]],
-            [(0, "invoke"), (1, "ok")],
-        )
+        assert got["refused"] is None
+        assert [(event["index"], event["kind"]) for event in got["events"]] == [
+            (0, "invoke"),
+            (1, "ok"),
+        ]
 
     def test_a_script_names_the_entry_that_raises(self) -> None:
         """A second completion of call 0 is entry 2."""
         got = compute("seam", {"script": [*MISSED[:2], {"ok": 0, "output": NULL}]})
-        self.assertEqual(got, {"events": None, "refused": 2})
+        assert got == {"events": None, "refused": 2}
 
     def test_intervals_record_their_events(self) -> None:
         """A failure states its error, and a pending entry has no completion."""
         failed = {**entry(0, 0), "end": 1, "kind": "fail", "error": "refused"}
         got = compute("seam", {"intervals": [failed, entry(1, 0)]})
-        self.assertEqual(
-            [(event["kind"], event.get("error")) for event in got["events"]],
-            [("invoke", None), ("invoke", None), ("fail", "refused")],
-        )
+        assert [(event["kind"], event.get("error")) for event in got["events"]] == [
+            ("invoke", None),
+            ("invoke", None),
+            ("fail", "refused"),
+        ]
 
     def test_intervals_name_the_entry_that_from_intervals_refuses(self) -> None:
         """Entry 1 of client 0 shares the instant 3 with entry 0."""
         got = compute("seam", {"intervals": [entry(0, 3, 6), entry(0, 0, 3)]})
-        self.assertEqual(got, {"events": None, "refused": 1})
+        assert got == {"events": None, "refused": 1}
 
     def test_a_vector_states_a_script_or_intervals(self) -> None:
         """Both, or neither, is refused."""
         cases: list[dict[str, Any]] = [{}, {"script": [], "intervals": []}]
         for case in cases:
-            with self.assertRaisesRegex(VectorError, "a script or intervals"):
+            with pytest.raises(VectorError, match="a script or intervals"):
                 compute("seam", case)
 
     def test_an_interval_states_an_end_and_a_kind_together(self) -> None:
@@ -90,7 +96,7 @@ class SeamTest(unittest.TestCase):
             {**entry(0, 0), "kind": "ok", "output": NULL},
             {**entry(0, 0), "end": 1, "kind": "invoke"},
         ):
-            with self.assertRaisesRegex(VectorError, "a completion kind and an end"):
+            with pytest.raises(VectorError, match="a completion kind and an end"):
                 compute("seam", {"intervals": [stated]})
 
 
@@ -101,18 +107,14 @@ class LinearizableTest(unittest.TestCase):
     def test_a_violation_fails_with_the_detail_of_its_record(self) -> None:
         """The read misses the write, after two steps."""
         got = compute("linearizable", {"spec": "register", "history": MISSED})
-        self.assertEqual(got["expect"], "fail")
-        self.assertEqual(
-            (got["detail"]["outcome"], got["detail"]["steps"]), ("violated", 2)
-        )
+        assert got["expect"] == "fail"
+        assert (got["detail"]["outcome"], got["detail"]["steps"]) == ("violated", 2)
 
     def test_a_pass_states_its_steps(self) -> None:
         """A read of null before any write passes after one step."""
         got = compute("linearizable", {"spec": "register", "history": MISSED[2:]})
-        self.assertEqual(got["expect"], "pass")
-        self.assertEqual(
-            (got["detail"]["outcome"], got["detail"]["steps"]), ("passed", 1)
-        )
+        assert got["expect"] == "pass"
+        assert (got["detail"]["outcome"], got["detail"]["steps"]) == ("passed", 1)
 
     def test_reads_the_budget_and_the_memo_limit(self) -> None:
         """A budget of one step, and a memo below one configuration, each stop it."""
@@ -123,7 +125,7 @@ class LinearizableTest(unittest.TestCase):
             got = compute(
                 "linearizable", {"spec": "register", "history": MISSED, **case}
             )
-            self.assertEqual(got["detail"]["limit"], limit)
+            assert got["detail"]["limit"] == limit
 
     def test_reports_on_four_workers_what_it_reports_on_one(self) -> None:
         """The workers are read, and change nothing."""
@@ -131,7 +133,7 @@ class LinearizableTest(unittest.TestCase):
         four = compute(
             "linearizable", {"spec": "register", "history": MISSED, "workers": 4}
         )
-        self.assertEqual(four, one)
+        assert four == one
 
     def test_refuses_a_limit_that_is_not_a_positive_integer(self) -> None:
         """A zero, a negative number, a bool and a string are no limit."""
@@ -141,7 +143,7 @@ class LinearizableTest(unittest.TestCase):
             ("workers", True),
             ("workers", "4"),
         ):
-            with self.assertRaisesRegex(VectorError, f"{name} is .*not a positive"):
+            with pytest.raises(VectorError, match=f"{name} is .*not a positive"):
                 compute(
                     "linearizable",
                     {"spec": "register", "history": MISSED, name: value},
@@ -149,13 +151,13 @@ class LinearizableTest(unittest.TestCase):
 
     def test_refuses_a_spec_that_is_not_named(self) -> None:
         """A stack is no named spec."""
-        with self.assertRaisesRegex(VectorError, "'stack' is no named spec"):
+        with pytest.raises(VectorError, match="'stack' is no named spec"):
             compute("linearizable", {"spec": "stack", "history": MISSED})
 
     def test_refuses_a_history_whose_script_raises(self) -> None:
         """A history is a script that the seam accepts."""
         refused = [*MISSED[:2], {"ok": 0, "output": NULL}]
-        with self.assertRaisesRegex(VectorError, "script entry 2"):
+        with pytest.raises(VectorError, match="script entry 2"):
             compute("linearizable", {"spec": "register", "history": refused})
 
 
@@ -219,27 +221,25 @@ class IsolationTest(unittest.TestCase):
     ) -> None:
         """The record reports G2, a cycle of two rw edges."""
         got = compute("serializable", {"history": WRITE_SKEW})
-        self.assertEqual(got["expect"], "fail")
-        self.assertEqual(
-            (got["detail"]["anomaly"], got["detail"]["kinds"]), ("G2", ["G2"])
-        )
+        assert got["expect"] == "fail"
+        assert (got["detail"]["anomaly"], got["detail"]["kinds"]) == ("G2", ["G2"])
 
     def test_a_write_skew_passes_snapshot_isolation(self) -> None:
         """Snapshot isolation permits two adjacent rw edges."""
         got = compute("snapshot-isolation", {"history": WRITE_SKEW})
-        self.assertEqual(got["expect"], "pass")
-        self.assertEqual((got["detail"]["anomaly"], got["detail"]["kinds"]), (None, []))
+        assert got["expect"] == "pass"
+        assert (got["detail"]["anomaly"], got["detail"]["kinds"]) == (None, [])
 
     def test_refuses_a_history_whose_script_raises(self) -> None:
         """A second completion of call 0 is refused at entry 4."""
         refused = [*WRITE_SKEW, WRITE_SKEW[2]]
-        with self.assertRaisesRegex(VectorError, "script entry 4"):
+        with pytest.raises(VectorError, match="script entry 4"):
             compute("serializable", {"history": refused})
 
     def test_refuses_a_history_that_is_no_list_append_history(self) -> None:
         """A transaction states micro-operations."""
         broken = [txn(0, 0, mop("write", "x", 1)), done(0, mop("write", "x", 1))]
-        with self.assertRaisesRegex(VectorError, "argument 0 of call 0"):
+        with pytest.raises(VectorError, match="argument 0 of call 0"):
             compute("snapshot-isolation", {"history": broken})
 
 
@@ -249,10 +249,10 @@ class ComputeTest(unittest.TestCase):
 
     def test_refuses_an_unknown_kind(self) -> None:
         """A kind of the property engine is none of the history's."""
-        with self.assertRaisesRegex(VectorError, "'token' is no vector kind"):
+        with pytest.raises(VectorError, match="'token' is no vector kind"):
             compute("token", {})
 
     def test_names_an_input_a_vector_lacks(self) -> None:
         """A linearizable vector names its spec."""
-        with self.assertRaisesRegex(VectorError, "linearizable vector lacks 'spec'"):
+        with pytest.raises(VectorError, match="linearizable vector lacks 'spec'"):
             compute("linearizable", {"history": MISSED})

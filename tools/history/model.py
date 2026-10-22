@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """The sequential model a history is checked against, and the named models.
 
 A model is an initial state and a step function over states. step
@@ -22,7 +25,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Hashable, Sequence
 from dataclasses import dataclass
-from typing import Final
+from typing import Any, Final
 
 from prop.value import Pairs
 
@@ -50,14 +53,18 @@ def _one(state: object) -> int:
 
 
 @dataclass(frozen=True)
-class Model:
-    """An initial state, a step function, and how states compare and cost."""
+class Model[S]:
+    """An initial state, a step function, and how states compare and cost.
 
-    init: Callable[[], object]
-    step: Callable[[object, Op], Sequence[object]]
-    equal: Callable[[object, object], bool] = equality.equal
-    key: Callable[[object], Hashable] = equality.key
-    cost: Callable[[object], int] = _one
+    S is the type of the states. Each function takes the states that init
+    and step return, and no other value.
+    """
+
+    init: Callable[[], S]
+    step: Callable[[S, Op], Sequence[S]]
+    equal: Callable[[S, S], bool] = equality.equal
+    key: Callable[[S], Hashable] = equality.key
+    cost: Callable[[S], int] = _one
 
 
 #: The value of a key that the key-value model has not stored.
@@ -146,9 +153,13 @@ def _store(state: Pairs, name: object, value: object) -> Pairs:
     return Pairs(tuple(kept))
 
 
-def _key_value(state: object, op: Op) -> list[object]:
-    """Step the map from keys to strings, each of which starts empty."""
-    assert isinstance(state, Pairs)
+def _key_value(state: Pairs, op: Op) -> list[Pairs]:
+    """Step the map from keys to strings, each of which starts empty.
+
+    Raises:
+        ValueError: the operation is not get, put or append, or an append
+            joins two values that are not both strings.
+    """
     name = op.args[0]
     held = _lookup(state, name)
     if op.operation == "get":
@@ -157,15 +168,18 @@ def _key_value(state: object, op: Op) -> list[object]:
         return [_store(state, name, op.args[1])]
     if op.operation == "append":
         suffix = op.args[1]
-        assert isinstance(held, str)
-        assert isinstance(suffix, str)
+        if not isinstance(held, str) or not isinstance(suffix, str):
+            msg = (
+                "history: the key-value model appends strings, "
+                f"not {suffix!r} to {held!r}"
+            )
+            raise ValueError(msg)
         return [_store(state, name, held + suffix)]
     raise _unknown(op.operation, "key-value")
 
 
-def _queue(state: object, op: Op) -> list[object]:
+def _queue(state: list[object], op: Op) -> list[list[object]]:
     """Step the queue: dequeue outputs the head, or null when the queue is empty."""
-    assert isinstance(state, list)
     if op.operation == "enqueue":
         (value,) = op.args
         return [[*state, value]]
@@ -176,13 +190,12 @@ def _queue(state: object, op: Op) -> list[object]:
     return [state[1:]] if not op.known or equality.equal(op.output, state[0]) else []
 
 
-def _set(state: object, op: Op) -> list[object]:
+def _set(state: list[object], op: Op) -> list[list[object]]:
     """Step the set, which lists its values in the order they were added.
 
     remove and contains output whether the value is present. A remove whose
     outcome is unknown removes the value when it is present.
     """
-    assert isinstance(state, list)
     (value,) = op.args
     present = any(equality.equal(value, held) for held in state)
     if op.operation == "add":
@@ -196,34 +209,41 @@ def _set(state: object, op: Op) -> list[object]:
     return [[held for held in state if not equality.equal(held, value)]]
 
 
-def _same_set(a: object, b: object) -> bool:
+def _same_set(a: list[object], b: list[object]) -> bool:
     """Report whether two set states list the same values, in any order."""
-    assert isinstance(a, list)
-    assert isinstance(b, list)
     return len(a) == len(b) and all(any(equality.equal(x, y) for y in b) for x in a)
 
 
-def _set_key(state: object) -> Hashable:
+def _set_key(state: list[object]) -> Hashable:
     """Return a key that two set states with the same values share."""
-    assert isinstance(state, list)
     return frozenset(equality.key(value) for value in state)
 
 
-#: The models the corpus names, keyed by name.
-NAMED: Final[dict[str, Model]] = {
+def _empty() -> list[object]:
+    """Return the state of an empty queue or set."""
+    return []
+
+
+#: The models the corpus names, keyed by name. Each model has states of its
+#: own type, and a checker takes any model.
+NAMED: Final[dict[str, Model[Any]]] = {
     "register": Model(lambda: None, _register),
     "cas-register": Model(lambda: None, _cas_register),
     "key-value": Model(lambda: Pairs(()), _key_value),
-    "queue": Model(list, _queue),
-    "set": Model(list, _set, _same_set, _set_key),
+    "queue": Model(_empty, _queue),
+    "set": Model(_empty, _set, _same_set, _set_key),
     "lossy-register": Model(lambda: None, _lossy_register),
 }
 
 #: A subject applies an operation to its arguments and returns the output.
 Subject = Callable[[str, tuple[object, ...]], object]
 
+#: A state of the model that model_from returns. It lists each applied call as
+#: its operation and its arguments.
+Calls = tuple[tuple[str, tuple[object, ...]], ...]
 
-def model_from(factory: Callable[[], Subject]) -> Model:
+
+def model_from(factory: Callable[[], Subject]) -> Model[Calls]:
     """Return a model whose state is the sequence of calls applied so far.
 
     The state lists the operation and the arguments of each applied call,
@@ -235,8 +255,7 @@ def model_from(factory: Callable[[], Subject]) -> Model:
     equal operations with equal arguments, in the same order.
     """
 
-    def step(state: object, op: Op) -> list[object]:
-        assert isinstance(state, tuple)
+    def step(state: Calls, op: Op) -> list[Calls]:
         subject = factory()
         for operation, args in state:
             subject(operation, args)
@@ -245,26 +264,27 @@ def model_from(factory: Callable[[], Subject]) -> Model:
             return []
         return [(*state, (op.operation, op.args))]
 
-    return Model(tuple, step, _same_calls, _calls_key, _replays)
+    return Model(_no_calls, step, _same_calls, _calls_key, _replays)
 
 
-def _same_calls(a: object, b: object) -> bool:
+def _no_calls() -> Calls:
+    """Return the state before the first call."""
+    return ()
+
+
+def _same_calls(a: Calls, b: Calls) -> bool:
     """Report whether two sequences list equal operations with equal arguments."""
-    assert isinstance(a, tuple)
-    assert isinstance(b, tuple)
     return len(a) == len(b) and all(
         x[0] == y[0] and equality.equal(list(x[1]), list(y[1]))
         for x, y in zip(a, b, strict=True)
     )
 
 
-def _calls_key(state: object) -> Hashable:
+def _calls_key(state: Calls) -> Hashable:
     """Return a key that two equal sequences of calls share."""
-    assert isinstance(state, tuple)
     return tuple((operation, equality.key(list(args))) for operation, args in state)
 
 
-def _replays(state: object) -> int:
+def _replays(state: Calls) -> int:
     """Return the cost of a step of model_from: the calls it replays, plus one."""
-    assert isinstance(state, tuple)
     return len(state) + 1

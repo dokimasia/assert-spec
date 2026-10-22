@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """Decide whether a history is linearizable, by a fixed search over its partitions.
 
 check() first removes every call that failed. It joins the calls that
@@ -36,16 +39,18 @@ stopped.
 from __future__ import annotations
 
 import itertools
-from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any, Final, final
+from typing import TYPE_CHECKING, Any, Final, final
 
 from prop.literal import encode
 from prop.value import canonical
 
 from .model import Model, Op
 from .seam import Event, Kind
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 #: The steps one partition's search may spend unless a check states another.
 BUDGET: Final = 10_000_000
@@ -162,7 +167,7 @@ class Verdict:
 
 def check(
     events: Sequence[Event],
-    model: Model,
+    model: Model[Any],
     budget: int = BUDGET,
     memo_limit: int = MEMO_LIMIT,
 ) -> Verdict:
@@ -199,7 +204,7 @@ def check(
 
 def whole(
     events: Sequence[Event],
-    model: Model,
+    model: Model[Any],
     budget: int = BUDGET,
     memo_limit: int = MEMO_LIMIT,
 ) -> tuple[Verdict, tuple[object, ...]]:
@@ -348,7 +353,7 @@ class _Search:
     """
 
     def __init__(
-        self, calls: Sequence[Call], model: Model, budget: int, memo_limit: int
+        self, calls: Sequence[Call], model: Model[Any], budget: int, memo_limit: int
     ) -> None:
         """Lay out the entries of calls in event order, before the first step."""
         self._calls = calls

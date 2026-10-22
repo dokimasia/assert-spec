@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """The corpus vectors of the history seam and the checker, computed from their inputs.
 
 Each vector kind has a function that takes a case's inputs, as the corpus
@@ -22,8 +25,7 @@ its kind passes, and the detail of its record.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
-from typing import Any, Final
+from typing import TYPE_CHECKING, Any, Final
 
 from prop.literal import decode
 from prop.vectors import Vector, VectorError
@@ -41,6 +43,9 @@ from .seam import (
     record,
 )
 
+if TYPE_CHECKING:
+    from collections.abc import Callable, Mapping
+
 #: The completion kinds an interval entry may state.
 COMPLETIONS: Final = frozenset({Kind.OK, Kind.FAIL, Kind.UNKNOWN})
 
@@ -53,7 +58,8 @@ def seam(case: Mapping[str, Any]) -> Vector:
             neither, or an entry's end and completion kind disagree.
     """
     if ("script" in case) == ("intervals" in case):
-        raise VectorError("history: a seam vector states a script or intervals")
+        msg = "history: a seam vector states a script or intervals"
+        raise VectorError(msg)
     try:
         if "script" in case:
             events = record(case["script"])
@@ -73,10 +79,11 @@ def _interval(entry: Mapping[str, Any]) -> Interval:
     """
     end, kind = entry.get("end"), entry.get("kind")
     if (end is None) != (kind is None) or kind not in {None, *COMPLETIONS}:
-        raise VectorError(
+        msg = (
             f"history: an interval states a completion kind and an end, or "
             f"neither, not {entry!r}"
         )
+        raise VectorError(msg)
     completion = None if kind is None else Kind(kind)
     return Interval(
         entry["client"],
@@ -103,7 +110,8 @@ def linearizable(case: Mapping[str, Any]) -> Vector:
     """
     model = NAMED.get(str(case["spec"]))
     if model is None:
-        raise VectorError(f"history: {case['spec']!r} is no named spec")
+        msg = f"history: {case['spec']!r} is no named spec"
+        raise VectorError(msg)
     try:
         events = record(case["history"])
     except ScriptError as refused:
@@ -151,7 +159,8 @@ def _positive(case: Mapping[str, Any], name: str, default: int) -> int:
     """
     value = case.get(name, default)
     if isinstance(value, bool) or not isinstance(value, int) or value < 1:
-        raise VectorError(f"history: {name} is {value!r}, not a positive integer")
+        msg = f"history: {name} is {value!r}, not a positive integer"
+        raise VectorError(msg)
     return value
 
 
@@ -171,8 +180,10 @@ def compute(kind: str, case: Mapping[str, Any]) -> Vector:
     """
     function = KINDS.get(kind)
     if function is None:
-        raise VectorError(f"history: {kind!r} is no vector kind")
+        msg = f"history: {kind!r} is no vector kind"
+        raise VectorError(msg)
     try:
         return function(case)
     except KeyError as missing:
-        raise VectorError(f"history: a {kind} vector lacks {missing}") from None
+        msg = f"history: a {kind} vector lacks {missing}"
+        raise VectorError(msg) from None

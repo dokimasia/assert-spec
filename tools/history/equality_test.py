@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """The standard's equality, and the key that agrees with it."""
 
 from __future__ import annotations
@@ -5,6 +8,8 @@ from __future__ import annotations
 import math
 import unittest
 from typing import final
+
+import pytest
 
 from prop.value import Pairs, Record, Variant
 
@@ -55,22 +60,22 @@ class EqualTest(unittest.TestCase):
         """Every case has the standard's verdict, in both orders."""
         for name, a, b, want in CASES:
             with self.subTest(name):
-                self.assertIs(equal(a, b), want)
-                self.assertIs(equal(b, a), want)
+                assert equal(a, b) is want
+                assert equal(b, a) is want
 
     def test_a_nan_equals_nothing(self) -> None:
         """A NaN is unequal to itself, alone and inside a list."""
         nan = math.nan
-        self.assertFalse(equal(nan, nan))
-        self.assertFalse(equal([nan], [nan]))
+        assert not equal(nan, nan)
+        assert not equal([nan], [nan])
 
     def test_refuses_a_value_that_no_literal_decodes_to(self) -> None:
         """A dict, a tuple or an object is no decoded value."""
         for value in ({}, (1,), object()):
             with self.subTest(type(value).__name__):
-                with self.assertRaises(TypeError):
+                with pytest.raises(TypeError):
                     equal(value, value)
-                with self.assertRaises(TypeError):
+                with pytest.raises(TypeError):
                     equal(value, 1)
 
 
@@ -83,13 +88,14 @@ class KeyTest(unittest.TestCase):
         for name, a, b, want in CASES:
             if want:
                 with self.subTest(name):
-                    self.assertEqual(key(a), key(b))
+                    assert key(a) == key(b)
 
     def test_values_of_other_types_have_other_keys(self) -> None:
         """A bool, an int and a float of one value have three keys."""
-        self.assertEqual(len({key(True), key(1), key(1.0)}), 3)
+        values: tuple[object, ...] = (True, 1, 1.0)
+        assert len({key(value) for value in values}) == 3
 
     def test_refuses_a_value_that_no_literal_decodes_to(self) -> None:
         """A dict has no key."""
-        with self.assertRaises(TypeError):
+        with pytest.raises(TypeError):
             key({})

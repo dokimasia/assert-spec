@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """Decide whether a history of list-append transactions exhibits an isolation anomaly.
 
 A transaction is one call whose operation is ``txn``. Its arguments are its
@@ -22,15 +25,17 @@ from __future__ import annotations
 
 import itertools
 from collections import deque
-from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
-from typing import Any, Final, final
+from typing import TYPE_CHECKING, Any, Final, final
 
 from prop.literal import encode
-from prop.value import canonical
+from prop.value import as_type, canonical
 
 from .seam import Event, Kind
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterator, Mapping, Sequence
 
 #: The operation of a transaction's call.
 TXN: Final = "txn"
@@ -216,9 +221,8 @@ def _transaction(invocation: Event, completion: Event | None) -> Transaction:
     """
     call = invocation.index
     if invocation.operation != TXN:
-        raise TransactionError(
-            f"history: call {call} is {invocation.operation!r}, not {TXN!r}"
-        )
+        msg = f"history: call {call} is {invocation.operation!r}, not {TXN!r}"
+        raise TransactionError(msg)
     mops = tuple(
         _invoked(call, position, arg) for position, arg in enumerate(invocation.args)
     )
@@ -247,16 +251,18 @@ def _invoked(call: int, position: int, raw: object) -> Mop:
             a list before it ran.
     """
     if not isinstance(raw, list) or len(raw) != _FIELDS or raw[0] not in _FUNCTIONS:
-        raise TransactionError(
+        msg = (
             f"history: argument {position} of call {call} is {raw!r}, not "
             "[append, key, value] or [read, key, null]"
         )
+        raise TransactionError(msg)
     function, key, value = raw
     if function == READ and value is not None:
-        raise TransactionError(
+        msg = (
             f"history: the read at argument {position} of call {call} states "
             "a list before it ran"
         )
+        raise TransactionError(msg)
     return Mop(str(function), key, value)
 
 
@@ -267,10 +273,11 @@ def _returned(call: int, invoked: tuple[Mop, ...], output: object) -> tuple[Mop,
         TransactionError: the output does not repeat invoked.
     """
     if not isinstance(output, list) or len(output) != len(invoked):
-        raise TransactionError(
+        msg = (
             f"history: the output of call {call} does not repeat its "
             f"{len(invoked)} micro-operations"
         )
+        raise TransactionError(msg)
     return tuple(
         _repeated(call, position, mop, raw)
         for position, (mop, raw) in enumerate(zip(invoked, output, strict=True))
@@ -293,20 +300,22 @@ def _repeated(call: int, position: int, mop: Mop, raw: object) -> Mop:
         and (mop.function == READ or canonical(raw[2]) == canonical(mop.value))
     ):
         stated = [mop.function, mop.key, mop.value]
-        raise TransactionError(
+        msg = (
             f"history: micro-operation {position} of the output of call {call} "
             f"is {raw!r}, which does not repeat {stated!r}"
         )
+        raise TransactionError(msg)
     value = raw[2]
     if mop.function == APPEND:
         return mop
     if value is None:
         return Mop(READ, mop.key, [])
     if not isinstance(value, list):
-        raise TransactionError(
+        msg = (
             f"history: the read at micro-operation {position} of the output of "
             f"call {call} returned {value!r}, not a list"
         )
+        raise TransactionError(msg)
     return Mop(READ, mop.key, value)
 
 
@@ -322,15 +331,17 @@ def _register(txn: Transaction, appended: dict[tuple[object, object], int]) -> N
         name = (canonical(mop.key), canonical(mop.value))
         first = appended.get(name)
         if first == txn.call:
-            raise TransactionError(
+            msg = (
                 f"history: call {txn.call} appends {mop.value!r} to the key "
                 f"{mop.key!r} twice"
             )
+            raise TransactionError(msg)
         if first is not None:
-            raise TransactionError(
+            msg = (
                 f"history: calls {first} and {txn.call} both append {mop.value!r} "
                 f"to the key {mop.key!r}"
             )
+            raise TransactionError(msg)
         appended[name] = txn.call
 
 
@@ -828,10 +839,9 @@ def _internal(txn: Transaction) -> Case | None:
         if mop.function == APPEND:
             known[key] = (whole, [*expected, mop.value])
             continue
-        read = mop.value
-        assert isinstance(read, list)
+        read = as_type(mop.value, list)
         future = _future(txn, position, read)
-        if future or (key in known and not _agrees(read, whole, expected)):
+        if future or (key in known and not _agrees(read, expected, whole=whole)):
             evidence = {
                 "call": txn.call,
                 "key": encode(mop.key),
@@ -856,7 +866,7 @@ def _future(txn: Transaction, position: int, read: list[object]) -> list[object]
     return [value for value in read if canonical(value) in later]
 
 
-def _agrees(read: list[object], whole: bool, expected: list[object]) -> bool:
+def _agrees(read: list[object], expected: list[object], *, whole: bool) -> bool:
     """Report whether a read is the expected list, or ends with it when not whole."""
     got = [canonical(value) for value in read]
     want = [canonical(value) for value in expected]

@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """check() over partitions, its search, its limits and the record it returns."""
 
 from __future__ import annotations
@@ -49,39 +52,36 @@ class OutcomeTest(unittest.TestCase):
         write(history, 0, 1).ok(None)
         read(history, 1).ok(None)
         verdict = check(history.events(), REGISTER)
-        self.assertEqual(
-            verdict.detail(),
-            {
-                "outcome": "violated",
-                "partitions": 1,
-                "steps": 2,
-                "partition": [literal("x")],
-                "calls": 2,
-                "concurrency": 1,
-                "linearized": [
-                    {
-                        "call": 0,
-                        "completion": 1,
-                        "process": 0,
-                        "operation": "write",
-                        "args": [literal(1)],
-                        "output": NULL,
-                    }
-                ],
-                "states": [literal(1)],
-                "candidates": [
-                    {
-                        "call": 2,
-                        "completion": 3,
-                        "process": 1,
-                        "operation": "read",
-                        "args": [],
-                        "output": NULL,
-                    }
-                ],
-                "limit": None,
-            },
-        )
+        assert verdict.detail() == {
+            "outcome": "violated",
+            "partitions": 1,
+            "steps": 2,
+            "partition": [literal("x")],
+            "calls": 2,
+            "concurrency": 1,
+            "linearized": [
+                {
+                    "call": 0,
+                    "completion": 1,
+                    "process": 0,
+                    "operation": "write",
+                    "args": [literal(1)],
+                    "output": NULL,
+                }
+            ],
+            "states": [literal(1)],
+            "candidates": [
+                {
+                    "call": 2,
+                    "completion": 3,
+                    "process": 1,
+                    "operation": "read",
+                    "args": [],
+                    "output": NULL,
+                }
+            ],
+            "limit": None,
+        }
 
     def test_concurrent_writes_take_effect_in_the_order_a_read_needs(self) -> None:
         """The read of 1 needs the write of 2 first, which the sixth step finds."""
@@ -92,8 +92,10 @@ class OutcomeTest(unittest.TestCase):
         second.ok(None)
         read(history, 0).ok(1)
         verdict = check(history.events(), REGISTER)
-        self.assertEqual(
-            (verdict.outcome, verdict.partitions, verdict.steps), (Outcome.PASSED, 1, 6)
+        assert (verdict.outcome, verdict.partitions, verdict.steps) == (
+            Outcome.PASSED,
+            1,
+            6,
         )
 
     def test_the_detail_of_a_pass_states_no_reported_partition(self) -> None:
@@ -101,30 +103,29 @@ class OutcomeTest(unittest.TestCase):
         history = History()
         write(history, 0, 1).ok(None)
         read(history, 1).ok(1)
-        self.assertEqual(
-            check(history.events(), REGISTER).detail(),
-            {
-                "outcome": "passed",
-                "partitions": 1,
-                "steps": 2,
-                "partition": None,
-                "calls": None,
-                "concurrency": None,
-                "linearized": None,
-                "states": None,
-                "candidates": None,
-                "limit": None,
-            },
-        )
+        assert check(history.events(), REGISTER).detail() == {
+            "outcome": "passed",
+            "partitions": 1,
+            "steps": 2,
+            "partition": None,
+            "calls": None,
+            "concurrency": None,
+            "linearized": None,
+            "states": None,
+            "candidates": None,
+            "limit": None,
+        }
 
     def test_a_history_without_calls_passes(self) -> None:
         """No events, or only failed calls, leave no partition."""
         history = History()
-        self.assertEqual(check(history.events(), REGISTER).partitions, 0)
+        assert check(history.events(), REGISTER).partitions == 0
         write(history, 0, 1).fail("refused")
         verdict = check(history.events(), REGISTER)
-        self.assertEqual(
-            (verdict.outcome, verdict.partitions, verdict.steps), (Outcome.PASSED, 0, 0)
+        assert (verdict.outcome, verdict.partitions, verdict.steps) == (
+            Outcome.PASSED,
+            0,
+            0,
         )
 
 
@@ -139,8 +140,10 @@ class CompletionTest(unittest.TestCase):
         read(history, 1, "x").ok(None)
         read(history, 2, "y").ok(None)
         verdict = check(history.events(), REGISTER)
-        self.assertEqual(
-            (verdict.outcome, verdict.partitions, verdict.steps), (Outcome.PASSED, 2, 2)
+        assert (verdict.outcome, verdict.partitions, verdict.steps) == (
+            Outcome.PASSED,
+            2,
+            2,
         )
 
     def test_a_write_whose_outcome_is_unknown_takes_effect_later(self) -> None:
@@ -152,7 +155,7 @@ class CompletionTest(unittest.TestCase):
         lost.unknown("timed out")
         read(history, 0).ok(2)
         verdict = check(history.events(), REGISTER)
-        self.assertEqual((verdict.outcome, verdict.steps), (Outcome.PASSED, 6))
+        assert (verdict.outcome, verdict.steps) == (Outcome.PASSED, 6)
 
     def test_a_call_whose_outcome_is_unknown_may_never_take_effect(self) -> None:
         """A second acquire of a held lock never took effect, so the history passes."""
@@ -162,7 +165,7 @@ class CompletionTest(unittest.TestCase):
         history.invoke(1, "acquire", [1], ["lock"]).unknown("timed out")
         history.invoke(2, "acquire", [2], ["lock"])
         verdict = check(history.events(), model)
-        self.assertEqual((verdict.outcome, verdict.steps), (Outcome.PASSED, 1))
+        assert (verdict.outcome, verdict.steps) == (Outcome.PASSED, 1)
 
     def test_a_pending_call_takes_effect_when_a_later_read_needs_it(self) -> None:
         """A write that never completes is seen by a read after it."""
@@ -170,7 +173,7 @@ class CompletionTest(unittest.TestCase):
         write(history, 0, 1)
         read(history, 1).ok(1)
         verdict = check(history.events(), REGISTER)
-        self.assertEqual((verdict.outcome, verdict.steps), (Outcome.PASSED, 2))
+        assert (verdict.outcome, verdict.steps) == (Outcome.PASSED, 2)
 
     def test_a_record_states_no_completion_of_a_pending_call(self) -> None:
         """A pending call states no completion, and an unknown call no output."""
@@ -179,24 +182,21 @@ class CompletionTest(unittest.TestCase):
         write(history, 1, 2).unknown("timed out")
         read(history, 2).ok(9)
         verdict = check(history.events(), REGISTER)
-        self.assertEqual(verdict.outcome, Outcome.VIOLATED)
-        self.assertEqual(verdict.steps, 9)
-        self.assertEqual((verdict.calls, verdict.concurrency), (3, 3))
-        self.assertEqual(
-            [call.document() for call in verdict.linearized],
-            [
-                {"call": 0, "process": 0, "operation": "write", "args": [literal(1)]},
-                {
-                    "call": 1,
-                    "completion": 2,
-                    "process": 1,
-                    "operation": "write",
-                    "args": [literal(2)],
-                },
-            ],
-        )
-        self.assertEqual(verdict.states, (2,))
-        self.assertEqual([call.index for call in verdict.candidates], [3])
+        assert verdict.outcome == Outcome.VIOLATED
+        assert verdict.steps == 9
+        assert (verdict.calls, verdict.concurrency) == (3, 3)
+        assert [call.document() for call in verdict.linearized] == [
+            {"call": 0, "process": 0, "operation": "write", "args": [literal(1)]},
+            {
+                "call": 1,
+                "completion": 2,
+                "process": 1,
+                "operation": "write",
+                "args": [literal(2)],
+            },
+        ]
+        assert verdict.states == (2,)
+        assert [call.index for call in verdict.candidates] == [3]
 
 
 @final
@@ -213,20 +213,17 @@ class PartitionTest(unittest.TestCase):
         read(history, 2, "y").ok(1)
         verdict = check(history.events(), REGISTER)
         detail = verdict.detail()
-        self.assertEqual(
-            {
-                name: detail[name]
-                for name in ("outcome", "partitions", "steps", "partition")
-            },
-            {
-                "outcome": "violated",
-                "partitions": 2,
-                "steps": 3,
-                "partition": [literal("x")],
-            },
-        )
-        self.assertEqual((detail["linearized"], detail["states"]), ([], [NULL]))
-        self.assertEqual([call["call"] for call in detail["candidates"]], [2])
+        assert {
+            name: detail[name]
+            for name in ("outcome", "partitions", "steps", "partition")
+        } == {
+            "outcome": "violated",
+            "partitions": 2,
+            "steps": 3,
+            "partition": [literal("x")],
+        }
+        assert (detail["linearized"], detail["states"]) == ([], [NULL])
+        assert [call["call"] for call in detail["candidates"]] == [2]
 
     def test_a_call_on_two_keys_joins_their_partitions(self) -> None:
         """The keys are listed in the order the history first declares them."""
@@ -235,10 +232,10 @@ class PartitionTest(unittest.TestCase):
         write(history, 1, 2, "y", "x").ok(None)
         read(history, 2, "y").ok(3)
         verdict = check(history.events(), REGISTER)
-        self.assertEqual(verdict.partition, ("x", "y"))
-        self.assertEqual((verdict.partitions, verdict.calls, verdict.steps), (1, 3, 3))
-        self.assertEqual([call.index for call in verdict.linearized], [0, 2])
-        self.assertEqual(verdict.states, (2,))
+        assert verdict.partition == ("x", "y")
+        assert (verdict.partitions, verdict.calls, verdict.steps) == (1, 3, 3)
+        assert [call.index for call in verdict.linearized] == [0, 2]
+        assert verdict.states == (2,)
 
     def test_a_call_that_declares_no_key_touches_every_key(self) -> None:
         """The whole history is one partition, which lists no key."""
@@ -247,17 +244,15 @@ class PartitionTest(unittest.TestCase):
         history.invoke(1, "read", [], []).ok(2)
         write(history, 2, 1, "y").ok(None)
         verdict = check(history.events(), REGISTER)
-        self.assertEqual(
-            (verdict.partitions, verdict.partition, verdict.calls), (1, (), 3)
-        )
-        self.assertEqual(verdict.detail()["partition"], [])
+        assert (verdict.partitions, verdict.partition, verdict.calls) == (1, (), 3)
+        assert verdict.detail()["partition"] == []
 
     def test_a_key_is_its_typed_literal(self) -> None:
         """The int 1 and the float 1.0 are two keys, so two partitions."""
         history = History()
         write(history, 0, 1, 1).ok(None)
         read(history, 1, 1.0).ok(None)
-        self.assertEqual(check(history.events(), REGISTER).partitions, 2)
+        assert check(history.events(), REGISTER).partitions == 2
 
 
 @final
@@ -275,27 +270,24 @@ class LimitTest(unittest.TestCase):
     def test_a_budget_is_spent_exactly(self) -> None:
         """Two steps decide x, so a budget of two passes."""
         verdict = check(self.history().events(), REGISTER, budget=2)
-        self.assertEqual((verdict.outcome, verdict.steps), (Outcome.PASSED, 3))
+        assert (verdict.outcome, verdict.steps) == (Outcome.PASSED, 3)
 
     def test_the_search_stops_before_a_step_past_its_budget(self) -> None:
         """Partition x stops after one step, and the step of y is not counted."""
         verdict = check(self.history().events(), REGISTER, budget=1)
         detail = verdict.detail()
-        self.assertEqual(
-            {
-                name: detail[name]
-                for name in ("outcome", "partitions", "steps", "partition", "limit")
-            },
-            {
-                "outcome": "undecided",
-                "partitions": 2,
-                "steps": 1,
-                "partition": [literal("x")],
-                "limit": "steps",
-            },
-        )
-        self.assertEqual([call["call"] for call in detail["linearized"]], [0])
-        self.assertEqual((detail["states"], detail["candidates"]), ([literal(1)], []))
+        assert {
+            name: detail[name]
+            for name in ("outcome", "partitions", "steps", "partition", "limit")
+        } == {
+            "outcome": "undecided",
+            "partitions": 2,
+            "steps": 1,
+            "partition": [literal("x")],
+            "limit": "steps",
+        }
+        assert [call["call"] for call in detail["linearized"]] == [0]
+        assert (detail["states"], detail["candidates"]) == ([literal(1)], [])
 
     def test_a_violated_partition_after_an_undecided_one_is_reported(self) -> None:
         """The violation of y is reported, with the steps of x and y."""
@@ -304,9 +296,11 @@ class LimitTest(unittest.TestCase):
         read(history, 1).ok(1)
         read(history, 2, "y").ok(7)
         verdict = check(history.events(), REGISTER, budget=1)
-        self.assertEqual(
-            (verdict.outcome, verdict.partition, verdict.steps, verdict.limit),
-            (Outcome.VIOLATED, ("y",), 2, None),
+        assert (verdict.outcome, verdict.partition, verdict.steps, verdict.limit) == (
+            Outcome.VIOLATED,
+            ("y",),
+            2,
+            None,
         )
 
     def test_the_first_of_two_undecided_partitions_is_reported(self) -> None:
@@ -317,22 +311,26 @@ class LimitTest(unittest.TestCase):
         write(history, 2, 2, "y").ok(None)
         read(history, 3, "y").ok(2)
         verdict = check(history.events(), REGISTER, budget=1)
-        self.assertEqual(
-            (verdict.outcome, verdict.partition, verdict.steps),
-            (Outcome.UNDECIDED, ("x",), 1),
+        assert (verdict.outcome, verdict.partition, verdict.steps) == (
+            Outcome.UNDECIDED,
+            ("x",),
+            1,
         )
 
     def test_the_memo_limit_counts_a_bit_per_call_for_each_configuration(self) -> None:
         """Partition x has two calls, so its second configuration needs four bits."""
         passed = check(self.history().events(), REGISTER, memo_limit=4)
-        self.assertEqual(passed.outcome, Outcome.PASSED)
+        assert passed.outcome == Outcome.PASSED
         stopped = check(self.history().events(), REGISTER, memo_limit=3)
-        self.assertEqual(
-            (stopped.outcome, stopped.limit, stopped.steps, stopped.partition),
-            (Outcome.UNDECIDED, Limit.MEMO, 2, ("x",)),
+        assert (stopped.outcome, stopped.limit, stopped.steps, stopped.partition) == (
+            Outcome.UNDECIDED,
+            Limit.MEMO,
+            2,
+            ("x",),
         )
-        self.assertEqual(
-            ([call.index for call in stopped.linearized], stopped.candidates), ([0], ())
+        assert ([call.index for call in stopped.linearized], stopped.candidates) == (
+            [0],
+            (),
         )
 
     def test_a_step_of_a_model_from_a_subject_costs_its_depth_plus_one(self) -> None:
@@ -354,11 +352,12 @@ class LimitTest(unittest.TestCase):
         history.invoke(0, "add", [1], []).ok(1)
         history.invoke(1, "add", [2], []).ok(3)
         model = model_from(counter)
-        self.assertEqual(check(history.events(), model).steps, 3)
+        assert check(history.events(), model).steps == 3
         stopped = check(history.events(), model, budget=2)
-        self.assertEqual(
-            (stopped.outcome, stopped.limit, stopped.steps),
-            (Outcome.UNDECIDED, Limit.STEPS, 1),
+        assert (stopped.outcome, stopped.limit, stopped.steps) == (
+            Outcome.UNDECIDED,
+            Limit.STEPS,
+            1,
         )
 
 
@@ -373,19 +372,19 @@ class ConfigurationTest(unittest.TestCase):
         write(history, 0, 1).ok(None)
         read(history, 0).ok(7)
         verdict = check(history.events(), NAMED["lossy-register"])
-        self.assertEqual((verdict.outcome, verdict.steps), (Outcome.VIOLATED, 5))
-        self.assertEqual(verdict.detail()["states"], [literal(1), NULL])
+        assert (verdict.outcome, verdict.steps) == (Outcome.VIOLATED, 5)
+        assert verdict.detail()["states"] == [literal(1), NULL]
 
     def test_the_memo_merges_a_configuration_reached_twice(self) -> None:
         """Two orders of two writes of 1 reach one configuration, searched once."""
         history = self.writes(1)
         verdict = check(history.events(), REGISTER)
-        self.assertEqual((verdict.outcome, verdict.steps), (Outcome.VIOLATED, 5))
+        assert (verdict.outcome, verdict.steps) == (Outcome.VIOLATED, 5)
 
     def test_the_memo_never_merges_a_state_that_contains_a_nan(self) -> None:
         """A NaN equals nothing, so the second order is searched again."""
         verdict = check(self.writes(math.nan).events(), REGISTER)
-        self.assertEqual((verdict.outcome, verdict.steps), (Outcome.VIOLATED, 6))
+        assert (verdict.outcome, verdict.steps) == (Outcome.VIOLATED, 6)
 
     def test_two_lists_of_states_are_one_configuration_only_at_one_length(self) -> None:
         """A key coarser than equality puts [1, 2] and [1] in one bucket.
@@ -404,7 +403,7 @@ class ConfigurationTest(unittest.TestCase):
             }
             return table.get((op.operation, state), [state])
 
-        model = Model(lambda: 0, paths, key=lambda state: 0)
+        model = Model(lambda: 0, paths, key=lambda _state: 0)
         history = History()
         a = history.invoke(0, "a", [], ["x"])
         b = history.invoke(1, "b", [], ["x"])
@@ -412,7 +411,7 @@ class ConfigurationTest(unittest.TestCase):
         b.ok(None)
         history.invoke(2, "c", [], ["x"]).ok(None)
         verdict = check(history.events(), model)
-        self.assertEqual((verdict.outcome, verdict.steps), (Outcome.VIOLATED, 8))
+        assert (verdict.outcome, verdict.steps) == (Outcome.VIOLATED, 8)
 
     def writes(self, value: object) -> History:
         """Return two concurrent writes of value, then a read of 5."""
@@ -435,9 +434,10 @@ class ConfigurationTest(unittest.TestCase):
         read(history, 3).ok(9)
         late.ok(9)
         verdict = check(history.events(), REGISTER)
-        self.assertEqual(
-            (verdict.outcome, verdict.calls, verdict.concurrency),
-            (Outcome.VIOLATED, 4, 3),
+        assert (verdict.outcome, verdict.calls, verdict.concurrency) == (
+            Outcome.VIOLATED,
+            4,
+            3,
         )
 
 
@@ -449,32 +449,36 @@ class WholeTest(unittest.TestCase):
         """No call, or only a failed one, leaves the model's initial state."""
         history = History()
         verdict, states = whole(history.events(), REGISTER)
-        self.assertEqual(
-            (verdict.outcome, verdict.partitions, verdict.steps), (Outcome.PASSED, 0, 0)
+        assert (verdict.outcome, verdict.partitions, verdict.steps) == (
+            Outcome.PASSED,
+            0,
+            0,
         )
-        self.assertEqual(states, (None,))
+        assert states == (None,)
         write(history, 0, 1).fail("refused")
-        self.assertEqual(whole(history.events(), REGISTER)[1], (None,))
+        assert whole(history.events(), REGISTER)[1] == (None,)
 
     def test_a_pass_states_the_states_after_the_order_it_found(self) -> None:
         """A lossy write of 1 leaves 1 and null, the first state first."""
         history = History()
         write(history, 0, 1).ok(None)
         verdict, states = whole(history.events(), NAMED["lossy-register"])
-        self.assertEqual(
-            (verdict.outcome, verdict.partitions, verdict.steps), (Outcome.PASSED, 1, 1)
+        assert (verdict.outcome, verdict.partitions, verdict.steps) == (
+            Outcome.PASSED,
+            1,
+            1,
         )
-        self.assertEqual(states, (1, None))
+        assert states == (1, None)
 
     def test_keys_do_not_split_the_history(self) -> None:
         """A read on y sees the write on x, which check() puts in another partition."""
         history = History()
         write(history, 0, 1, "x").ok(None)
         read(history, 1, "y").ok(1)
-        self.assertEqual(check(history.events(), REGISTER).outcome, Outcome.VIOLATED)
+        assert check(history.events(), REGISTER).outcome == Outcome.VIOLATED
         verdict, states = whole(history.events(), REGISTER)
-        self.assertEqual((verdict.outcome, verdict.partitions), (Outcome.PASSED, 1))
-        self.assertEqual(states, (1,))
+        assert (verdict.outcome, verdict.partitions) == (Outcome.PASSED, 1)
+        assert states == (1,)
 
     def test_a_violation_states_its_record_and_no_states(self) -> None:
         """The record is check()'s for one partition that lists no key."""
@@ -482,24 +486,21 @@ class WholeTest(unittest.TestCase):
         write(history, 0, 1, "x").ok(None)
         read(history, 1, "y").ok(2)
         verdict, states = whole(history.events(), REGISTER)
-        self.assertEqual(states, ())
+        assert states == ()
         detail = verdict.detail()
-        self.assertEqual(
-            {
-                name: detail[name]
-                for name in ("outcome", "partitions", "steps", "partition", "calls")
-            },
-            {
-                "outcome": "violated",
-                "partitions": 1,
-                "steps": 2,
-                "partition": [],
-                "calls": 2,
-            },
-        )
-        self.assertEqual(
-            (detail["states"], [call["call"] for call in detail["candidates"]]),
-            ([literal(1)], [2]),
+        assert {
+            name: detail[name]
+            for name in ("outcome", "partitions", "steps", "partition", "calls")
+        } == {
+            "outcome": "violated",
+            "partitions": 1,
+            "steps": 2,
+            "partition": [],
+            "calls": 2,
+        }
+        assert (detail["states"], [call["call"] for call in detail["candidates"]]) == (
+            [literal(1)],
+            [2],
         )
 
     def test_an_undecided_search_states_its_limit_and_no_states(self) -> None:
@@ -508,8 +509,9 @@ class WholeTest(unittest.TestCase):
         write(history, 0, 1).ok(None)
         read(history, 1).ok(1)
         verdict, states = whole(history.events(), REGISTER, budget=1)
-        self.assertEqual(
-            (verdict.outcome, verdict.limit, verdict.steps),
-            (Outcome.UNDECIDED, Limit.STEPS, 1),
+        assert (verdict.outcome, verdict.limit, verdict.steps) == (
+            Outcome.UNDECIDED,
+            Limit.STEPS,
+            1,
         )
-        self.assertEqual(states, ())
+        assert states == ()

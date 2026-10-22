@@ -1,9 +1,14 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """check() over list-append histories: the workload, the anomalies and the record."""
 
 from __future__ import annotations
 
 import unittest
 from typing import final
+
+import pytest
 
 from prop.literal import encode
 
@@ -52,7 +57,7 @@ def outcome(history: History, level: Level) -> tuple[str | None, list[str]]:
     return detail["anomaly"], detail["kinds"]
 
 
-def read_skew(t1_completes: str | None, observed: bool) -> History:
+def read_skew(t1_completes: str | None, *, observed: bool) -> History:
     """Return a read skew: call 0 sees call 1's append to y and not its append to x.
 
     Call 1 completes as t1_completes, or never for None. When observed is
@@ -87,21 +92,21 @@ class TransactionsTest(unittest.TestCase):
         """Every call of the history is a transaction."""
         history = History()
         history.invoke(0, "write", [1], ["x"]).ok(None)
-        with self.assertRaisesRegex(TransactionError, "call 0 is 'write', not 'txn'"):
+        with pytest.raises(TransactionError, match="call 0 is 'write', not 'txn'"):
             transactions(history.events())
 
     def test_refuses_an_argument_that_is_no_micro_operation(self) -> None:
         """A micro-operation states a function, a key and a value."""
         history = History()
         history.invoke(0, TXN, [[APPEND, "x"]], ["x"])
-        with self.assertRaisesRegex(TransactionError, "argument 0 of call 0"):
+        with pytest.raises(TransactionError, match="argument 0 of call 0"):
             transactions(history.events())
 
     def test_refuses_a_read_that_states_a_list_before_it_ran(self) -> None:
         """An invocation states a read's key and no list."""
         history = History()
         history.invoke(0, TXN, [read("x", [1])], ["x"])
-        with self.assertRaisesRegex(TransactionError, "states a list before it ran"):
+        with pytest.raises(TransactionError, match="states a list before it ran"):
             transactions(history.events())
 
     def test_refuses_an_output_that_does_not_repeat_the_invocation(self) -> None:
@@ -110,14 +115,14 @@ class TransactionsTest(unittest.TestCase):
             with self.subTest(output=output):
                 history = History()
                 invoke(history, 0, append("x", 1)).ok(output)
-                with self.assertRaisesRegex(TransactionError, "call 0"):
+                with pytest.raises(TransactionError, match="call 0"):
                     transactions(history.events())
 
     def test_refuses_a_read_that_returned_no_list(self) -> None:
         """A read returns the key's whole list."""
         history = History()
         invoke(history, 0, read("x", None)).ok([read("x", 5)])
-        with self.assertRaisesRegex(TransactionError, "returned 5, not a list"):
+        with pytest.raises(TransactionError, match="returned 5, not a list"):
             transactions(history.events())
 
     def test_a_read_that_returned_null_returned_the_empty_list(self) -> None:
@@ -125,18 +130,18 @@ class TransactionsTest(unittest.TestCase):
         history = History()
         invoke(history, 0, read("x", None)).ok([read("x", None)])
         (txn,) = transactions(history.events())
-        self.assertEqual(txn.mops[0].value, [])
+        assert txn.mops[0].value == []
 
     def test_refuses_a_value_appended_twice_to_one_key(self) -> None:
         """A value names one append, so it is appended to its key once."""
         history = History()
         run(history, 0, append("x", 1))
         run(history, 0, append("x", 1))
-        with self.assertRaisesRegex(TransactionError, "calls 0 and 2 both append 1"):
+        with pytest.raises(TransactionError, match="calls 0 and 2 both append 1"):
             transactions(history.events())
         history = History()
         run(history, 0, append("x", 1), append("x", 1))
-        with self.assertRaisesRegex(TransactionError, "call 0 appends 1 .* twice"):
+        with pytest.raises(TransactionError, match=r"call 0 appends 1 .* twice"):
             transactions(history.events())
 
     def test_accepts_one_value_appended_to_two_keys(self) -> None:
@@ -145,7 +150,7 @@ class TransactionsTest(unittest.TestCase):
         run(history, 0, append("x", 1), append("y", 1))
         run(history, 0, read("x", [1]), read("y", [1]))
         for level in LEVELS:
-            self.assertTrue(check(history.events(), level).passed)
+            assert check(history.events(), level).passed
 
 
 @final
@@ -160,21 +165,18 @@ class PassTest(unittest.TestCase):
         run(history, 0, read("x", [1, 2]))
         for level in LEVELS:
             verdict = check(history.events(), level)
-            self.assertTrue(verdict.passed)
-            self.assertEqual(
-                verdict.detail(),
-                {
-                    "anomaly": None,
-                    "kinds": [],
-                    "transactions": None,
-                    "cycle": None,
-                    "explanation": None,
-                },
-            )
+            assert verdict.passed
+            assert verdict.detail() == {
+                "anomaly": None,
+                "kinds": [],
+                "transactions": None,
+                "cycle": None,
+                "explanation": None,
+            }
 
     def test_passes_an_empty_history(self) -> None:
         """No transaction exhibits nothing."""
-        self.assertTrue(check([], Level.SERIALIZABLE).passed)
+        assert check([], Level.SERIALIZABLE).passed
 
     def test_passes_a_read_of_the_transactions_own_intermediate_append(self) -> None:
         """A call that reads between two of its own appends reads no other's state."""
@@ -182,7 +184,7 @@ class PassTest(unittest.TestCase):
         run(history, 0, append("x", 1), read("x", [1]), append("x", 2))
         run(history, 1, read("x", [1, 2]))
         for level in LEVELS:
-            self.assertTrue(check(history.events(), level).passed)
+            assert check(history.events(), level).passed
 
 
 @final
@@ -194,20 +196,17 @@ class DirectTest(unittest.TestCase):
         history = History()
         run(history, 0, read("x", [9]))
         detail = check(history.events(), Level.SERIALIZABLE).detail()
-        self.assertEqual(
-            (detail["anomaly"], detail["kinds"], detail["explanation"]),
-            (
-                "garbage-read",
-                ["garbage-read"],
-                [
-                    {
-                        "call": 0,
-                        "key": encode("x"),
-                        "read": encode([9]),
-                        "value": encode(9),
-                    }
-                ],
-            ),
+        assert (detail["anomaly"], detail["kinds"], detail["explanation"]) == (
+            "garbage-read",
+            ["garbage-read"],
+            [
+                {
+                    "call": 0,
+                    "key": encode("x"),
+                    "read": encode([9]),
+                    "value": encode(9),
+                }
+            ],
         )
 
     def test_reports_a_duplicate_append(self) -> None:
@@ -215,9 +214,9 @@ class DirectTest(unittest.TestCase):
         history = History()
         run(history, 0, append("x", 1))
         run(history, 1, read("x", [1, 1]))
-        self.assertEqual(
-            outcome(history, Level.SNAPSHOT_ISOLATION),
-            ("duplicate-append", ["duplicate-append"]),
+        assert outcome(history, Level.SNAPSHOT_ISOLATION) == (
+            "duplicate-append",
+            ["duplicate-append"],
         )
 
     def test_reports_a_read_that_lacks_the_transactions_own_append(self) -> None:
@@ -226,21 +225,18 @@ class DirectTest(unittest.TestCase):
         run(history, 0, append("x", 1))
         run(history, 1, append("x", 2), read("x", [1]))
         detail = check(history.events(), Level.SERIALIZABLE).detail()
-        self.assertEqual(
-            (detail["anomaly"], detail["explanation"]),
-            (
-                "internal-inconsistency",
-                [
-                    {
-                        "call": 2,
-                        "key": encode("x"),
-                        "read": encode([1]),
-                        "expected": encode([2]),
-                        "whole": False,
-                        "future": None,
-                    }
-                ],
-            ),
+        assert (detail["anomaly"], detail["explanation"]) == (
+            "internal-inconsistency",
+            [
+                {
+                    "call": 2,
+                    "key": encode("x"),
+                    "read": encode([1]),
+                    "expected": encode([2]),
+                    "whole": False,
+                    "future": None,
+                }
+            ],
         )
 
     def test_reports_a_read_of_the_transactions_own_later_append(self) -> None:
@@ -248,22 +244,19 @@ class DirectTest(unittest.TestCase):
         history = History()
         run(history, 0, read("x", [1]), append("x", 1))
         detail = check(history.events(), Level.SNAPSHOT_ISOLATION).detail()
-        self.assertEqual(
-            (detail["anomaly"], detail["kinds"], detail["explanation"]),
-            (
-                "internal-inconsistency",
-                ["internal-inconsistency"],
-                [
-                    {
-                        "call": 0,
-                        "key": encode("x"),
-                        "read": encode([1]),
-                        "expected": encode([]),
-                        "whole": False,
-                        "future": encode(1),
-                    }
-                ],
-            ),
+        assert (detail["anomaly"], detail["kinds"], detail["explanation"]) == (
+            "internal-inconsistency",
+            ["internal-inconsistency"],
+            [
+                {
+                    "call": 0,
+                    "key": encode("x"),
+                    "read": encode([1]),
+                    "expected": encode([]),
+                    "whole": False,
+                    "future": encode(1),
+                }
+            ],
         )
 
     def test_reports_a_read_that_differs_from_the_transactions_earlier_read(
@@ -274,9 +267,9 @@ class DirectTest(unittest.TestCase):
         reader = invoke(history, 0, read("x", None), read("x", None))
         run(history, 1, append("x", 1))
         reader.ok([read("x", []), read("x", [1])])
-        self.assertEqual(
-            outcome(history, Level.SERIALIZABLE),
-            ("internal-inconsistency", ["internal-inconsistency", "G-single", "G2"]),
+        assert outcome(history, Level.SERIALIZABLE) == (
+            "internal-inconsistency",
+            ["internal-inconsistency", "G-single", "G2"],
         )
 
     def test_reports_reads_that_are_not_prefixes_of_one_list(self) -> None:
@@ -287,19 +280,16 @@ class DirectTest(unittest.TestCase):
         run(history, 0, read("x", [1, 2]))
         run(history, 0, read("x", [1, 3]))
         detail = check(history.events(), Level.SERIALIZABLE).detail()
-        self.assertEqual(
-            (detail["anomaly"], detail["kinds"], detail["explanation"]),
-            (
-                "incompatible-order",
-                ["incompatible-order"],
-                [
-                    {
-                        "calls": [6, 8],
-                        "key": encode("x"),
-                        "reads": [encode([1, 2]), encode([1, 3])],
-                    }
-                ],
-            ),
+        assert (detail["anomaly"], detail["kinds"], detail["explanation"]) == (
+            "incompatible-order",
+            ["incompatible-order"],
+            [
+                {
+                    "calls": [6, 8],
+                    "key": encode("x"),
+                    "reads": [encode([1, 2]), encode([1, 3])],
+                }
+            ],
         )
 
     def test_reports_an_aborted_read(self) -> None:
@@ -308,18 +298,15 @@ class DirectTest(unittest.TestCase):
         invoke(history, 0, append("x", 1)).fail("aborted")
         run(history, 1, read("x", [1]))
         detail = check(history.events(), Level.SNAPSHOT_ISOLATION).detail()
-        self.assertEqual(
-            (detail["anomaly"], detail["kinds"], detail["explanation"]),
-            (
-                "aborted-read",
-                ["aborted-read"],
-                [{"call": 2, "key": encode("x"), "value": encode(1), "appender": 0}],
-            ),
+        assert (detail["anomaly"], detail["kinds"], detail["explanation"]) == (
+            "aborted-read",
+            ["aborted-read"],
+            [{"call": 2, "key": encode("x"), "value": encode(1), "appender": 0}],
         )
-        self.assertEqual(
-            [(t["call"], t.get("kind")) for t in detail["transactions"]],
-            [(2, "ok"), (0, "fail")],
-        )
+        assert [(t["call"], t.get("kind")) for t in detail["transactions"]] == [
+            (2, "ok"),
+            (0, "fail"),
+        ]
 
     def test_reports_an_intermediate_read(self) -> None:
         """A read ends in a value that its appender followed with another append.
@@ -331,21 +318,18 @@ class DirectTest(unittest.TestCase):
         run(history, 0, append("x", 1), append("x", 2))
         run(history, 1, read("x", [1]))
         detail = check(history.events(), Level.SERIALIZABLE).detail()
-        self.assertEqual(
-            (detail["anomaly"], detail["kinds"], detail["explanation"]),
-            (
-                "intermediate-read",
-                ["intermediate-read", "G-single", "G2"],
-                [
-                    {
-                        "call": 2,
-                        "key": encode("x"),
-                        "value": encode(1),
-                        "appender": 0,
-                        "next": encode(2),
-                    }
-                ],
-            ),
+        assert (detail["anomaly"], detail["kinds"], detail["explanation"]) == (
+            "intermediate-read",
+            ["intermediate-read", "G-single", "G2"],
+            [
+                {
+                    "call": 2,
+                    "key": encode("x"),
+                    "value": encode(1),
+                    "appender": 0,
+                    "next": encode(2),
+                }
+            ],
         )
 
 
@@ -362,35 +346,29 @@ class CycleTest(unittest.TestCase):
         second.ok([append("x", 2), append("y", 3)])
         run(history, 2, read("x", [1, 2]), read("y", [3, 4]))
         detail = check(history.events(), Level.SERIALIZABLE).detail()
-        self.assertEqual(
-            (detail["anomaly"], detail["kinds"], detail["cycle"]),
-            (
-                "G0",
-                ["G0"],
-                [{"call": 0, "relations": ["ww"]}, {"call": 1, "relations": ["ww"]}],
-            ),
+        assert (detail["anomaly"], detail["kinds"], detail["cycle"]) == (
+            "G0",
+            ["G0"],
+            [{"call": 0, "relations": ["ww"]}, {"call": 1, "relations": ["ww"]}],
         )
-        self.assertEqual(
-            detail["explanation"],
-            [
-                {
-                    "from": 0,
-                    "to": 1,
-                    "relation": "ww",
-                    "key": encode("x"),
-                    "value": encode(1),
-                    "next": encode(2),
-                },
-                {
-                    "from": 1,
-                    "to": 0,
-                    "relation": "ww",
-                    "key": encode("y"),
-                    "value": encode(3),
-                    "next": encode(4),
-                },
-            ],
-        )
+        assert detail["explanation"] == [
+            {
+                "from": 0,
+                "to": 1,
+                "relation": "ww",
+                "key": encode("x"),
+                "value": encode(1),
+                "next": encode(2),
+            },
+            {
+                "from": 1,
+                "to": 0,
+                "relation": "ww",
+                "key": encode("y"),
+                "value": encode(3),
+                "next": encode(4),
+            },
+        ]
 
     def test_drops_an_edge_from_a_transaction_to_itself(self) -> None:
         """Call 0 appends 1 and 2 to x, and the G0 cycle leaves that edge out."""
@@ -399,9 +377,9 @@ class CycleTest(unittest.TestCase):
         run(history, 1, append("y", 2), append("z", 3))
         run(history, 2, read("x", [1, 2]), read("y", [1, 2]), read("z", [3, 4]))
         detail = check(history.events(), Level.SERIALIZABLE).detail()
-        self.assertEqual(
-            (detail["anomaly"], [entry["call"] for entry in detail["cycle"]]),
-            ("G0", [0, 2]),
+        assert (detail["anomaly"], [entry["call"] for entry in detail["cycle"]]) == (
+            "G0",
+            [0, 2],
         )
 
     def test_reports_a_cycle_of_write_and_read_dependencies(self) -> None:
@@ -412,13 +390,10 @@ class CycleTest(unittest.TestCase):
         first.ok([append("x", 1), read("y", [2])])
         second.ok([append("y", 2), read("x", [1])])
         detail = check(history.events(), Level.SNAPSHOT_ISOLATION).detail()
-        self.assertEqual(
-            (detail["anomaly"], detail["kinds"], detail["cycle"]),
-            (
-                "G1c",
-                ["G1c"],
-                [{"call": 0, "relations": ["wr"]}, {"call": 1, "relations": ["wr"]}],
-            ),
+        assert (detail["anomaly"], detail["kinds"], detail["cycle"]) == (
+            "G1c",
+            ["G1c"],
+            [{"call": 0, "relations": ["wr"]}, {"call": 1, "relations": ["wr"]}],
         )
 
     def test_reports_a_cycle_with_exactly_one_read_write_dependency(self) -> None:
@@ -426,55 +401,50 @@ class CycleTest(unittest.TestCase):
         history = read_skew("ok", observed=True)
         verdict = check(history.events(), Level.SERIALIZABLE)
         events = history.events()
-        self.assertEqual(
-            verdict.detail(),
-            {
-                "anomaly": "G-single",
-                "kinds": ["G-single", "G2"],
-                "transactions": [
-                    {
-                        "call": 0,
-                        "completion": 3,
-                        "kind": "ok",
-                        "process": 0,
-                        "args": [encode(arg) for arg in events[0].args],
-                        "output": encode(events[3].output),
-                    },
-                    {
-                        "call": 1,
-                        "completion": 2,
-                        "kind": "ok",
-                        "process": 1,
-                        "args": [encode(arg) for arg in events[1].args],
-                        "output": encode(events[2].output),
-                    },
-                ],
-                "cycle": [
-                    {"call": 0, "relations": ["rw"]},
-                    {"call": 1, "relations": ["wr"]},
-                ],
-                "explanation": [
-                    {
-                        "from": 0,
-                        "to": 1,
-                        "relation": "rw",
-                        "key": encode("x"),
-                        "value": None,
-                        "next": encode(1),
-                    },
-                    {
-                        "from": 1,
-                        "to": 0,
-                        "relation": "wr",
-                        "key": encode("y"),
-                        "value": encode(2),
-                    },
-                ],
-            },
-        )
-        self.assertEqual(
-            outcome(history, Level.SNAPSHOT_ISOLATION), ("G-single", ["G-single"])
-        )
+        assert verdict.detail() == {
+            "anomaly": "G-single",
+            "kinds": ["G-single", "G2"],
+            "transactions": [
+                {
+                    "call": 0,
+                    "completion": 3,
+                    "kind": "ok",
+                    "process": 0,
+                    "args": [encode(arg) for arg in events[0].args],
+                    "output": encode(events[3].output),
+                },
+                {
+                    "call": 1,
+                    "completion": 2,
+                    "kind": "ok",
+                    "process": 1,
+                    "args": [encode(arg) for arg in events[1].args],
+                    "output": encode(events[2].output),
+                },
+            ],
+            "cycle": [
+                {"call": 0, "relations": ["rw"]},
+                {"call": 1, "relations": ["wr"]},
+            ],
+            "explanation": [
+                {
+                    "from": 0,
+                    "to": 1,
+                    "relation": "rw",
+                    "key": encode("x"),
+                    "value": None,
+                    "next": encode(1),
+                },
+                {
+                    "from": 1,
+                    "to": 0,
+                    "relation": "wr",
+                    "key": encode("y"),
+                    "value": encode(2),
+                },
+            ],
+        }
+        assert outcome(history, Level.SNAPSHOT_ISOLATION) == ("G-single", ["G-single"])
 
     def test_lists_only_rw_for_the_closing_edge_of_g_single(self) -> None:
         """Call 0 precedes call 2 by ww on x and rw on y, and G-single uses the rw."""
@@ -484,12 +454,9 @@ class CycleTest(unittest.TestCase):
         run(history, 2, read("x", [1, 2]))
         case = Analysis(transactions(history.events())).case(Anomaly.G_SINGLE)
         assert case is not None
-        self.assertEqual(
-            case.cycle,
-            (
-                {"call": 0, "relations": ["rw"]},
-                {"call": 2, "relations": ["wr"]},
-            ),
+        assert case.cycle == (
+            {"call": 0, "relations": ["rw"]},
+            {"call": 2, "relations": ["wr"]},
         )
 
     def test_reduces_a_walk_to_a_cycle_with_no_two_adjacent_rw_edges(self) -> None:
@@ -512,9 +479,7 @@ class CycleTest(unittest.TestCase):
         run(history, 3, append("k3", 3), append("k4", "p"))
         run(history, 4, append("k4", "q"), read("k5", []))
         run(history, 5, read("k2", ["b", "v"]), read("k4", ["p", "q"]))
-        self.assertEqual(
-            outcome(history, Level.SERIALIZABLE), ("G-single", ["G-single", "G2"])
-        )
+        assert outcome(history, Level.SERIALIZABLE) == ("G-single", ["G-single", "G2"])
 
     def test_orders_an_unobserved_append_after_its_own_transactions_read(
         self,
@@ -523,8 +488,9 @@ class CycleTest(unittest.TestCase):
         history = History()
         run(history, 0, append("x", 1), read("x", [1]), read("y", [3]))
         run(history, 1, append("x", 2), append("y", 3))
-        self.assertEqual(
-            outcome(history, Level.SERIALIZABLE), ("G1c", ["G1c", "G-single", "G2"])
+        assert outcome(history, Level.SERIALIZABLE) == (
+            "G1c",
+            ["G1c", "G-single", "G2"],
         )
 
     def test_fails_a_write_skew_as_serializable_and_passes_it_as_snapshot_isolation(
@@ -533,15 +499,12 @@ class CycleTest(unittest.TestCase):
         """Each call reads the empty list that the other's append follows."""
         history = write_skew()
         detail = check(history.events(), Level.SERIALIZABLE).detail()
-        self.assertEqual(
-            (detail["anomaly"], detail["kinds"], detail["cycle"]),
-            (
-                "G2",
-                ["G2"],
-                [{"call": 0, "relations": ["rw"]}, {"call": 1, "relations": ["rw"]}],
-            ),
+        assert (detail["anomaly"], detail["kinds"], detail["cycle"]) == (
+            "G2",
+            ["G2"],
+            [{"call": 0, "relations": ["rw"]}, {"call": 1, "relations": ["rw"]}],
         )
-        self.assertTrue(check(history.events(), Level.SNAPSHOT_ISOLATION).passed)
+        assert check(history.events(), Level.SNAPSHOT_ISOLATION).passed
 
     def test_reports_a_long_fork_at_both_levels(self) -> None:
         """Calls 2 and 3 see the appends of calls 0 and 1 in opposite orders.
@@ -572,15 +535,16 @@ class CycleTest(unittest.TestCase):
         ):
             with self.subTest(level=level):
                 detail = check(history.events(), level).detail()
-                self.assertEqual(
-                    (detail["anomaly"], detail["kinds"], detail["cycle"]),
-                    ("G-nonadjacent", kinds, cycle),
+                assert (detail["anomaly"], detail["kinds"], detail["cycle"]) == (
+                    "G-nonadjacent",
+                    kinds,
+                    cycle,
                 )
 
     def test_orders_an_unobserved_append_after_the_empty_list(self) -> None:
         """No read observed 2, and a read of the empty list precedes it."""
         history = write_skew()
-        self.assertEqual(outcome(history, Level.SERIALIZABLE)[0], "G2")
+        assert outcome(history, Level.SERIALIZABLE)[0] == "G2"
 
     def test_orders_an_unobserved_append_after_the_last_observed_value(self) -> None:
         """Call 4's append of 2 to k1 follows 1, the last value a read observed.
@@ -594,15 +558,12 @@ class CycleTest(unittest.TestCase):
         run(history, 2, read("k0", []), append("k1", 2))
         run(history, 3, read("k1", []), append("k0", 1))
         detail = check(history.events(), Level.SERIALIZABLE).detail()
-        self.assertEqual(
-            (
-                detail["anomaly"],
-                detail["kinds"],
-                [entry["call"] for entry in detail["cycle"]],
-            ),
-            ("G2", ["G2"], [2, 4, 6, 0]),
-        )
-        self.assertTrue(check(history.events(), Level.SNAPSHOT_ISOLATION).passed)
+        assert (
+            detail["anomaly"],
+            detail["kinds"],
+            [entry["call"] for entry in detail["cycle"]],
+        ) == ("G2", ["G2"], [2, 4, 6, 0])
+        assert check(history.events(), Level.SNAPSHOT_ISOLATION).passed
 
     def test_drops_the_inference_when_the_one_append_did_not_commit(self) -> None:
         """An unobserved append of a call of unknown outcome orders nothing."""
@@ -611,7 +572,7 @@ class CycleTest(unittest.TestCase):
         second = invoke(history, 1, read("y", None), append("x", 2))
         first.ok([read("x", []), append("y", 1)])
         second.unknown("timed out")
-        self.assertTrue(check(history.events(), Level.SERIALIZABLE).passed)
+        assert check(history.events(), Level.SERIALIZABLE).passed
 
     def test_takes_a_call_of_unknown_outcome_as_committed_when_a_read_observed_it(
         self,
@@ -620,9 +581,9 @@ class CycleTest(unittest.TestCase):
         for completes in ("unknown", None):
             with self.subTest(completes=completes):
                 history = read_skew(completes, observed=True)
-                self.assertEqual(
-                    outcome(history, Level.SNAPSHOT_ISOLATION),
-                    ("G-single", ["G-single"]),
+                assert outcome(history, Level.SNAPSHOT_ISOLATION) == (
+                    "G-single",
+                    ["G-single"],
                 )
 
     def test_leaves_out_a_call_of_unknown_outcome_that_no_read_observed(self) -> None:
@@ -630,7 +591,7 @@ class CycleTest(unittest.TestCase):
         for completes in ("unknown", None):
             with self.subTest(completes=completes):
                 history = read_skew(completes, observed=False)
-                self.assertTrue(check(history.events(), Level.SERIALIZABLE).passed)
+                assert check(history.events(), Level.SERIALIZABLE).passed
 
     def test_reports_the_cycle_of_the_component_with_the_lowest_call(self) -> None:
         """Two write skews, on x and y and then on a and b, report the first."""
@@ -640,7 +601,7 @@ class CycleTest(unittest.TestCase):
         third.ok([read("a", []), append("b", 1)])
         fourth.ok([read("b", []), append("a", 2)])
         detail = check(history.events(), Level.SERIALIZABLE).detail()
-        self.assertEqual([entry["call"] for entry in detail["cycle"]], [0, 1])
+        assert [entry["call"] for entry in detail["cycle"]] == [0, 1]
 
     def test_reports_the_shortest_path_back_from_the_closing_edge(self) -> None:
         """Calls 0, 1 and 2 read in a ring, and call 0 also reads call 1 directly."""
@@ -652,9 +613,9 @@ class CycleTest(unittest.TestCase):
         one.ok([append("y", 2), read("x", [1])])
         two.ok([append("z", 3), read("y", [2])])
         detail = check(history.events(), Level.SERIALIZABLE).detail()
-        self.assertEqual(
-            (detail["anomaly"], [entry["call"] for entry in detail["cycle"]]),
-            ("G1c", [0, 1]),
+        assert (detail["anomaly"], [entry["call"] for entry in detail["cycle"]]) == (
+            "G1c",
+            [0, 1],
         )
 
     def test_reports_g_single_from_a_component_that_has_one(self) -> None:
@@ -665,14 +626,11 @@ class CycleTest(unittest.TestCase):
         writer.ok([append("a", 1), append("b", 2)])
         reader.ok([read("a", []), read("b", [2])])
         detail = check(history.events(), Level.SERIALIZABLE).detail()
-        self.assertEqual(
-            (
-                detail["anomaly"],
-                detail["kinds"],
-                [entry["call"] for entry in detail["cycle"]],
-            ),
-            ("G-single", ["G-single", "G2"], [4, 5]),
-        )
+        assert (
+            detail["anomaly"],
+            detail["kinds"],
+            [entry["call"] for entry in detail["cycle"]],
+        ) == ("G-single", ["G-single", "G2"], [4, 5])
 
 
 if __name__ == "__main__":
