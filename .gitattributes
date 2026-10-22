@@ -1,3 +1,4 @@
-# Every checkout keeps LF line endings on every system, because the manifest states the digest of
-# the bytes of each file.
+# Managed by ergon init. Add repository settings to .ergon/local/.gitattributes and run ergon init sync.
 * text=auto eol=lf
+*.py diff=python
+uv.lock linguist-generated=true

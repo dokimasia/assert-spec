@@ -1,0 +1,15 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
+# The Makefile runs each tool as a script under tools, and Python puts that directory first on the
+# import path. prop, history, stateful and files are packages of this repository and not of PyPI.
+src = ["tools"]
+
+# PEP 8 asks for the suffix Error on the name of an exception that is an error. The reference
+# engines also raise signals as exceptions. Rejected ends a case as StopIteration ends a loop, and
+# N818 asks for the suffix on such a signal too.
+#
+# S603 reports every call of subprocess. The tools run zic, zdump and the interpreter of the tests
+# with arguments from this repository alone.
+[lint.per-file-ignores]
+"tools/**" = ["N818", "S603"]

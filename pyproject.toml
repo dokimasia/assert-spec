@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 # This repository ships no library. The project exists so uv can pin a
 # Python and the tools that render and check the definition, and so
 # anyone can run the same gate CI runs with one command.
@@ -10,31 +13,17 @@ description = "Rendering and validation for the assert-spec definition"
 requires-python = ">=3.12"
 dependencies = []
 
-[project.optional-dependencies]
+# uv installs the group dev in every environment of the project. ergon
+# runs mypy and pytest with uv run, and the targets of the Makefile run
+# python with uv run. Each of these runs has yaml and pytest installed.
+# ergon pins ruff and mypy itself.
+[dependency-groups]
 dev = [
     "pyyaml>=6",
     "types-PyYAML>=6",
-    "ruff>=0.6",
-    "mypy>=1.11",
+    "pytest>=9.1",
     "basedpyright>=1.19",
 ]
-
-[tool.ruff]
-line-length = 88
-src = ["tools"]
-
-[tool.ruff.lint]
-select = ["E", "F", "I", "N", "UP", "B", "SIM", "RUF", "D", "ANN", "PL"]
-# ANN401 bans Any. This code reads arbitrary decoded JSON and its
-# job is to decide whether that JSON is well formed, so Any is the
-# honest annotation for what comes back from json.loads.
-# N818 asks for an Error suffix on every exception class. PEP 8 asks
-# for it only on exceptions that are errors. The property engine's
-# signals, such as Rejected and Failed, end a case and are not errors.
-ignore = ["D203", "D213", "ANN401", "N818"]
-
-[tool.ruff.lint.pydocstyle]
-convention = "google"
 
 [tool.mypy]
 files = ["tools"]

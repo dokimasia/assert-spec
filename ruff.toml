@@ -1,0 +1,40 @@
+# Managed by ergon init, with .ergon/local/ruff.toml merged in. Change the repository's settings there and run ergon init sync.
+#
+# The configuration of ruff for every package of the repository: every stable rule, with the
+# rules that conflict with ruff's formatter left out. ruff reads this file in place of the table
+# [tool.ruff] of pyproject.toml. The local file of a repository is a valid TOML document of its
+# own, such as the table [lint.per-file-ignores] with the entries of the repository. ergon init
+# merges each table of the local file into the table of this file with the same name.
+
+# ruff reads the local ruff.toml under .ergon as the configuration of a project of its own, and
+# writes the cache of that project there, so ruff skips the directory .ergon.
+extend-exclude = [".ergon"]
+
+# The Makefile runs each tool as a script under tools, and Python puts that directory first on the
+# import path. prop, history, stateful and files are packages of this repository and not of PyPI.
+src = ["tools"]
+
+[lint]
+select = ["ALL"]
+
+# The formatter of ruff writes the trailing commas that COM812 asks for.
+ignore = ["COM812"]
+
+[lint.pydocstyle]
+convention = "google"
+
+# CPY001 requires a copyright notice in each file. The license header of ergon names the owner
+# before the year, as in "Copyright Dokimasia B.V. 2026", which the default pattern of ruff does
+# not accept.
+[lint.flake8-copyright]
+notice-rgx = '(?i)Copyright\s+(.+?\s+)?\d{4}'
+
+# A test of pytest checks with the statement assert, which S101 reports, states its values inline,
+# because the value is the assertion, which PLR2004 reports, and lives in a directory that pytest
+# imports without an __init__.py, which INP001 reports.
+[lint.per-file-ignores]
+"**/tests/**" = ["S101", "PLR2004", "INP001"]
+"**/test_*.py" = ["S101", "PLR2004", "INP001"]
+"**/*_test.py" = ["S101", "PLR2004", "INP001"]
+"**/conftest.py" = ["S101", "PLR2004", "INP001"]
+"tools/**" = ["N818", "S603"]
