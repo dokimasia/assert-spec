@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """Trees of files and the assertions over them, as code that runs.
 
 This package is the exact definition of the tree and of the ten

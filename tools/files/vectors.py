@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """The corpus vectors of the file assertions, computed from their inputs.
 
 Each kind is one of the ten assertions, and has a function that takes a
@@ -74,7 +77,8 @@ def tree_unchanged(case: Mapping[str, Any]) -> Vector:
     name = subject.get("kind") if isinstance(subject, Mapping) else None
     run = SUBJECTS.get(str(name))
     if run is None:
-        raise VectorError(f"files: {subject!r} is no subject of tree-unchanged")
+        msg = f"files: {subject!r} is no subject of tree-unchanged"
+        raise VectorError(msg)
     before = _workspace(case)
     return _compared(case, before, run(before), contains=False)
 
@@ -94,7 +98,8 @@ def _writes(path: str, content: bytes) -> Callable[[Tree], Tree]:
             VectorError: the tree has an entry at the path.
         """
         if path in tree:
-            raise VectorError(f"files: the subject writes {path}, which is there")
+            msg = f"files: the subject writes {path}, which is there"
+            raise VectorError(msg)
         return {**tree, path: File(content, mode=FILE_MODE)}
 
     return run
@@ -122,7 +127,8 @@ def golden_match_tree(case: Mapping[str, Any]) -> Vector:
     name, update = (literal.decode(arg) for arg in _args(case, 2))
     check_path(name)
     if not isinstance(update, bool):
-        raise VectorError(f"files: update is {update!r}, not a bool")
+        msg = f"files: update is {update!r}, not a bool"
+        raise VectorError(msg)
     output = _workspace(case)
     stated = case["golden"]
     if update:
@@ -176,7 +182,8 @@ def links_to(case: Mapping[str, Any]) -> Vector:
     found = _found(case, path)
     target = literal.decode(stated)
     if not isinstance(target, str):
-        raise VectorError(f"files: the target {target!r} is no text")
+        msg = f"files: the target {target!r} is no text"
+        raise VectorError(msg)
     got = found.target if isinstance(found, Link) else None
     if got == target:
         return _verdict(case, None)
@@ -197,7 +204,8 @@ def has_content(case: Mapping[str, Any]) -> Vector:
     elif isinstance(content, bytes):
         wanted = content
     else:
-        raise VectorError(f"files: the content {content!r} is no text or bytes")
+        msg = f"files: the content {content!r} is no text or bytes"
+        raise VectorError(msg)
     if isinstance(found, File) and found.content == wanted:
         return _verdict(case, None)
     got = _text_or_bytes(found.content) if isinstance(found, File) else None
@@ -226,7 +234,8 @@ def has_mode(case: Mapping[str, Any]) -> Vector:
         or not isinstance(mode, int)
         or not 0 <= mode <= PERMISSIONS
     ):
-        raise VectorError(f"files: the mode {mode!r} is no integer from 0 to 511")
+        msg = f"files: the mode {mode!r} is no integer from 0 to 511"
+        raise VectorError(msg)
     got = found.mode if isinstance(found, File | Directory) else None
     if got == mode:
         return _verdict(case, None)
@@ -261,7 +270,8 @@ def _found(case: Mapping[str, Any], stated: object) -> Entry | None:
     for parent in parents(path):
         above = tree.get(parent)
         if isinstance(above, Link):
-            raise VectorError(f"files: {path!r} is below the link {parent!r}")
+            msg = f"files: {path!r} is below the link {parent!r}"
+            raise VectorError(msg)
         if not isinstance(above, Directory):
             return None
     return tree.get(path)
@@ -283,10 +293,11 @@ def _verdict(case: Mapping[str, Any], detail: Vector | None) -> Vector:
     """
     verdict = "pass" if detail is None else "fail"
     if case["expect"] != verdict:
-        raise VectorError(
+        msg = (
             f"files: {case.get('id')!r} expects {case['expect']!r}, and the "
             f"reference reports {verdict!r}"
         )
+        raise VectorError(msg)
     return {} if detail is None else {"detail": detail}
 
 
@@ -303,7 +314,8 @@ def _args(case: Mapping[str, Any], count: int) -> list[Any]:
     """
     args = case["args"]
     if not isinstance(args, list) or len(args) != count:
-        raise VectorError(f"files: {case.get('id')!r} states the args {args!r}")
+        msg = f"files: {case.get('id')!r} states the args {args!r}"
+        raise VectorError(msg)
     return args
 
 
@@ -330,10 +342,12 @@ def compute(kind: str, case: Mapping[str, Any]) -> Vector:
     """
     function = KINDS.get(kind)
     if function is None:
-        raise VectorError(f"files: {kind!r} is no vector kind")
+        msg = f"files: {kind!r} is no vector kind"
+        raise VectorError(msg)
     try:
         return function(case)
     except KeyError as missing:
-        raise VectorError(f"files: a {kind} vector lacks {missing}") from None
+        msg = f"files: a {kind} vector lacks {missing}"
+        raise VectorError(msg) from None
     except (TreeError, literal.LiteralError) as bad:
         raise VectorError(str(bad)) from bad

@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """The tree of files: its entries, the rules of its paths, and its literal.
 
 A tree is a set of entries, each at a path relative to the tree's root. An
@@ -22,6 +25,7 @@ from dataclasses import dataclass, replace
 from typing import Any, Final
 
 from prop import literal
+from prop.value import as_type
 
 #: The nine permission bits of a mode.
 PERMISSIONS: Final = 0o777
@@ -109,11 +113,13 @@ def check_path(path: object) -> str:
         TreeError: path breaks a rule.
     """
     if not isinstance(path, str):
-        raise TreeError(f"files: the path {path!r} is no text")
+        msg = f"files: the path {path!r} is no text"
+        raise TreeError(msg)
     _utf8(path, "the path")
     for name in path.split("/"):
         if name in RESERVED or "\\" in name or "\0" in name:
-            raise TreeError(f"files: the path {path!r} has the name {name!r}")
+            msg = f"files: the path {path!r} has the name {name!r}"
+            raise TreeError(msg)
     return path
 
 
@@ -126,7 +132,8 @@ def _utf8(text: str, what: str) -> bytes:
     try:
         return text.encode()
     except UnicodeEncodeError:
-        raise TreeError(f"files: {what} {text!r} is no UTF-8 text") from None
+        msg = f"files: {what} {text!r} is no UTF-8 text"
+        raise TreeError(msg) from None
 
 
 def parents(path: str) -> Iterator[str]:
@@ -178,22 +185,26 @@ def _parse(stated: object, *, record: bool) -> Tree:
         TreeError: the literal is no tree literal, or its tree breaks a rule.
     """
     if not isinstance(stated, Mapping) or set(stated) != {"type", "entries"}:
-        raise TreeError(f"files: {stated!r} is no tree literal")
+        msg = f"files: {stated!r} is no tree literal"
+        raise TreeError(msg)
     entries = stated["entries"]
     if stated["type"] != "tree" or not isinstance(entries, list):
-        raise TreeError(f"files: {stated!r} is no tree literal")
+        msg = f"files: {stated!r} is no tree literal"
+        raise TreeError(msg)
     tree: Tree = {}
     last = b""
     for written in entries:
         path, entry = _entry(written, record=record)
         if path.encode() <= last:
-            raise TreeError(f"files: {path!r} is not after the entry before it")
+            msg = f"files: {path!r} is not after the entry before it"
+            raise TreeError(msg)
         last = path.encode()
         tree[path] = entry
     for path in tree:
         for parent in parents(path):
             if isinstance(tree.get(parent), File | Link):
-                raise TreeError(f"files: {path!r} is below {parent!r}, no directory")
+                msg = f"files: {path!r} is below {parent!r}, no directory"
+                raise TreeError(msg)
     return tree
 
 
@@ -204,21 +215,25 @@ def _entry(written: object, *, record: bool) -> tuple[str, Entry]:
         TreeError: the entry breaks a rule of the literal.
     """
     if not isinstance(written, Mapping):
-        raise TreeError(f"files: the entry {written!r} is no object")
+        msg = f"files: the entry {written!r} is no object"
+        raise TreeError(msg)
     path = check_path(written.get("path"))
     kinds = [key for key in KEYS if key in written]
     if len(kinds) != 1:
-        raise TreeError(f"files: {path!r} states {kinds}, and an entry states one")
+        msg = f"files: {path!r} states {kinds}, and an entry states one"
+        raise TreeError(msg)
     stated = kinds[0]
     extra = sorted(set(written) - KEYS[stated])
     if extra:
-        raise TreeError(f"files: {path!r} states {extra}, which {stated} does not take")
+        msg = f"files: {path!r} states {extra}, which {stated} does not take"
+        raise TreeError(msg)
     if stated == "link":
         return path, Link(_target(path, written["link"]))
     mode = _mode(path, written)
     if stated == "directory":
         if written["directory"] is not True:
-            raise TreeError(f"files: {path!r} states directory, and not as true")
+            msg = f"files: {path!r} states directory, and not as true"
+            raise TreeError(msg)
         return path, Directory(mode)
     content = _content(path, written, record=record)
     return path, File(content, _executable(path, written, mode), mode)
@@ -238,7 +253,8 @@ def _mode(path: str, written: Mapping[str, Any]) -> int | None:
         or not isinstance(mode, int)
         or not 0 <= mode <= PERMISSIONS
     ):
-        raise TreeError(f"files: {path!r} states the mode {mode!r}, not 0 to 511")
+        msg = f"files: {path!r} states the mode {mode!r}, not 0 to 511"
+        raise TreeError(msg)
     return mode
 
 
@@ -251,10 +267,12 @@ def _executable(path: str, written: Mapping[str, Any], mode: int | None) -> bool
     if "executable" not in written:
         return mode is not None and bool(mode & OWNER_EXECUTE)
     if mode is not None:
-        raise TreeError(f"files: {path!r} states a mode and executable")
+        msg = f"files: {path!r} states a mode and executable"
+        raise TreeError(msg)
     executable = written["executable"]
     if not isinstance(executable, bool):
-        raise TreeError(f"files: {path!r} states executable {executable!r}")
+        msg = f"files: {path!r} states executable {executable!r}"
+        raise TreeError(msg)
     return executable
 
 
@@ -268,17 +286,19 @@ def _content(path: str, written: Mapping[str, Any], *, record: bool) -> bytes:
     if "text" in written:
         text = written["text"]
         if not isinstance(text, str):
-            raise TreeError(f"files: {path!r} states the text {text!r}")
+            msg = f"files: {path!r} states the text {text!r}"
+            raise TreeError(msg)
         return _utf8(text, "the text of")
     if "bytes" in written:
         try:
             content = literal.decode({"type": "bytes", "value": written["bytes"]})
         except literal.LiteralError as bad:
-            raise TreeError(f"files: {path!r}: {bad}") from None
-        assert isinstance(content, bytes)
-        return content
+            msg = f"files: {path!r}: {bad}"
+            raise TreeError(msg) from None
+        return as_type(content, bytes)
     if not record:
-        raise TreeError(f"files: {path!r} states a digest, which only a record does")
+        msg = f"files: {path!r} states a digest, which only a record does"
+        raise TreeError(msg)
     _digest(path, written.get("digest"), written.get("size"))
     return b""
 
@@ -297,9 +317,11 @@ def _digest(path: str, digest: object, size: object) -> None:
         or len(digits) != DIGEST_DIGITS
         or not set(digits) <= set(string.hexdigits.lower())
     ):
-        raise TreeError(f"files: {path!r} states the digest {digest!r}")
+        msg = f"files: {path!r} states the digest {digest!r}"
+        raise TreeError(msg)
     if isinstance(size, bool) or not isinstance(size, int) or size <= CONTENT_LIMIT:
-        raise TreeError(f"files: {path!r} states the size {size!r} of a digest")
+        msg = f"files: {path!r} states the size {size!r} of a digest"
+        raise TreeError(msg)
 
 
 def _target(path: str, target: object) -> str:
@@ -309,7 +331,8 @@ def _target(path: str, target: object) -> str:
         TreeError: the target is no text, is empty, or contains NUL.
     """
     if not isinstance(target, str) or not target or "\0" in target:
-        raise TreeError(f"files: {path!r} links to {target!r}, which is no target")
+        msg = f"files: {path!r} links to {target!r}, which is no target"
+        raise TreeError(msg)
     _utf8(target, "the target")
     return target
 

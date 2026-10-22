@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """The comparison of a tree read from a directory with a wanted tree.
 
 A path differs when one of the two trees has it and the other does not, or
@@ -12,13 +15,15 @@ wanted file states no mode and the owner's execute bits differ.
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
 from dataclasses import replace
-from typing import Any, Final
+from typing import TYPE_CHECKING, Any, Final
 
 from prop import literal
 
 from .tree import Directory, Entry, File, Link, encode, full, ordered
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping, Sequence
 
 #: The most paths that a record lists.
 RECORD_PATHS: Final = 64
