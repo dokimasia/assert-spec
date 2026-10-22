@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """The zone table's tool: what it reads from zdump, and what it writes."""
 
 from __future__ import annotations
@@ -15,6 +18,8 @@ import unittest
 from pathlib import Path
 from typing import final, override
 from unittest import mock
+
+import pytest
 
 import zones
 from zones import (
@@ -53,10 +58,14 @@ def _line(utc: str, local: str, offset: int) -> str:
 #: the daylight-saving flag alone, and the last time it can represent.
 LISTING = "\n".join(
     [
-        f"{ZONE}-9223372036854775808 (gmtime failed) = "
-        "-9223372036854775808 (localtime failed)",
-        f"{ZONE}-67768040609741850 (gmtime failed) = "
-        "Thu Jan  1 00:00:00 -2147481748 LMT isdst=0 gmtoff=1050",
+        (
+            f"{ZONE}-9223372036854775808 (gmtime failed) = "
+            "-9223372036854775808 (localtime failed)"
+        ),
+        (
+            f"{ZONE}-67768040609741850 (gmtime failed) = "
+            "Thu Jan  1 00:00:00 -2147481748 LMT isdst=0 gmtoff=1050"
+        ),
         _line("Sun Apr  4 01:59:59 1937", "Sun Apr  4 01:59:59 1937 WET", 0),
         _line("Sun Apr  4 02:00:00 1937", "Sun Apr  4 03:00:00 1937 WEST", 3600),
         _line("Sun Oct  3 01:59:59 1937", "Sun Oct  3 02:59:59 1937 WEST", 3600),
@@ -66,8 +75,10 @@ LISTING = "\n".join(
         _line(
             "Wed Dec 31 22:59:59 2147485547", "Wed Dec 31 23:59:59 2147485547 CET", 3600
         ),
-        f"{ZONE}Wed Dec 31 23:00:00 2147485547 UT = "
-        "67768036191673200 (localtime failed)",
+        (
+            f"{ZONE}Wed Dec 31 23:00:00 2147485547 UT = "
+            "67768036191673200 (localtime failed)"
+        ),
     ]
 )
 
@@ -83,14 +94,14 @@ class ListingTest(unittest.TestCase):
 
     def test_a_line_with_no_convertible_time_is_skipped(self) -> None:
         """Only lines with a UT time and an offset inside the years are read."""
-        self.assertEqual(len(readings(LISTING)), 6)
+        assert len(readings(LISTING)) == 6
 
     def test_each_transition_that_changes_the_offset_is_a_change(self) -> None:
         """The flag-only transition of 1968 changes no offset."""
-        self.assertEqual(
-            changes(LISTING),
-            [(_at(1937, 4, 4, 2), 0, 3600), (_at(1937, 10, 3, 2), 3600, 0)],
-        )
+        assert changes(LISTING) == [
+            (_at(1937, 4, 4, 2), 0, 3600),
+            (_at(1937, 10, 3, 2), 3600, 0),
+        ]
 
     def test_a_change_outside_the_years_is_left_out(self) -> None:
         """The table stops at the start of its last year."""
@@ -98,7 +109,7 @@ class ListingTest(unittest.TestCase):
             "Z  Thu Dec 31 23:59:59 2099 UT = x isdst=0 gmtoff=0\n"
             "Z  Fri Jan  1 00:00:00 2100 UT = x isdst=0 gmtoff=3600\n"
         )
-        self.assertEqual(changes(late), [])
+        assert changes(late) == []
 
     def test_two_readings_that_are_not_one_second_apart_are_no_change(self) -> None:
         """A change is the last second of an offset and the first of the next."""
@@ -106,7 +117,7 @@ class ListingTest(unittest.TestCase):
             "Z  Sun Apr  4 01:59:58 1937 UT = x isdst=0 gmtoff=0\n"
             "Z  Sun Apr  4 02:00:00 1937 UT = x isdst=1 gmtoff=3600\n"
         )
-        self.assertEqual(changes(apart), [])
+        assert changes(apart) == []
 
 
 @final
@@ -116,27 +127,24 @@ class TableTest(unittest.TestCase):
     def test_the_rendered_table_reads_back(self) -> None:
         """One change per line is still JSON."""
         table = {"UTC": [], "Z": [(1, 0, 3600), (2, 3600, 0)]}
-        self.assertEqual(
-            json.loads(render(table)),
-            {
-                "release": RELEASE,
-                "sha512": SHA512,
-                "from": FROM_YEAR,
-                "until": UNTIL_YEAR,
-                "zones": [
-                    {"name": "UTC", "changes": []},
-                    {"name": "Z", "changes": [[1, 0, 3600], [2, 3600, 0]]},
-                ],
-            },
-        )
+        assert json.loads(render(table)) == {
+            "release": RELEASE,
+            "sha512": SHA512,
+            "from": FROM_YEAR,
+            "until": UNTIL_YEAR,
+            "zones": [
+                {"name": "UTC", "changes": []},
+                {"name": "Z", "changes": [[1, 0, 3600], [2, 3600, 0]]},
+            ],
+        }
 
     def test_the_definitions_table_is_the_tools(self) -> None:
         """The file states the release, the years and the zones the tool states."""
         table = json.loads((ROOT / "spec" / "zones.json").read_text())
-        self.assertEqual(table["release"], RELEASE)
-        self.assertEqual(table["sha512"], SHA512)
-        self.assertEqual((table["from"], table["until"]), (FROM_YEAR, UNTIL_YEAR))
-        self.assertEqual([zone["name"] for zone in table["zones"]], list(ZONES))
+        assert table["release"] == RELEASE
+        assert table["sha512"] == SHA512
+        assert (table["from"], table["until"]) == (FROM_YEAR, UNTIL_YEAR)
+        assert [zone["name"] for zone in table["zones"]] == list(ZONES)
 
 
 @final
@@ -177,14 +185,14 @@ class ReleaseTest(unittest.TestCase):
             mock.patch.object(zones, "SHA512", digest),
         ):
             fetched = zones.fetch(directory)
-        self.assertEqual(fetched.read_bytes(), release.read_bytes())
+        assert fetched.read_bytes() == release.read_bytes()
 
     def test_a_release_whose_digest_differs_is_refused(self) -> None:
         """The pinned digest is not the digest of another file."""
         release = self.tarball({})
         with (
             mock.patch.object(zones, "URL", release.as_uri()),
-            self.assertRaisesRegex(ZonesError, "has SHA-512"),
+            pytest.raises(ZonesError, match="has SHA-512"),
         ):
             zones.fetch(self.scratch)
 
@@ -193,18 +201,15 @@ class ReleaseTest(unittest.TestCase):
         compiled = zones.compile_zones(
             self.tarball({"europe": SPRING_AND_FALL}), self.scratch
         )
-        self.assertEqual(
-            changes(zones.list_zone("Test/Zone", compiled)),
-            [
-                (calendar.timegm((1990, 4, 1, 1, 0, 0)), 3600, 7200),
-                (calendar.timegm((1990, 10, 1, 0, 0, 0)), 7200, 3600),
-            ],
-        )
+        assert changes(zones.list_zone("Test/Zone", compiled)) == [
+            (calendar.timegm((1990, 4, 1, 1, 0, 0)), 3600, 7200),
+            (calendar.timegm((1990, 10, 1, 0, 0, 0)), 7200, 3600),
+        ]
 
     def test_sources_that_zic_refuses_raise(self) -> None:
         """A zone line without its offset."""
         release = self.tarball({"europe": "Zone Broken\n"})
-        with self.assertRaisesRegex(ZonesError, "zic: "):
+        with pytest.raises(ZonesError, match="zic: "):
             zones.compile_zones(release, self.scratch)
 
     def test_a_zone_the_release_lacks_raises(self) -> None:
@@ -212,8 +217,18 @@ class ReleaseTest(unittest.TestCase):
         compiled = zones.compile_zones(
             self.tarball({"europe": SPRING_AND_FALL}), self.scratch
         )
-        with self.assertRaisesRegex(ZonesError, "has no zone No/Such"):
+        with pytest.raises(ZonesError, match="has no zone No/Such"):
             zones.list_zone("No/Such", compiled)
+
+    def test_a_program_that_no_directory_of_path_contains_raises(self) -> None:
+        """A PATH of one empty directory has no zic."""
+        empty = self.scratch / "empty"
+        empty.mkdir()
+        with (
+            mock.patch.dict(os.environ, {"PATH": str(empty)}),
+            pytest.raises(ZonesError, match=r"^zic is not on PATH$"),
+        ):
+            zones.program("zic")
 
     def test_a_zdump_that_fails_raises(self) -> None:
         """A zdump that exits with an error stops the tool."""
@@ -228,7 +243,7 @@ class ReleaseTest(unittest.TestCase):
         path = f"{bin_dir}{os.pathsep}{os.environ.get('PATH', '')}"
         with (
             mock.patch.dict(os.environ, {"PATH": path}),
-            self.assertRaisesRegex(ZonesError, "zdump Test/Zone: broken"),
+            pytest.raises(ZonesError, match="zdump Test/Zone: broken"),
         ):
             zones.list_zone("Test/Zone", compiled)
 
@@ -248,8 +263,8 @@ class ReleaseTest(unittest.TestCase):
             mock.patch.object(zones, "ROOT", self.scratch / "root"),
             contextlib.redirect_stdout(printed),
         ):
-            self.assertEqual(zones.main(), 0)
+            assert zones.main() == 0
         table = json.loads((self.scratch / "root" / "spec" / "zones.json").read_text())
-        self.assertEqual([zone["name"] for zone in table["zones"]], ["Test/Zone"])
-        self.assertEqual(len(table["zones"][0]["changes"]), 2)
-        self.assertIn("2 offset changes in 1 zones", printed.getvalue())
+        assert [zone["name"] for zone in table["zones"]] == ["Test/Zone"]
+        assert len(table["zones"][0]["changes"]) == 2
+        assert "2 offset changes in 1 zones" in printed.getvalue()

@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """Check the definition, the corpus and the overlays against their rules.
 
 The validator reads the published files, the rendered JSON an
@@ -15,10 +18,9 @@ import calendar
 import json
 import re
 import sys
-from collections.abc import Collection, Iterable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import files.tree
 import files.vectors
@@ -35,6 +37,9 @@ from prop.runner import Kind
 from prop.shape import SHAPES
 from prop.store import Verdict as StoreVerdict
 from prop.vectors import KINDS
+
+if TYPE_CHECKING:
+    from collections.abc import Collection, Iterable, Iterator, Mapping
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -181,7 +186,9 @@ class Problems:
         """Record one problem and where it is."""
         self._found.append(f"{where}: {what}")
 
-    def unless(self, held: bool, where: str, what: str) -> bool:
+    # held is the condition that the call checks, like the expression of an
+    # assert statement. It is not a flag that selects a behaviour.
+    def unless(self, held: bool, where: str, what: str) -> bool:  # noqa: FBT001
         """Record a problem when held is false, and return held."""
         if not held:
             self.at(where, what)
@@ -190,14 +197,14 @@ class Problems:
     def report(self) -> int:
         """Print every problem, and return 1 when there is one and 0 otherwise."""
         for problem in self._found:
-            print(problem, file=sys.stderr)
+            sys.stderr.write(f"{problem}\n")
         if self._found:
-            print(f"\n{len(self._found)} problem(s)", file=sys.stderr)
+            sys.stderr.write(f"\n{len(self._found)} problem(s)\n")
             return 1
         return 0
 
 
-def _load(path: Path, problems: Problems) -> Any:
+def _load(path: Path, problems: Problems) -> dict[str, Any] | None:
     """Return a JSON file's object, or record a problem and return None.
 
     Every file the validator reads is one JSON object, so any other
@@ -210,12 +217,15 @@ def _load(path: Path, problems: Problems) -> Any:
     except (OSError, json.JSONDecodeError) as err:
         problems.at(where, f"cannot be read: {err}")
         return None
-    if not problems.unless(isinstance(document, dict), where, "is not a JSON object"):
+    if not isinstance(document, dict):
+        problems.at(where, "is not a JSON object")
         return None
     return document
 
 
-def check_version(spec: Any, naming: Any, version: str, problems: Problems) -> None:
+def check_version(
+    spec: Mapping[str, Any], naming: Mapping[str, Any], version: str, problems: Problems
+) -> None:
     """Record a problem for each table whose version differs from VERSION."""
     problems.unless(
         spec.get("version") == version,
@@ -229,7 +239,9 @@ def check_version(spec: Any, naming: Any, version: str, problems: Problems) -> N
     )
 
 
-def check_assertions(spec: Any, problems: Problems) -> dict[str, set[str]]:
+def check_assertions(
+    spec: Mapping[str, Any], problems: Problems
+) -> dict[str, set[str]]:
     """Check every assertion's id, arity, summary, detail fields and package.
 
     Returns each assertion's detail fields, by id.
@@ -278,7 +290,7 @@ def check_assertions(spec: Any, problems: Problems) -> dict[str, set[str]]:
 
 
 def check_vocabulary(
-    spec: Any, section: str, label: str, problems: Problems
+    spec: Mapping[str, Any], section: str, label: str, problems: Problems
 ) -> set[str]:
     """Check one vocabulary of names that a case states in place of a value.
 
@@ -301,7 +313,10 @@ def check_vocabulary(
 
 
 def check_naming(
-    naming: Any, spec: Any, assertions: set[str], problems: Problems
+    naming: Mapping[str, Any],
+    spec: Mapping[str, Any],
+    assertions: set[str],
+    problems: Problems,
 ) -> None:
     """Check that the naming table names every assertion in every language.
 
@@ -369,7 +384,9 @@ FORM_PREFIX = "prop-"
 FOR_ALL = "prop-for-all"
 
 
-def _form_rule(spec: Any, problems: Problems) -> dict[str, tuple[str, list[Any]]]:
+def _form_rule(
+    spec: Mapping[str, Any], problems: Problems
+) -> dict[str, tuple[str, list[Any]]]:
     """Return each assertion the forms rule lists, with its kind and what it generates.
 
     A form over a function generates input. A relation's form generates
@@ -378,15 +395,13 @@ def _form_rule(spec: Any, problems: Problems) -> dict[str, tuple[str, list[Any]]
     """
     rule = spec.get("forms")
     where = "spec/assertions.json: forms"
-    if not problems.unless(isinstance(rule, dict), where, "is not a rule"):
+    if not isinstance(rule, dict):
+        problems.at(where, "is not a rule")
         return {}
     functions = rule.get("functions")
     relations = rule.get("relations")
-    if not problems.unless(
-        isinstance(functions, list) and isinstance(relations, dict),
-        where,
-        "needs a list of functions and a map of relations",
-    ):
+    if not (isinstance(functions, list) and isinstance(relations, dict)):
+        problems.at(where, "needs a list of functions and a map of relations")
         return {}
     stated: list[tuple[Any, str, Any]] = [(f, "function", ["input"]) for f in functions]
     stated += [(r, "relation", g) for r, g in relations.items()]
@@ -403,7 +418,9 @@ def _form_rule(spec: Any, problems: Problems) -> dict[str, tuple[str, list[Any]]
     return listed
 
 
-def check_forms(spec: Any, naming: Any, problems: Problems) -> None:
+def check_forms(
+    spec: Mapping[str, Any], naming: Mapping[str, Any], problems: Problems
+) -> None:
     """Check every property form against the rules the two tables state.
 
     The assertion table's rule lists the assertions that have a property
@@ -430,23 +447,24 @@ def check_forms(spec: Any, naming: Any, problems: Problems) -> None:
 
 
 def _check_form_entries(
-    defined: Any, listed: dict[str, tuple[str, list[Any]]], problems: Problems
+    defined: Mapping[str, Any],
+    listed: dict[str, tuple[str, list[Any]]],
+    problems: Problems,
 ) -> None:
     """Check each listed form's entry, and that every entry with a form is listed."""
     for_all = defined.get(FOR_ALL, {})
     for of, (kind, generates) in sorted(listed.items()):
         where = f"spec/assertions.json: {FORM_PREFIX}{of}"
         base = defined.get(of)
-        if not problems.unless(
-            isinstance(base, dict) and "form" not in base and of != FOR_ALL,
-            where,
-            f"is the form of {of!r}, which is no assertion that can have a form",
-        ):
+        if not (isinstance(base, dict) and "form" not in base and of != FOR_ALL):
+            problems.at(
+                where,
+                f"is the form of {of!r}, which is no assertion that can have a form",
+            )
             continue
         entry = defined.get(FORM_PREFIX + of)
-        if not problems.unless(
-            isinstance(entry, dict), where, "is not defined, and the rule lists it"
-        ):
+        if not isinstance(entry, dict):
+            problems.at(where, "is not defined, and the rule lists it")
             continue
         removed = len(generates) if kind == "relation" else 0
         arity = base.get("arity")
@@ -478,15 +496,14 @@ def _check_form_entries(
 
 
 def _check_form_names(
-    naming: Any, listed: dict[str, tuple[str, list[Any]]], problems: Problems
+    naming: Mapping[str, Any],
+    listed: dict[str, tuple[str, list[Any]]],
+    problems: Problems,
 ) -> None:
     """Check each listed form's names against the naming table's rule."""
     rule = naming.get("forms")
-    if not problems.unless(
-        isinstance(rule, dict) and isinstance(rule.get("qualifiers"), dict),
-        "spec/naming.json: forms",
-        "states no qualifiers",
-    ):
+    if not (isinstance(rule, dict) and isinstance(rule.get("qualifiers"), dict)):
+        problems.at("spec/naming.json: forms", "states no qualifiers")
         return
     qualifiers = rule["qualifiers"]
     exceptions = rule.get("exceptions", {})
@@ -512,7 +529,7 @@ def _check_form_names(
 
 
 def check_literal(
-    value: Any, where: str, problems: Problems, *, record: bool = False
+    value: object, where: str, problems: Problems, *, record: bool = False
 ) -> None:
     """Check one typed literal against the encoding.
 
@@ -552,8 +569,15 @@ def check_literal(
         )
         return
 
+    _decode(value, where, problems, record=record)
+
+
+def _decode(
+    value: Mapping[str, Any], where: str, problems: Problems, *, record: bool
+) -> None:
+    """Decode a literal whose keys fit its type, and record why the codec refuses it."""
     try:
-        if kind != "tree":
+        if value.get("type") != "tree":
             literal.decode(value)
         elif record:
             files.tree.check_record(value)
@@ -576,7 +600,7 @@ def _fits(kind: str, keys: frozenset[str], where: str, problems: Problems) -> bo
     return keys == form
 
 
-def _references(node: Any) -> Iterator[dict[str, Any]]:
+def _references(node: object) -> Iterator[dict[str, Any]]:
     """Yield every reference literal in node, each before the ones it contains."""
     if isinstance(node, dict):
         if node.get("type") == "reference":
@@ -620,7 +644,11 @@ class Vocabulary:
 
 
 def check_case(
-    case: Any, assertion: str, vocabulary: Vocabulary, where: str, problems: Problems
+    case: object,
+    assertion: str,
+    vocabulary: Vocabulary,
+    where: str,
+    problems: Problems,
 ) -> str | None:
     """Check one corpus case, and return its id, or None when it is no object."""
     if not isinstance(case, dict):
@@ -646,31 +674,7 @@ def check_case(
         f"expects {outcome!r}, want one of {sorted(OUTCOMES)}",
     )
 
-    args = case.get("args")
-    subject = case.get("subject")
-    if args is None and subject is None:
-        problems.at(f"{where} [{cid}]", "states neither args nor a subject")
-    problems.unless(
-        args is None or subject is None,
-        f"{where} [{cid}]",
-        "states both args and a subject; a case states one of them",
-    )
-    if isinstance(args, list):
-        for index, arg in enumerate(args):
-            check_literal(arg, f"{where} [{cid}] arg {index}", problems)
-        _check_references(args, f"{where} [{cid}]", problems)
-    elif args is not None:
-        problems.at(f"{where} [{cid}]", "states args that are not a list")
-
-    if subject is not None and problems.unless(
-        isinstance(subject, dict), f"{where} [{cid}]", "subject is not an object"
-    ):
-        kind = subject.get("kind")
-        problems.unless(
-            kind in vocabulary.subjects,
-            f"{where} [{cid}]",
-            f"names subject kind {kind!r}, which the definition does not state",
-        )
+    _check_input(case, vocabulary.subjects, f"{where} [{cid}]", problems)
 
     options = case.get("options", [])
     if problems.unless(
@@ -709,6 +713,41 @@ def check_case(
 
     _check_skip(case, f"{where} [{cid}]", problems)
     return str(cid)
+
+
+def _check_input(
+    case: Mapping[str, Any], subjects: set[str], where: str, problems: Problems
+) -> None:
+    """Check that a case states its input as args or as a subject, and not both.
+
+    Each arg is a typed literal, and the kind of a subject is a subject kind
+    of the definition.
+    """
+    args = case.get("args")
+    subject = case.get("subject")
+    if args is None and subject is None:
+        problems.at(where, "states neither args nor a subject")
+    problems.unless(
+        args is None or subject is None,
+        where,
+        "states both args and a subject; a case states one of them",
+    )
+    if isinstance(args, list):
+        for index, arg in enumerate(args):
+            check_literal(arg, f"{where} arg {index}", problems)
+        _check_references(args, where, problems)
+    elif args is not None:
+        problems.at(where, "states args that are not a list")
+
+    if subject is not None and problems.unless(
+        isinstance(subject, dict), where, "subject is not an object"
+    ):
+        kind = subject.get("kind")
+        problems.unless(
+            kind in subjects,
+            where,
+            f"names subject kind {kind!r}, which the definition does not state",
+        )
 
 
 def _check_skip(case: dict[str, Any], where: str, problems: Problems) -> None:
@@ -799,7 +838,7 @@ def check_corpus(
     return total
 
 
-def literals(node: Any, path: str = "") -> Iterator[tuple[str, Any]]:
+def literals(node: object, path: str = "") -> Iterator[tuple[str, Any]]:
     """Yield every typed literal under node with its path.
 
     A typed literal is an object with a ``type`` key. The parts of a
@@ -836,7 +875,7 @@ class FormVocabulary:
         return frozenset(self.runs) - UNSTATED_FORMS
 
 
-def form_runs(spec: Any) -> dict[str, str]:
+def form_runs(spec: Mapping[str, Any]) -> dict[str, str]:
     """Return the assertion each form runs, by the form's id."""
     return {
         aid: str(body["form"].get("of"))
@@ -1051,6 +1090,31 @@ def _check_vector_coverage(
         _both_ways(IDS & set(found), found, "a generator is shrunk", where, problems)
     if kind == "forms":
         _both_ways(forms.stated, found, "a form is run", where, problems)
+    _check_shape_coverage(kind, found, where, problems)
+    ends = {
+        "behaviour": [k.value for k in Kind],
+        "coverage": [v.value for v in Verdict],
+        "store": [v.value for v in StoreVerdict],
+        "draws": list(DRAWS_ENDS),
+        "fixtures": sorted(FIXTURE_COVERS),
+        "recording": [p.value for p in Phase if p.value not in UNRECORDED_PHASES],
+    }
+    what = {
+        "fixtures": "fixture that covers",
+        "recording": "vector that records a call of phase",
+    }.get(kind, "vector that ends in")
+    for end in ends.get(kind, []):
+        problems.unless(end in found.get(kind, []), where, f"has no {what} {end!r}")
+
+
+def _check_shape_coverage(
+    kind: str, found: dict[str, list[str]], where: str, problems: Problems
+) -> None:
+    """Check the shape vectors and the inverse vectors.
+
+    Every shape has SHAPE_VECTORS shape vectors, and an inverse vector runs
+    every shape and every generator backwards.
+    """
     if kind == "shapes":
         for shape in sorted(SHAPES):
             problems.unless(
@@ -1069,20 +1133,6 @@ def _check_vector_coverage(
                 where,
                 f"runs no generator {gen!r} back",
             )
-    ends = {
-        "behaviour": [k.value for k in Kind],
-        "coverage": [v.value for v in Verdict],
-        "store": [v.value for v in StoreVerdict],
-        "draws": list(DRAWS_ENDS),
-        "fixtures": sorted(FIXTURE_COVERS),
-        "recording": [p.value for p in Phase if p.value not in UNRECORDED_PHASES],
-    }
-    what = {
-        "fixtures": "fixture that covers",
-        "recording": "vector that records a call of phase",
-    }.get(kind, "vector that ends in")
-    for end in ends.get(kind, []):
-        problems.unless(end in found.get(kind, []), where, f"has no {what} {end!r}")
 
 
 def check_vectors(forms: FormVocabulary, problems: Problems) -> int:
@@ -1321,19 +1371,19 @@ def _vector_files(
         document = _load(path, problems)
         if document is None:
             continue
-        kind = document.get("kind")
+        stated = document.get("kind")
         problems.unless(
-            kind == stem, where, f"is named {stem!r} but states kind {kind!r}"
+            stated == stem, where, f"is named {stem!r} but states kind {stated!r}"
         )
         if not problems.unless(
-            kind in kinds, where, f"states kind {kind!r}, which no vector has"
+            stated in kinds, where, f"states kind {stated!r}, which no vector has"
         ):
             continue
         cases = document.get("cases")
-        if problems.unless(
-            isinstance(cases, list) and bool(cases), where, "states no cases"
-        ):
-            yield str(kind), where, cases
+        if not (isinstance(cases, list) and cases):
+            problems.at(where, "states no cases")
+            continue
+        yield str(stated), where, cases
 
 
 @dataclass(frozen=True)
@@ -1350,7 +1400,9 @@ class Relaxations:
     implementing: frozenset[str]
 
 
-def check_relaxations(spec: Any, naming: Any, problems: Problems) -> Relaxations:
+def check_relaxations(
+    spec: Mapping[str, Any], naming: Mapping[str, Any], problems: Problems
+) -> Relaxations:
     """Check that every relaxation is named, and every reference to one is defined.
 
     A relaxation widens what counts as equal for one call. The definition
@@ -1430,16 +1482,12 @@ def check_zones(path: Path, problems: Problems) -> int:
         isinstance(release, str) and bool(release), where, "names no tzdata release"
     )
     first, until = document.get("from"), document.get("until")
-    if not problems.unless(
-        isinstance(first, int) and isinstance(until, int) and first < until,
-        where,
-        f"states the years {first!r} to {until!r}",
-    ):
+    if not (isinstance(first, int) and isinstance(until, int) and first < until):
+        problems.at(where, f"states the years {first!r} to {until!r}")
         return 0
     zones = document.get("zones")
-    if not problems.unless(
-        isinstance(zones, list) and bool(zones), where, "lists no zones"
-    ):
+    if not (isinstance(zones, list) and zones):
+        problems.at(where, "lists no zones")
         return 0
     names = [zone.get("name") if isinstance(zone, dict) else None for zone in zones]
     problems.unless(
@@ -1456,7 +1504,7 @@ def check_zones(path: Path, problems: Problems) -> int:
 
 
 def _check_zone(
-    zone: Any, bounds: tuple[int, int], where: str, problems: Problems
+    zone: object, bounds: tuple[int, int], where: str, problems: Problems
 ) -> int:
     """Check one zone's changes, and return how many it states.
 
@@ -1467,11 +1515,9 @@ def _check_zone(
     name = zone.get("name") if isinstance(zone, dict) else None
     changes = zone.get("changes") if isinstance(zone, dict) else None
     here = f"{where}: {name}"
-    if not problems.unless(
-        isinstance(name, str) and isinstance(changes, list), here, "states no changes"
-    ):
+    if not (isinstance(name, str) and isinstance(changes, list)):
+        problems.at(here, "states no changes")
         return 0
-    assert isinstance(changes, list)
     problems.unless(name != "UTC" or not changes, here, "changes, and UTC has none")
     last: tuple[int, int] | None = None
     for index, change in enumerate(changes):
@@ -1519,7 +1565,9 @@ FIELD = re.compile(r"^[a-z][a-z0-9-]*$")
 SURFACE_ID = re.compile(r"^[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)?$")
 
 
-def check_surface(naming: Any, languages: set[str], problems: Problems) -> None:
+def check_surface(
+    naming: Mapping[str, Any], languages: set[str], problems: Problems
+) -> None:
     """Check the surface table: what a caller uses beside the assertions.
 
     Every entry is well formed, every member names an owner that the
@@ -1572,7 +1620,7 @@ class Tables:
     languages: frozenset[str]
 
 
-def surface_names_by_language(naming: Any) -> dict[str, set[str]]:
+def surface_names_by_language(naming: Mapping[str, Any]) -> dict[str, set[str]]:
     """Return the surface ids each language names, across all three sections."""
     out: dict[str, set[str]] = {}
     for section in SURFACE_SECTIONS:
@@ -1582,7 +1630,7 @@ def surface_names_by_language(naming: Any) -> dict[str, set[str]]:
     return out
 
 
-def surface_ids(naming: Any) -> frozenset[str]:
+def surface_ids(naming: Mapping[str, Any]) -> frozenset[str]:
     """Return every id the surface table states."""
     found: set[str] = set()
     for section in SURFACE_SECTIONS:
@@ -1591,7 +1639,11 @@ def surface_ids(naming: Any) -> frozenset[str]:
 
 
 def check_overlay_surface(
-    overlay: Any, where: str, language: Any, tables: Tables, problems: Problems
+    overlay: Mapping[str, Any],
+    where: str,
+    language: object,
+    tables: Tables,
+    problems: Problems,
 ) -> None:
     """Check that one implementing language names or declines every surface id.
 
@@ -1640,9 +1692,9 @@ def check_overlay_surface(
 
 
 def check_overlay_relaxations(
-    overlay: Any,
+    overlay: Mapping[str, Any],
     where: str,
-    language: Any,
+    language: object,
     relaxations: Relaxations,
     problems: Problems,
 ) -> None:
@@ -1691,18 +1743,20 @@ def check_overlay_relaxations(
         )
 
 
-def check_overlay_records(overlay: Any, where: str, problems: Problems) -> None:
+def check_overlay_records(
+    overlay: Mapping[str, Any], where: str, problems: Problems
+) -> None:
     """Check that one overlay states where its language writes the call records.
 
     The records entry states each of RECORDS_KEYS, and none of them is
     empty.
     """
     records = overlay.get("records")
-    if not problems.unless(records is not None, where, "states no records"):
+    if records is None:
+        problems.at(where, "states no records")
         return
-    if not problems.unless(
-        isinstance(records, dict), where, "records is not an object"
-    ):
+    if not isinstance(records, dict):
+        problems.at(where, "records is not an object")
         return
     for key in RECORDS_KEYS:
         problems.unless(
@@ -1712,19 +1766,22 @@ def check_overlay_records(overlay: Any, where: str, problems: Problems) -> None:
         )
 
 
-def check_overlay_sections(overlay: Any, where: str, problems: Problems) -> None:
+def check_overlay_sections(
+    overlay: Mapping[str, Any], where: str, problems: Problems
+) -> None:
     """Check that one overlay states how its language runs a concurrent section.
 
     sections lists one or both of SECTIONS, each once.
     """
     sections = overlay.get("sections")
-    if not problems.unless(sections is not None, where, "states no sections"):
+    if sections is None:
+        problems.at(where, "states no sections")
         return
-    if not problems.unless(
-        isinstance(sections, list) and bool(sections),
-        where,
-        f"sections is {sections!r}, not a list of one or both of {list(SECTIONS)}",
-    ):
+    if not (isinstance(sections, list) and sections):
+        problems.at(
+            where,
+            f"sections is {sections!r}, not a list of one or both of {list(SECTIONS)}",
+        )
         return
     for section in sections:
         problems.unless(
@@ -1740,9 +1797,9 @@ def check_overlay_sections(overlay: Any, where: str, problems: Problems) -> None
 
 
 def check_overlay_limits(
-    overlay: Any,
+    overlay: Mapping[str, Any],
     where: str,
-    language: Any,
+    language: object,
     known: Collection[str],
     problems: Problems,
 ) -> set[Any]:
@@ -1911,10 +1968,10 @@ def main() -> int:
 
     status = problems.report()
     if status == 0:
-        print(
+        sys.stdout.write(
             f"spec {version}: {len(assertions)} assertions, "
             f"{cases} corpus cases, {vectors} vectors, "
-            f"{changes} offset changes, all consistent"
+            f"{changes} offset changes, all consistent\n"
         )
     return status
 

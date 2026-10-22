@@ -1,4 +1,6 @@
-#!/usr/bin/env python3
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """The validator, run against the faults it must catch.
 
 A validator that runs only on a clean tree passes with every rule
@@ -7,7 +9,7 @@ the validator to report it.
 
 Run with:
 
-    python3 -m unittest discover -s tools -p '*_test.py'
+    make test-python
 """
 
 from __future__ import annotations
@@ -18,9 +20,11 @@ import subprocess
 import sys
 import tempfile
 import unittest
-from collections.abc import Callable
 from pathlib import Path
-from typing import Any, final, override
+from typing import TYPE_CHECKING, Any, final, override
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -29,7 +33,7 @@ ROOT = Path(__file__).resolve().parent.parent
 COPIED = ("spec", "corpus", "overlays", "VERSION", "tools")
 
 
-def _edit(path: Path, change: Callable[[Any], object]) -> None:
+def _edit(path: Path, change: Callable[[dict[str, Any]], object]) -> None:
     """Read JSON, let change edit it in place, and write it back.
 
     The return value of change is ignored, so an edit written as a lambda
@@ -72,14 +76,14 @@ class Validator(unittest.TestCase):
     def assert_caught(self, phrase: str) -> None:
         """Require the validator to fail and to report phrase."""
         result = self.run_validator()
-        self.assertEqual(result.returncode, 1, f"validator passed; wanted {phrase!r}")
-        self.assertIn(phrase, result.stderr)
+        assert result.returncode == 1, f"validator passed; wanted {phrase!r}"
+        assert phrase in result.stderr
 
     def test_an_unbroken_tree_passes(self) -> None:
         """The copy itself is clean, or every other case proves nothing."""
         result = self.run_validator()
-        self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn("all consistent", result.stdout)
+        assert result.returncode == 0, result.stderr
+        assert "all consistent" in result.stdout
 
     def test_a_version_disagreement_is_caught(self) -> None:
         """The VERSION file and the tables state the same version."""
@@ -142,7 +146,7 @@ class Validator(unittest.TestCase):
     def test_a_repeated_case_id_is_caught(self) -> None:
         """Two cases sharing an id make one of them unreportable."""
 
-        def repeat(document: Any) -> None:
+        def repeat(document: dict[str, Any]) -> None:
             document["cases"].append(dict(document["cases"][0]))
 
         _edit(self.tree / "corpus" / "equal.json", repeat)
@@ -167,7 +171,7 @@ class Validator(unittest.TestCase):
     def test_a_list_with_no_element_type_is_caught(self) -> None:
         """A list whose elements have no type cannot be decoded."""
 
-        def strip(document: Any) -> None:
+        def strip(document: dict[str, Any]) -> None:
             for case in document["cases"]:
                 for arg in case["args"]:
                     arg.pop("of", None)
@@ -186,7 +190,7 @@ class Validator(unittest.TestCase):
     def test_a_passing_case_that_wants_message_text_is_caught(self) -> None:
         """Only a failure has a message, so this case contradicts itself."""
 
-        def contradict(document: Any) -> None:
+        def contradict(document: dict[str, Any]) -> None:
             for case in document["cases"]:
                 if case["expect"] == "pass":
                     case["detail"] = {"want": {"type": "int", "value": 1}}
@@ -369,7 +373,7 @@ class Validator(unittest.TestCase):
         named = {language for entry in naming["names"].values() for language in entry}
         overlays = {p.stem for p in (self.tree / "overlays").glob("*.json")}
 
-        self.assertEqual(named - overlays, set(), "named with no overlay")
+        assert named - overlays == set(), "named with no overlay"
 
     def test_an_assertion_accepting_an_unknown_relaxation_is_caught(self) -> None:
         """A relaxation an assertion names is one the definition states."""
@@ -442,7 +446,7 @@ class Validator(unittest.TestCase):
     def test_a_case_stating_an_undeclared_detail_field_is_caught(self) -> None:
         """A case states only the detail fields its assertion declares."""
 
-        def add_field(document: Any) -> None:
+        def add_field(document: dict[str, Any]) -> None:
             for case in document["cases"]:
                 if case["expect"] == "fail":
                     case.setdefault("detail", {})["bogus"] = {"type": "int", "value": 1}
@@ -453,7 +457,7 @@ class Validator(unittest.TestCase):
     def test_an_untyped_detail_value_is_caught(self) -> None:
         """Detail values are typed literals, so an int and a float differ."""
 
-        def untype(document: Any) -> None:
+        def untype(document: dict[str, Any]) -> None:
             for case in document["cases"]:
                 if case["expect"] == "fail":
                     case.setdefault("detail", {})["want"] = 2
@@ -486,7 +490,7 @@ class Validator(unittest.TestCase):
             ),
         )
         result = self.run_validator()
-        self.assertEqual(result.returncode, 0, result.stderr)
+        assert result.returncode == 0, result.stderr
 
     def test_an_assertion_driven_only_one_way_is_caught(self) -> None:
         """A corpus that drives only the passing path proves nothing."""
@@ -541,7 +545,7 @@ class Validator(unittest.TestCase):
     def test_a_record_that_names_a_field_twice_is_caught(self) -> None:
         """A record's field names are distinct, so each field is reachable."""
 
-        def repeat(document: Any) -> None:
+        def repeat(document: dict[str, Any]) -> None:
             field = ["id", {"type": "int", "value": 1}]
             document["cases"][0]["value"] = {"type": "record", "fields": [field, field]}
 
@@ -551,7 +555,7 @@ class Validator(unittest.TestCase):
     def test_a_variant_with_a_key_it_does_not_take_is_caught(self) -> None:
         """A variant states a name and an optional payload, and nothing else."""
 
-        def widen(document: Any) -> None:
+        def widen(document: dict[str, Any]) -> None:
             document["cases"][0]["value"] = {"type": "variant", "name": "x", "of": "y"}
 
         _edit(self.tree / "corpus" / "prop" / "decoding.json", widen)
@@ -560,7 +564,7 @@ class Validator(unittest.TestCase):
     def test_a_malformed_literal_inside_items_is_caught(self) -> None:
         """Each of a list's items is checked as a literal."""
 
-        def break_items(document: Any) -> None:
+        def break_items(document: dict[str, Any]) -> None:
             document["cases"][0]["value"] = {"type": "list", "items": [{"type": "int"}]}
 
         _edit(self.tree / "corpus" / "prop" / "decoding.json", break_items)
@@ -582,7 +586,7 @@ class Validator(unittest.TestCase):
     def test_a_repeated_vector_id_is_caught(self) -> None:
         """Two vectors with one id make one of them unreportable."""
 
-        def repeat(document: Any) -> None:
+        def repeat(document: dict[str, Any]) -> None:
             document["cases"].append(dict(document["cases"][0]))
 
         _edit(self.tree / "corpus" / "prop" / "token.json", repeat)
@@ -643,15 +647,15 @@ class Validator(unittest.TestCase):
     def test_every_problem_is_reported_in_one_run(self) -> None:
         """One run reports every problem."""
 
-        def drop_two(document: Any) -> None:
+        def drop_two(document: dict[str, Any]) -> None:
             document["names"].pop("equal")
             document["names"].pop("true")
 
         _edit(self.tree / "spec" / "naming.json", drop_two)
         result = self.run_validator()
-        self.assertEqual(result.returncode, 1)
-        self.assertIn("equal has no entry", result.stderr)
-        self.assertIn("true has no entry", result.stderr)
+        assert result.returncode == 1
+        assert "equal has no entry" in result.stderr
+        assert "true has no entry" in result.stderr
 
     def test_a_definition_table_of_another_version_is_caught(self) -> None:
         """The assertion table states the version VERSION states."""
@@ -677,7 +681,7 @@ class Validator(unittest.TestCase):
     def test_an_assertion_id_that_is_not_hyphenated_lowercase_is_caught(self) -> None:
         """An id is lowercase words joined by hyphens."""
 
-        def rename(document: Any) -> None:
+        def rename(document: dict[str, Any]) -> None:
             document["assertions"]["True"] = document["assertions"].pop("true")
 
         _edit(self.tree / "spec" / "assertions.json", rename)
@@ -715,7 +719,7 @@ class Validator(unittest.TestCase):
     def test_a_subject_kind_that_is_not_hyphenated_lowercase_is_caught(self) -> None:
         """A subject kind is an id."""
 
-        def rename(document: Any) -> None:
+        def rename(document: dict[str, Any]) -> None:
             document["subjects"]["Raises"] = document["subjects"].pop("raises")
 
         _edit(self.tree / "spec" / "assertions.json", rename)
@@ -753,7 +757,7 @@ class Validator(unittest.TestCase):
     def test_a_language_that_names_only_some_assertions_is_caught(self) -> None:
         """A language that names one assertion names every one."""
 
-        def drop(document: Any) -> None:
+        def drop(document: dict[str, Any]) -> None:
             del document["names"]["equal"]["go"]
 
         _edit(self.tree / "spec" / "naming.json", drop)
@@ -794,7 +798,7 @@ class Validator(unittest.TestCase):
     def test_a_case_with_neither_args_nor_a_subject_is_caught(self) -> None:
         """A case states what the assertion is given."""
 
-        def drop(document: Any) -> None:
+        def drop(document: dict[str, Any]) -> None:
             del document["cases"][0]["args"]
 
         _edit(self.tree / "corpus" / "equal.json", drop)
@@ -889,7 +893,7 @@ class Validator(unittest.TestCase):
     def test_two_values_for_one_reference_are_caught(self) -> None:
         """Every reference of one id in a case is one object, of one value."""
 
-        def differ(document: Any) -> None:
+        def differ(document: dict[str, Any]) -> None:
             document["cases"][0]["args"] = [
                 {"type": "reference", "id": "a", "value": {"type": "int", "value": n}}
                 for n in (1, 2)
@@ -981,7 +985,7 @@ class Validator(unittest.TestCase):
     def test_a_definition_with_no_relaxations_is_caught(self) -> None:
         """The definition states the relaxations a caller may apply."""
 
-        def drop(document: Any) -> None:
+        def drop(document: dict[str, Any]) -> None:
             document["relaxations"] = {}
             for body in document["assertions"].values():
                 body.pop("relaxations", None)
@@ -992,7 +996,7 @@ class Validator(unittest.TestCase):
     def test_a_relaxation_id_that_is_not_hyphenated_lowercase_is_caught(self) -> None:
         """A relaxation id is an id."""
 
-        def rename(document: Any) -> None:
+        def rename(document: dict[str, Any]) -> None:
             relaxations = document["relaxations"]
             relaxations["Equate-NaNs"] = relaxations.pop("equate-nans")
 
@@ -1101,7 +1105,7 @@ class Validator(unittest.TestCase):
         )
         self.assert_caught("divergence 'max-allocs' is not an object")
 
-    def _vectors(self, kind: str, keep: Callable[[Any], bool]) -> None:
+    def _vectors(self, kind: str, keep: Callable[[dict[str, Any]], bool]) -> None:
         """Keep only the vectors of one kind that keep accepts."""
         _edit(
             self.tree / "corpus" / "prop" / f"{kind}.json",
@@ -1139,7 +1143,7 @@ class Validator(unittest.TestCase):
     def test_a_draws_end_without_a_vector_is_caught(self) -> None:
         """A label that differs from its entry has a vector."""
 
-        def other_ends(case: Any) -> bool:
+        def other_ends(case: dict[str, Any]) -> bool:
             error: dict[str, Any] = case.get("error") or {}
             return error.get("reason") != "label"
 
@@ -1148,11 +1152,11 @@ class Validator(unittest.TestCase):
 
     def test_a_phase_that_no_recording_vector_records_is_caught(self) -> None:
         """Every phase but fuzz has a recorded call."""
-        token = "recording/records-the-one-case-of-a-replay-token"
-        self._vectors("recording", lambda c: c["id"] != token)
+        replay = "recording/records-the-one-case-of-a-replay-token"
+        self._vectors("recording", lambda c: c["id"] != replay)
         self.assert_caught("has no vector that records a call of phase 'token'")
 
-    def _history(self, kind: str, keep: Callable[[Any], bool]) -> None:
+    def _history(self, kind: str, keep: Callable[[dict[str, Any]], bool]) -> None:
         """Keep only the history vectors of one kind that keep accepts."""
         _edit(
             self.tree / "corpus" / "history" / f"{kind}.json",
@@ -1204,7 +1208,7 @@ class Validator(unittest.TestCase):
     def test_a_repeated_history_vector_id_is_caught(self) -> None:
         """Two vectors with one id make one of them unreportable."""
 
-        def repeat(document: Any) -> None:
+        def repeat(document: dict[str, Any]) -> None:
             document["cases"].append(dict(document["cases"][0]))
 
         _edit(self.tree / "corpus" / "history" / "linearizable.json", repeat)
@@ -1264,7 +1268,7 @@ class Validator(unittest.TestCase):
             "begins with 'serializable', which names no snapshot-isolation vector"
         )
 
-    def _machines(self, keep: Callable[[Any], bool]) -> None:
+    def _machines(self, keep: Callable[[dict[str, Any]], bool]) -> None:
         """Keep only the machines vectors that keep accepts."""
         _edit(
             self.tree / "corpus" / "stateful" / "machines.json",
@@ -1334,7 +1338,7 @@ class Validator(unittest.TestCase):
         self._machines(lambda c: c["error"] is None)
         self.assert_caught("has no vector that covers 'refused:step'")
 
-    def _files(self, kind: str, change: Callable[[Any], object]) -> None:
+    def _files(self, kind: str, change: Callable[[dict[str, Any]], object]) -> None:
         """Edit the vectors of one file assertion in the scratch tree."""
         _edit(self.tree / "corpus" / "files" / f"{kind}.json", change)
 
@@ -1388,7 +1392,7 @@ class Validator(unittest.TestCase):
     def test_a_workspace_that_states_a_digest_is_caught(self) -> None:
         """A workspace writes content, which a digest does not state."""
 
-        def digest(document: Any) -> None:
+        def digest(document: dict[str, Any]) -> None:
             entry = document["cases"][0]["workspace"]["entries"][0]
             del entry["text"]
             entry.update(digest="sha256:" + "0" * 64, size=70_000)
@@ -1399,7 +1403,7 @@ class Validator(unittest.TestCase):
     def test_an_argument_that_states_a_digest_is_caught(self) -> None:
         """Only a record states a file by its digest."""
 
-        def digest(document: Any) -> None:
+        def digest(document: dict[str, Any]) -> None:
             entry = document["cases"][1]["args"][0]["entries"][0]
             del entry["text"]
             entry.update(digest="sha256:" + "0" * 64, size=70_000)
@@ -1435,7 +1439,7 @@ class Validator(unittest.TestCase):
         )
         self.assert_caught("overlays/rust.json: states no limit on 'history'")
 
-    def _forms(self, change: Callable[[Any], object]) -> None:
+    def _forms(self, change: Callable[[dict[str, Any]], object]) -> None:
         """Edit the form vectors of the scratch tree."""
         _edit(self.tree / "corpus" / "prop" / "forms.json", change)
 
@@ -1489,7 +1493,7 @@ class Validator(unittest.TestCase):
         )
         self.assert_caught("states detail 'bogus', which equal does not declare")
 
-    def _zones(self, change: Callable[[Any], object]) -> None:
+    def _zones(self, change: Callable[[dict[str, Any]], object]) -> None:
         """Edit the zone table of the scratch tree."""
         _edit(self.tree / "spec" / "zones.json", change)
 
@@ -1516,7 +1520,7 @@ class Validator(unittest.TestCase):
     def test_a_change_that_keeps_its_offset_is_caught(self) -> None:
         """A transition of the abbreviation alone is no offset change."""
 
-        def flat(document: Any) -> None:
+        def flat(document: dict[str, Any]) -> None:
             change = document["zones"][1]["changes"][0]
             change[2] = change[1]
 
@@ -1595,7 +1599,7 @@ class Validator(unittest.TestCase):
     def test_a_form_without_its_assertions_relaxations_is_caught(self) -> None:
         """A relaxation applies to the assertion's comparison in every case."""
 
-        def drop(document: Any) -> None:
+        def drop(document: dict[str, Any]) -> None:
             del document["assertions"]["prop-equal"]["relaxations"]
 
         _edit(self.tree / "spec" / "assertions.json", drop)
@@ -1612,7 +1616,7 @@ class Validator(unittest.TestCase):
     def test_a_form_of_another_assertion_is_caught(self) -> None:
         """A form's entry states the assertion that its id names."""
 
-        def swap(document: Any) -> None:
+        def swap(document: dict[str, Any]) -> None:
             document["assertions"]["prop-equal"]["form"]["of"] = "not-equal"
 
         _edit(self.tree / "spec" / "assertions.json", swap)
@@ -1621,7 +1625,7 @@ class Validator(unittest.TestCase):
     def test_a_form_that_the_rule_lists_and_nobody_defined_is_caught(self) -> None:
         """Each listed assertion has its form's entry."""
 
-        def drop(document: Any) -> None:
+        def drop(document: dict[str, Any]) -> None:
             del document["assertions"]["prop-equal"]
 
         _edit(self.tree / "spec" / "assertions.json", drop)
@@ -1630,7 +1634,7 @@ class Validator(unittest.TestCase):
     def test_a_form_that_the_rule_does_not_list_is_caught(self) -> None:
         """Every entry with a form is one the rule lists."""
 
-        def add(document: Any) -> None:
+        def add(document: dict[str, Any]) -> None:
             entry = json.loads(json.dumps(document["assertions"]["prop-equal"]))
             entry["form"]["of"] = "total"
             document["assertions"]["prop-total"] = entry
@@ -1665,7 +1669,7 @@ class Validator(unittest.TestCase):
     def test_a_forms_rule_without_relations_is_caught(self) -> None:
         """The rule states the functions and the relations."""
 
-        def drop(document: Any) -> None:
+        def drop(document: dict[str, Any]) -> None:
             del document["forms"]["relations"]
 
         _edit(self.tree / "spec" / "assertions.json", drop)
@@ -1674,7 +1678,7 @@ class Validator(unittest.TestCase):
     def test_a_definition_without_a_forms_rule_is_caught(self) -> None:
         """The entries of the forms are read against the rule."""
 
-        def drop(document: Any) -> None:
+        def drop(document: dict[str, Any]) -> None:
             del document["forms"]
 
         _edit(self.tree / "spec" / "assertions.json", drop)
@@ -1720,7 +1724,7 @@ class Validator(unittest.TestCase):
     def test_a_naming_table_without_qualifiers_is_caught(self) -> None:
         """The names of the forms are read against the qualifiers."""
 
-        def drop(document: Any) -> None:
+        def drop(document: dict[str, Any]) -> None:
             del document["forms"]["qualifiers"]
 
         _edit(self.tree / "spec" / "naming.json", drop)

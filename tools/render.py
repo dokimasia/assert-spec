@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """Render the JSON an implementation reads from the YAML people edit.
 
 People edit YAML, which takes comments and folded summaries. Every target
@@ -26,15 +29,17 @@ import sys
 from collections.abc import Callable, Collection, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Final
+from typing import TYPE_CHECKING, Any, Final
 
 import yaml
 
 from files import vectors as files_vectors
 from history import vectors as history_vectors
 from prop import vectors as prop_vectors
-from prop.vectors import Vector
 from stateful import vectors as stateful_vectors
+
+if TYPE_CHECKING:
+    from prop.vectors import Vector
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -104,15 +109,18 @@ def forms(spec: Mapping[str, Any]) -> list[Form]:
     """
     rule = spec.get("forms")
     if not isinstance(rule, Mapping):
-        raise RenderError("spec/assertions.yaml states no rule for the forms")
+        msg = "spec/assertions.yaml states no rule for the forms"
+        raise RenderError(msg)
     functions = rule.get("functions")
     relations = rule.get("relations")
     if not isinstance(functions, list) or not isinstance(relations, Mapping):
-        raise RenderError("the rule for the forms needs functions and relations")
+        msg = "the rule for the forms needs functions and relations"
+        raise RenderError(msg)
     out = [Form(str(of), FUNCTION, (INPUT,)) for of in functions]
     for of, generates in relations.items():
         if not isinstance(generates, list) or not generates:
-            raise RenderError(f"the form of {of} generates no argument")
+            msg = f"the form of {of} generates no argument"
+            raise RenderError(msg)
         out.append(Form(str(of), RELATION, tuple(str(g) for g in generates)))
     return out
 
@@ -148,10 +156,12 @@ def form_entry(form: Form, assertions: Mapping[str, Any]) -> dict[str, Any]:
     """
     found = assertions.get(form.of)
     if not isinstance(found, Mapping):
-        raise RenderError(f"the form of {form.of} runs an assertion nobody defined")
+        msg = f"the form of {form.of} runs an assertion nobody defined"
+        raise RenderError(msg)
     runs_as = assertions.get(FOR_ALL)
     if not isinstance(runs_as, Mapping):
-        raise RenderError(f"the forms run as {FOR_ALL}, which is not defined")
+        msg = f"the forms run as {FOR_ALL}, which is not defined"
+        raise RenderError(msg)
     base: Mapping[str, Any] = found
     for_all: Mapping[str, Any] = runs_as
     removed = len(form.generates) if form.kind == RELATION else 0
@@ -186,7 +196,8 @@ def form_names(
             continue
         name = names.get(form.of, {}).get(language)
         if name is None:
-            raise RenderError(f"{form.of} has no {language} name to qualify")
+            msg = f"{form.of} has no {language} name to qualify"
+            raise RenderError(msg)
         out[language] = f"{qualifier}{name}"
     return out
 
@@ -202,11 +213,13 @@ def published(
     """
     rule = naming.get("forms")
     if not isinstance(rule, Mapping) or not isinstance(rule.get("qualifiers"), Mapping):
-        raise RenderError("spec/naming.yaml states no qualifiers for the forms")
+        msg = "spec/naming.yaml states no qualifiers for the forms"
+        raise RenderError(msg)
     assertions, names = spec["assertions"], naming["names"]
     for form in forms(spec):
         if form.id in assertions or form.id in names:
-            raise RenderError(f"{form.id} is authored; the rule renders it")
+            msg = f"{form.id} is authored; the rule renders it"
+            raise RenderError(msg)
         assertions[form.id] = form_entry(form, assertions)
         names[form.id] = form_names(form, names, rule)
     return spec, naming
@@ -226,7 +239,7 @@ def render(name: str, document: Mapping[str, Any]) -> bool:
     return write(ROOT / "spec" / f"{name}.json", rendered + "\n")
 
 
-def vector(family: str, kind: str, case: Any) -> Vector:
+def vector(family: str, kind: str, case: object) -> Vector:
     """Return one case's inputs followed by the outputs the reference computes.
 
     Raises:
@@ -234,11 +247,13 @@ def vector(family: str, kind: str, case: Any) -> Vector:
             of an input.
     """
     if not isinstance(case, dict):
-        raise RenderError(f"a {kind} case is {case!r}, not an object")
+        msg = f"a {kind} case is {case!r}, not an object"
+        raise RenderError(msg)
     outputs = FAMILIES[family][1](kind, case)
     clash = sorted(set(outputs) & set(case))
     if clash:
-        raise RenderError(f"{case.get('id')!r} states the outputs {clash}")
+        msg = f"{case.get('id')!r} states the outputs {clash}"
+        raise RenderError(msg)
     return {**case, **outputs}
 
 
@@ -251,10 +266,12 @@ def vectors_text(family: str, kind: str) -> str:
     source = CORPUS / family / f"{kind}.yaml"
     document = yaml.safe_load(source.read_text())
     if not isinstance(document, dict) or document.get("kind") != kind:
-        raise RenderError(f"{source.name} does not state kind {kind!r}")
+        msg = f"{source.name} does not state kind {kind!r}"
+        raise RenderError(msg)
     cases = document.get("cases")
     if not isinstance(cases, list):
-        raise RenderError(f"{source.name} states no list of cases")
+        msg = f"{source.name} states no list of cases"
+        raise RenderError(msg)
     rendered = {"kind": kind, "cases": [vector(family, kind, case) for case in cases]}
     return json.dumps(rendered, indent=2) + "\n"
 
@@ -272,13 +289,13 @@ def main() -> int:
     """Render every table and every kind of vector, and print which files changed."""
     spec, naming = published(load("assertions"), load("naming"))
     for name, document in zip(TABLES, (spec, naming), strict=True):
-        changed = render(name, document)
-        print(f"spec/{name}.json: {'rendered' if changed else 'unchanged'}")
+        state = "rendered" if render(name, document) else "unchanged"
+        sys.stdout.write(f"spec/{name}.json: {state}\n")
     for family, (kinds, _) in FAMILIES.items():
         for kind in kinds:
             changed = render_vectors(family, kind)
             state = "rendered" if changed else "unchanged"
-            print(f"corpus/{family}/{kind}.json: {state}")
+            sys.stdout.write(f"corpus/{family}/{kind}.json: {state}\n")
     return 0
 
 

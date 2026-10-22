@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """Write spec/zones.json: the definition's zones and every offset change of each.
 
 The zoned-date-time and wall-time shapes generate a value near an offset
@@ -26,6 +29,7 @@ import itertools
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tarfile
@@ -197,28 +201,43 @@ def fetch(directory: Path) -> Path:
         target.write_bytes(response.read())
     digest = hashlib.sha512(target.read_bytes()).hexdigest()
     if digest != SHA512:
-        raise ZonesError(f"tzdata{RELEASE}.tar.gz has SHA-512 {digest}")
+        msg = f"tzdata{RELEASE}.tar.gz has SHA-512 {digest}"
+        raise ZonesError(msg)
     return target
+
+
+def program(name: str) -> str:
+    """Return the path of the program name in a directory of PATH.
+
+    Raises:
+        ZonesError: no directory of PATH contains the program.
+    """
+    found = shutil.which(name)
+    if found is None:
+        msg = f"{name} is not on PATH"
+        raise ZonesError(msg)
+    return found
 
 
 def compile_zones(tarball: Path, directory: Path) -> Path:
     """Extract the release, compile it with zic, and return the zone directory.
 
     Raises:
-        ZonesError: zic refuses the sources.
+        ZonesError: zic is not on PATH, or it refuses the sources.
     """
     source = directory / "source"
     with tarfile.open(tarball) as archive:
         archive.extractall(source, filter="data")
     compiled = directory / "zoneinfo"
     result = subprocess.run(
-        ["zic", "-d", str(compiled), *(str(source / s) for s in SOURCES)],
+        [program("zic"), "-d", str(compiled), *(str(source / s) for s in SOURCES)],
         capture_output=True,
         text=True,
         check=False,
     )
     if result.returncode != 0:
-        raise ZonesError(f"zic: {result.stderr.strip()}")
+        msg = f"zic: {result.stderr.strip()}"
+        raise ZonesError(msg)
     return compiled
 
 
@@ -226,19 +245,22 @@ def list_zone(zone: str, compiled: Path) -> str:
     """Return zdump's verbose listing of one compiled zone over the table's years.
 
     Raises:
-        ZonesError: zdump fails, or the compiled release lacks the zone.
+        ZonesError: zdump is not on PATH or fails, or the compiled release lacks
+            the zone.
     """
     if not (compiled / zone).is_file():
-        raise ZonesError(f"tzdata{RELEASE} has no zone {zone}")
+        msg = f"tzdata{RELEASE} has no zone {zone}"
+        raise ZonesError(msg)
     result = subprocess.run(
-        ["zdump", "-v", "-c", f"{FROM_YEAR},{UNTIL_YEAR}", zone],
+        [program("zdump"), "-v", "-c", f"{FROM_YEAR},{UNTIL_YEAR}", zone],
         capture_output=True,
         text=True,
         check=False,
         env={**os.environ, "TZDIR": str(compiled)},
     )
     if result.returncode != 0:
-        raise ZonesError(f"zdump {zone}: {result.stderr.strip()}")
+        msg = f"zdump {zone}: {result.stderr.strip()}"
+        raise ZonesError(msg)
     return result.stdout
 
 
@@ -250,7 +272,7 @@ def main() -> int:
         table = {zone: changes(list_zone(zone, compiled)) for zone in ZONES}
     (ROOT / "spec" / "zones.json").write_text(render(table))
     total = sum(len(found) for found in table.values())
-    print(f"spec/zones.json: {total} offset changes in {len(table)} zones")
+    sys.stdout.write(f"spec/zones.json: {total} offset changes in {len(table)} zones\n")
     return 0
 
 

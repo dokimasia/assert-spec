@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """Hold the issue forms to what GitHub accepts.
 
 A malformed form is not rejected on push. GitHub falls back to a blank
@@ -96,6 +99,7 @@ for repo in sys.argv[1:] or [str(ROOT)]:
             at(f"{repo}/config.yml", f"links to {template.group(1)}, which is absent")
 
 for problem in problems:
-    print(problem, file=sys.stderr)
-print(f"\n{len(problems)} problem(s)" if problems else "issue forms: all valid")
+    sys.stderr.write(f"{problem}\n")
+summary = f"\n{len(problems)} problem(s)\n" if problems else "issue forms: all valid\n"
+sys.stdout.write(summary)
 sys.exit(1 if problems else 0)
