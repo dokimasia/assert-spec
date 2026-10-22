@@ -77,6 +77,24 @@ handle derives from the handle of the property's seat in the same way. A
 handle is an input of a test, so no vector pins it, and each language
 checks it in its own tests.
 
+**How a seat receives a fault.** A seat that states `seat.report-fault`
+receives each fault as the error it is:
+
+- The member receives a fault that ends the call with `ending` true. It
+  receives a fault that the call notes and runs on past with `ending`
+  false.
+- A library passes its own faults to the member. The helper `fault` passes
+  the fault of a helper to it.
+- A seat without the member ends the call as the language ends a call with
+  a fault. It notes a noted fault as the language notes one.
+- A recorder returns each fault that it received from
+  `recorder-seat.faults`. A fault that ends a call fails the recorder.
+- The seat of the check of `rejects` keeps the fault that ends the check.
+  `rejects` then ends its own call with that fault.
+
+A fault is an input of a test, so no vector pins it. Each language checks
+it in its own tests.
+
 **What a recorded run states.** `recording.md` fixes the fields of a
 call record and their encoding, the verdicts, the phases of a property's
 cases, the opaque literal, the numbering, the switch and its values,

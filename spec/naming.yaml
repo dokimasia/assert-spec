@@ -19,7 +19,7 @@
 # as its positive does. Each of these names takes the auxiliary that its
 # word takes in an English sentence: is before an adjective, has before a
 # noun and does before a verb.
-version: "9.0.0"
+version: "10.0.0"
 
 languages: [go, java, kotlin, php, python, rust, typescript]
 
@@ -589,6 +589,19 @@ relaxations:
 # Go and Java have them, because only they lack interface defaults; the
 # other three state the members on the seat itself and decline both.
 #
+# A seat takes a fault as the error it is through report-fault, which Go,
+# Java and Kotlin state on the interface FaultReporter for the same reason.
+# Python and TypeScript state the member as an optional member of the seat,
+# and Rust gives it a default on the trait, so the three decline
+# FaultReporter. The helper fault ends the call of a helper with an error.
+# Go names it Fault, the public form of its internal End, and Java and
+# Kotlin name it Check.fault beside Check.that.
+#
+# allocs-checked reports whether a run checks allocation ceilings. Go names
+# it AllocsChecked, and Java and Kotlin Check.allocsChecked. prop.values
+# returns the values of a generator for a seed, beside the other helpers
+# of prop.
+#
 # Java names the platform clock SystemClock because System is
 # java.lang.System, which every class in the package would otherwise
 # have to qualify. The same reason throws became throwsException.
@@ -722,6 +735,10 @@ surface:
       go: "Clocked"
       java: "Clocked"
       kotlin: "Clocked"
+    "fault-reporter":
+      go: "FaultReporter"
+      java: "FaultReporter"
+      kotlin: "FaultReporter"
     "scrubber":
       go: "golden.Scrubber"
       python: "golden.Scrubber"
@@ -903,6 +920,13 @@ surface:
       typescript: "report"
       java: "report"
       kotlin: "report"
+    "seat.report-fault":
+      go: "ReportFault"
+      python: "report_fault"
+      rust: "report_fault"
+      typescript: "reportFault"
+      java: "reportFault"
+      kotlin: "reportFault"
     "seat.clock":
       go: "Clock"
       python: "clock"
@@ -978,6 +1002,13 @@ surface:
       typescript: "records"
       java: "records"
       kotlin: "records"
+    "recorder-seat.faults":
+      go: "Faults"
+      python: "faults"
+      rust: "faults"
+      typescript: "faults"
+      java: "faults"
+      kotlin: "faults"
     "collector-seat.collected":
       python: "collected"
       rust: "collected"
@@ -1316,6 +1347,20 @@ surface:
     "cancellation-of":
       go: "Context"
       typescript: "signalOf"
+    "fault":
+      go: "Fault"
+      python: "fault"
+      rust: "fault"
+      typescript: "fault"
+      java: "Check.fault"
+      kotlin: "Check.fault"
+    "allocs-checked":
+      go: "AllocsChecked"
+      python: "allocs_checked"
+      rust: "allocs_checked"
+      typescript: "allocsChecked"
+      java: "Check.allocsChecked"
+      kotlin: "Check.allocsChecked"
     "golden.scrub-timestamps":
       go: "golden.ScrubTimestamps"
       python: "golden.scrub_timestamps"
@@ -1624,6 +1669,13 @@ surface:
       typescript: "prop.ofShape"
       java: "Prop.ofShape"
       kotlin: "Prop.ofShape"
+    "prop.values":
+      go: "prop.Values"
+      python: "prop.values"
+      rust: "prop::values"
+      typescript: "prop.values"
+      java: "Prop.values"
+      kotlin: "Prop.values"
     "history.from-intervals":
       go: "history.FromIntervals"
       python: "history.from_intervals"

@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@9.0.0",
+  "extends": "spec://assertions@10.0.0",
   "language": "typescript",
   "diverge": [
     {
@@ -56,6 +56,11 @@
       "why": "vitest has no fuzzing mode, and Node has no fuzzer in its standard library. The library depends on no fuzzer, so a suite that fuzzes exports the target to a fuzzer that it installs itself."
     },
     {
+      "id": "prop.using",
+      "what": "Gives a property form the generator of its input. A run of forAll and fuzz does not take the option, because its body states each generator that it draws from.",
+      "why": "The TypeScript compiler erases every type, so a run has no type to give a generator to. A property derives its inputs from shape files alone, and a form takes its input's generator through using."
+    },
+    {
       "id": "history.workers",
       "what": "Searches one partition at a time, whatever the number of workers. A check reports what a check on one worker reports, as it does in every language.",
       "why": "A spec is a set of functions, and the structured clone that copies a message to a worker thread refuses a function, so every partition is searched on the runtime's one thread."
@@ -69,6 +74,10 @@
     {
       "id": "clocked",
       "why": "The seat states report and clock itself, with a default, so a seat that supplies neither gets the platform clock and a rendered sentence. Only a language whose interfaces carry no defaults needs a second interface to say the same thing."
+    },
+    {
+      "id": "fault-reporter",
+      "why": "The seat states reportFault as an optional member, which the library calls where the seat has it, and the library throws the fault for a seat without it. Only a language whose interfaces carry no defaults needs a second interface to say the same thing."
     },
     {
       "id": "contract.excluding",

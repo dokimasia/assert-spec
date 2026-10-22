@@ -62,7 +62,7 @@ tools/history/         the history's and the checkers' executable reference
 tools/stateful/        the machines' and the scheduler's executable reference
 tools/files/           the trees' and the file assertions' executable reference
 .spec.yaml             the files an implementation vendors with spec
-VERSION                9.0.0
+VERSION                10.0.0
 ```
 
 People edit the YAML. `make render` produces the JSON, which is
@@ -157,8 +157,8 @@ token, run detail and store. They also pin the values each shape
 generates, the choices that produce a value, the shape each fixture type
 reads as, a passing and a failing run of every property form but
 `prop-max-allocs`, the runs of a form's examples, and the call records of
-a property's runs. The history
-and the checkers are data in and data out too. 80 vectors under
+a property's runs, and the values that `prop.values` returns for a seed.
+The history and the checkers are data in and data out too. 80 vectors under
 `corpus/history/` pin the events that calls record, the entries that the
 history refuses, the verdict, steps and record of a check against each
 named spec, and the verdict and record of each isolation check. So are
@@ -287,7 +287,7 @@ differently.
 | TypeScript | [assert-typescript](https://github.com/dokimasia/assert-typescript) | 104 of 110 |
 
 Each count is what the language's overlay declares against version
-9.0.0. An implementation whose copy is behind has an open pull request
+10.0.0. An implementation whose copy is behind has an open pull request
 from spec with the new copy.
 
 Java and Kotlin ship from one repository and are named identically, so
@@ -328,7 +328,8 @@ The TypeScript compiler erases every type, so the TypeScript library reads
 no type into a shape. It skips the 34 fixture vectors. A property derives
 its inputs from shape files alone. The library runs the concurrent section
 of a machine only as tasks and declines `repeat`. Its overlay also limits
-`prop.fuzz`, because vitest does not run a fuzzer.
+`prop.fuzz`, because vitest does not run a fuzzer, and `prop.using`,
+because a run of `forAll` has no type to give a generator to.
 
 PHP is declared as a target language and the naming table carries no
 names for it yet, so adding it starts by filling that column.

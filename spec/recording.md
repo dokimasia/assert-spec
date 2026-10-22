@@ -91,7 +91,11 @@ A failing `equal` on the recording surface:
 
 A malformed `DOKIMI_ASSERT_PROP_SEED`, a replay token in a form that no
 encoder writes, and a damaged file in a property's store each end a call
-with `error`.
+with `error`. A call of `rejects` whose check ends with a fault ends with
+`error` and the text of that fault.
+
+The helper `fault` ends the call of a helper with a fault, and does not
+write a call record, because the call is no call of an assertion.
 
 ## The detail
 

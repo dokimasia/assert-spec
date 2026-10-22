@@ -20,7 +20,7 @@
 # assertion carries exactly these. got is what the assertion observed
 # and want is what it required, so an assertion whose failure holds
 # neither states no fields and reports the caller's message alone.
-version: "9.0.0"
+version: "10.0.0"
 
 # What a caller may change about equality, for one call.
 #
@@ -688,7 +688,7 @@ assertions:
       and any other ceiling compares with the average per call, rounded to
       the nearest whole number, with a half rounded up. A count that
       exceeds the ceiling is taken again, and the assertion fails when
-      three counts exceed it. got is the rounded average and total the
+      ten counts exceed it. got is the rounded average and total the
       allocations of the count with the lowest total.
     detail_fields: [want, got, total]
 
@@ -862,7 +862,8 @@ assertions:
     arity: 2
     summary: >
       A check fails against an implementation it is meant to reject.
-      Yields the failure records of the check, in call order.
+      Yields the failure records of the check, in call order. A fault
+      that ends the check ends the call with the same fault.
     detail_fields: []
 
   "prop-for-all":
