@@ -1,3 +1,8 @@
+<!--
+  ~ Copyright Dokimasia B.V. 2026
+  ~ SPDX-License-Identifier: MIT
+-->
+
 # assert-spec
 
 One set of test assertions, defined as data, so the same test means the
@@ -37,6 +42,7 @@ spec/conformance.md    what converges and what does not
 spec/manifest.json     a digest of everything an implementation vendors
 spec/zones.json        the zone list and its offset changes, from tzdata
 spec/encoding.md       how a corpus case states a value
+spec/failure.md        the record that a failing assertion reports
 spec/overlays.md       how a language declares it cannot comply
 spec/recording.md      what a recorded run writes for each call
 corpus/*.json          the cases, one file per assertion they cover
@@ -55,8 +61,7 @@ tools/prop/            the property engine's executable reference
 tools/history/         the history's and the checkers' executable reference
 tools/stateful/        the machines' and the scheduler's executable reference
 tools/files/           the trees' and the file assertions' executable reference
-tools/spec-sync.sh     how an implementation vendors the definition
-tools/spec-check.sh    how an implementation checks its copy
+.spec.yaml             the files an implementation vendors with spec
 VERSION                9.0.0
 ```
 
@@ -195,62 +200,47 @@ names its language's artifact.
 
 ## Keeping the implementations in step
 
-An implementation vendors a copy of the definition, so its build fails on
-its own without reaching the network. What a copy cannot tell you is
-whether it is current, and the version does not answer that: adding the
-relaxations changed the definition without changing the version, and by
-the rule below it should not have.
+Each implementation vendors a copy of the definition with
+[spec](https://github.com/stealth-scale/spec), so its build runs without
+the network. `.spec.yaml` lists the files that an implementation vendors
+and the overlay of each language.
 
-`spec/manifest.json` carries a digest of every file an implementation
-vendors, so there is something to compare against that tracks the bytes
-rather than the meaning. Each implementation runs `spec-check` in its own
-CI. A copy that does not match the manifest beside it fails, always: each
-file, the overlay of the copy's language included, and the manifest's
-own digest of those files. A copy that differs from this repository
-fails only when that change is the one that touched it: falling behind
-is allowed and is tracked by an issue, and committing a copy nobody else
-has is not. A change that touches the copy also fails when this
-repository cannot be read, because the comparison did not happen.
+- `spec manifest` writes `spec/manifest.json`. The manifest states the
+  version, the digest of each vendored file, the files of each language
+  and the digest of the whole set. `make render` runs it after the JSON,
+  and CI fails when the committed manifest differs.
+- `spec sync` writes the files of an implementation's languages into its
+  copy. The `manifest.json` of the copy records the commit of this
+  repository that the copy comes from.
+- `spec check` fails when a copy differs from its manifest. `spec check
+  --remote` also fails when the commit of the copy is not on `main`.
+- Each implementation runs the workflow `propose.yml` of spec on
+  weekdays. The workflow opens a pull request with the new copy when
+  `main` has moved, and closes it when the copy matches again.
 
-Each implementation opens that issue on itself, on a weekday schedule,
-by running the same check against this repository's main branch. It
-reads rather than being told, so nothing here holds a key to five other
-repositories and there is no token to rotate. A library already current
-opens nothing, because the check compares digests rather than counting
-pushes.
-
-`spec-sync` fetches a pinned ref rather than reading a sibling
-directory, so it answers the same way on a laptop and on a runner. Set
-`SPEC_LOCAL` to try a change before pushing it; it says loudly that the
-copy it leaves behind is reproducible nowhere else.
-
-The two scripts are themselves vendored from `tools/` here and carried
-in the manifest, and `spec-sync` refreshes them along with the
-definition. Five copies of a script drift exactly the way five copies
-of the definition did, and running one from the network instead would
-make an offline check depend on being online.
-
-A change here opens an issue on each of the five, so a definition change
-becomes five pieces of visible work rather than five silent
-divergences.
+To try a change here before you push it, run `spec try`. It writes the
+working tree into the checkout of each implementation beside this
+repository, such as `../assert-go`, and runs the tests of that
+implementation. `spec try --restore` restores the copies.
 
 ## Checking this repository
 
-Everything runs through [uv](https://docs.astral.sh/uv/), which fetches
-its own Python. Clone and run the gate; there is nothing else to
-install.
+`make check` runs the gate that CI runs. It lints the tools and runs
+their tests. It renders the definition and fails when the committed JSON
+or manifest differs, and it checks the definition against its rules. The
+Python targets run through [uv](https://docs.astral.sh/uv/), which
+fetches its own Python. `make render` and `make manifest` also need
+spec, which `go install go.stealthscale.io/spec/cmd/spec@latest`
+installs.
 
 ```sh
-make install    # create the environment
 make check      # the full pre-merge gate
-make render     # rebuild the JSON from the YAML
+make render     # rebuild the JSON from the YAML, and the manifest
 make validate   # hold the definition and corpus to their rules
-make test       # check the validator catches what it claims to
+make forms      # check that GitHub renders the issue forms
+make test       # run the tests of the tools
 make fmt        # format the tools
 ```
-
-`make lint-md` needs `markdownlint`, and falls back to `npx` when it is
-not on the path. Every other target needs only uv.
 
 `make validate` reads the rendered JSON, not the YAML, because that is
 what implementations read. It checks that the version files agree, that
@@ -269,9 +259,8 @@ each language whose threads run on more than one core limits the
 history's recorder. It reports everything it finds in one run.
 
 `make test` breaks each rule of the validator in a scratch copy and
-requires the validator to report it, and breaks a vendored copy each way
-that `spec-check.sh` must refuse. A validator only ever run on a clean
-tree would pass just as readily with every rule deleted.
+requires the validator to report it. A validator only ever run on a
+clean tree would pass just as readily with every rule deleted.
 
 ## Versioning
 
@@ -298,8 +287,8 @@ differently.
 | TypeScript | [assert-typescript](https://github.com/dokimasia/assert-typescript) | 104 of 110 |
 
 Each count is what the language's overlay declares against version
-9.0.0. An implementation that has not synced to it yet has a drift issue
-open until it does.
+9.0.0. An implementation whose copy is behind has an open pull request
+from spec with the new copy.
 
 Java and Kotlin ship from one repository and are named identically, so
 a test reads the same in both. Neither states a ceiling on allocation

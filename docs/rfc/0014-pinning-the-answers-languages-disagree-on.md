@@ -7,9 +7,14 @@ created: 2026-10-02
 updated: 2026-10-02
 discussion: none
 supersedes: none
-superseded-by: none
+superseded-by: ADR-0001, in part
 produces-adr: none
 ---
+
+<!--
+  ~ Copyright Dokimasia B.V. 2026
+  ~ SPDX-License-Identifier: MIT
+-->
 
 # RFC-0014: Pinning the answers languages disagree on
 

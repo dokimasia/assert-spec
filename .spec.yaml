@@ -1,0 +1,22 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
+# The definition that each implementation vendors with spec. spec manifest writes spec/manifest.json
+# from it, and spec sync copies the files of each language into an implementation.
+definition:
+  repo: dokimasia/assert-spec
+  languages: [go, java, kotlin, python, rust, typescript]
+  files:
+    - VERSION
+    - spec/assertions.json
+    - spec/naming.json
+    - spec/zones.json
+    - "corpus/**/*.json"
+    - "overlays/*.json"
+  language-files: ["overlays/{language}.json"]
+  implementations:
+    - {repo: dokimasia/assert-go, languages: [go]}
+    - {repo: dokimasia/assert-java, languages: [java]}
+    - {repo: dokimasia/assert-python, languages: [python]}
+    - {repo: dokimasia/assert-rust, languages: [rust]}
+    - {repo: dokimasia/assert-typescript, languages: [typescript]}
