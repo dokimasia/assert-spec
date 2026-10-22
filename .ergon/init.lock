@@ -1,5 +1,5 @@
 {
-  "ergon": "0.10.4",
+  "ergon": "0.13.0",
   "files": [
     {
       "path": ".commitlint.yaml",
@@ -64,7 +64,7 @@
     {
       "path": ".github/workflows/ci.yml",
       "producer": "github",
-      "sha256": "049bb661fcf89e0059595985b52e685cf8210802d85dc3151f772116c80b906c"
+      "sha256": "131ef46c2b2df1563e7dbc7e84ebe36e8b5ad7e85292d72ebf1efaf832ad7997"
     },
     {
       "path": ".github/workflows/codeql.yml",
@@ -84,7 +84,7 @@
     {
       "path": ".github/workflows/security.yml",
       "producer": "github",
-      "sha256": "f002981fcee7cfa8ca7a66d4974832f2c1f18fd3e07e702b03800e69075d0f1d"
+      "sha256": "b5c9200492b89caba78213ec12f5a660c8b467dbef6d8b39c0c363172ec5be5c"
     },
     {
       "path": ".github/workflows/version.yml",
@@ -124,8 +124,8 @@
     {
       "path": "Makefile",
       "producer": "common",
-      "local": "09fd0994fc1004996d861c22f059b2d3366898ecc843d7a777d2dd3cc156beef",
-      "sha256": "743417246b131b192b683408bb2045bdc0a8fd28e225c69c61d88ba3e08adb95"
+      "local": "0d76320ee924975d995cfdcfc7b1efef5235d57a9efe4bb284ed0f5163e10e72",
+      "sha256": "45d04fe8849d3e6710a1a88b19291e05c53bcef35450261814b3fa0102a93d55"
     },
     {
       "path": "ruff.toml",
@@ -237,7 +237,18 @@
       "linux/amd64": "9167d72b3319674b6303c4cbe071854bba13ebdf3d76b1a7cbdc175471fb66d6",
       "windows/amd64": "75d05de6762778c31ee183398de7dd15093fad0ed90b1f236d8205ea5ec00c90"
     },
-    "python.tools.uv.version": "0.12.23"
+    "python.tools.uv.version": "0.12.23",
+    "spec.ci.timeout": 10,
+    "spec.roles": [],
+    "spec.tools.spec.sha256": {
+      "darwin/amd64": "af667806ff4d1b98975dbf25d9994748edc9abc0c8b170ea478365fe86d7ace3",
+      "darwin/arm64": "ab07badc7456450212860080aa8b4c17b490b7bf94578c1f552307b6cfeb287b",
+      "linux/amd64": "52c6e38ae99491e5cbeaf5e48ffb7aeec7a4ab432a9f925d5f63788cdafdfba6",
+      "linux/arm64": "533883b706ebb63501d3791f37e74d6b50dfa5707b59e641ce6415dea5af6443",
+      "windows/amd64": "d3ca18f4ec1991867e6bf3ecad3ad963754f1c8deae0cfb42fd46d42552a39f2",
+      "windows/arm64": "fcbeb31e10146308d86f2682016f70fd7eb2a4b76ba2f72a4ced9118e9976c88"
+    },
+    "spec.tools.spec.version": "0.4.0"
   },
   "answers": {
     "name": "assert-spec",

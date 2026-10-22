@@ -4,7 +4,9 @@
 # OpenSSF Scorecard of a public repository, and the CodeQL analysis of each language that a
 # producer of ergon init contributes, which calls codeql.yml. ergon init renders this workflow only
 # when the key code-security of the section github of .ergon.yaml is true, because a private
-# repository needs GitHub Code Security for the analysis and the review.
+# repository needs GitHub Code Security for the analysis and the review. The steps that a producer
+# contributes to the review run before it. A step appends the package URLs of the repository's own
+# packages to ERGON_OWN_PACKAGES. The review leaves those packages out of its license check.
 
 name: Security
 

@@ -214,9 +214,10 @@ and the overlay of each language.
   repository that the copy comes from.
 - `spec check` fails when a copy differs from its manifest. `spec check
   --remote` also fails when the commit of the copy is not on `main`.
-- Each implementation runs the workflow `propose.yml` of spec on
-  weekdays. The workflow opens a pull request with the new copy when
-  `main` has moved, and closes it when the copy matches again.
+- Each implementation runs `spec propose` every night, in the job
+  `propose-spec` of the nightly workflow that ergon renders. The job
+  opens a pull request with the new copy when `main` has moved, and
+  closes it when the copy matches again.
 
 To try a change here before you push it, run `spec try`. It writes the
 working tree into the checkout of each implementation beside this
@@ -229,9 +230,8 @@ implementation. `spec try --restore` restores the copies.
 their tests. It renders the definition and fails when the committed JSON
 or manifest differs, and it checks the definition against its rules. The
 Python targets run through [uv](https://docs.astral.sh/uv/), which
-fetches its own Python. `make render` and `make manifest` also need
-spec, which `go install go.stealthscale.io/spec/cmd/spec@latest`
-installs.
+fetches its own Python. `make render` runs spec through ergon, which
+installs the release that the section `spec` of `.ergon.yaml` pins.
 
 ```sh
 make check      # the full pre-merge gate

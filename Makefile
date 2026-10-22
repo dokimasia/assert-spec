@@ -5,9 +5,9 @@
 # targets as prerequisites of the targets below. CI runs make check-<language> per language. It
 # runs lint-common and lint-github in jobs of their own. Every target runs its tools through ergon
 # tool run, which installs the version that .ergon.yaml names. make help lists the targets in
-# groups. A line ##@ <name> starts a group: the common targets, the targets of the GitHub files,
-# then the targets of each language, and the targets of .ergon/local/Makefile after a line of its
-# own.
+# groups. A line ##@ <name> starts a group: the common targets, the targets of the GitHub files and
+# of spec, then the targets of each language, and the targets of .ergon/local/Makefile after a line
+# of its own.
 
 .DEFAULT_GOAL := check
 
@@ -63,6 +63,23 @@ check: lint-github
 # ergon pins neither program, so actionlint would run the versions that the machine has.
 lint-github: ## Lint the workflows with actionlint and the configuration of .github/actionlint.yaml
 	$(ACTIONLINT) -shellcheck= -pyflakes=
+
+##@ Spec
+#
+# The section spec of .ergon.yaml sets the roles of the repository and the release of spec. spec
+# reads its own configuration from .spec.yaml.
+
+# The program spec, which ergon installs at the version of the section spec.
+SPEC := $(ERGON) tool run spec.spec --
+
+.PHONY: generate-spec verify-generate-spec
+generate: generate-spec
+check: verify-generate-spec
+
+generate-spec: ## Write the manifest of the definition with spec
+	$(SPEC) manifest
+verify-generate-spec: ## Fail when the manifest of the definition differs from its files
+	$(SPEC) manifest --check
 
 ##@ Python
 #
@@ -129,16 +146,10 @@ check-python: lint-python test-python verify-generate-python audit-python ## Run
 
 ##@ Repository
 
-# The command that runs spec, which writes the manifest of the definition.
-SPEC ?= spec
-
-.PHONY: render manifest zones validate forms
+.PHONY: render zones validate forms
 
 render: ## Render the JSON of the definition from its YAML, and write the manifest
 	$(UV) run --locked python tools/render.py
-	$(SPEC) manifest
-
-manifest: ## Write the digest of each file that an implementation vendors into spec/manifest.json
 	$(SPEC) manifest
 
 zones: ## Recompute spec/zones.json from the pinned tzdata release, which needs the network, zic and zdump

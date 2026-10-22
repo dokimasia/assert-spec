@@ -8,16 +8,10 @@
 
 ##@ Repository
 
-# The command that runs spec, which writes the manifest of the definition.
-SPEC ?= spec
-
-.PHONY: render manifest zones validate forms
+.PHONY: render zones validate forms
 
 render: ## Render the JSON of the definition from its YAML, and write the manifest
 	$(UV) run --locked python tools/render.py
-	$(SPEC) manifest
-
-manifest: ## Write the digest of each file that an implementation vendors into spec/manifest.json
 	$(SPEC) manifest
 
 zones: ## Recompute spec/zones.json from the pinned tzdata release, which needs the network, zic and zdump

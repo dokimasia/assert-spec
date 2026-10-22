@@ -205,6 +205,34 @@ jobs:
         run: |
           ergon license check
 
+  spec:
+    name: Spec
+    needs: skip
+    if: "needs.skip.outputs.skip != 'true'"
+    runs-on: ubuntu-26.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup-ergon
+      - name: Keep the tools of ergon
+        id: ergon-tools
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          key: "ergon-tools-${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-${{ hashFiles('.ergon.yaml', '.ergon/init.lock') }}"
+          path: "${{ runner.os == 'Windows' && '~/AppData/Local/ergon/tools' || runner.os == 'macOS' && '~/Library/Caches/ergon/tools' || '~/.cache/ergon/tools' }}"
+          restore-keys: "ergon-tools-${{ runner.os }}-${{ runner.arch }}-${{ github.job }}-"
+      - name: Check the manifest of the definition
+        run: |
+          ergon tool run spec.spec -- manifest --check
+      - name: Prune the tools of ergon
+        if: "steps.ergon-tools.outputs.cache-hit != 'true'"
+        run: |
+          ergon tool prune
+
   check-python:
     name: "Python (${{ matrix.os }})"
     needs: skip
@@ -223,17 +251,6 @@ jobs:
           persist-credentials: false
       - if: "hashFiles('pyproject.toml') != ''"
         uses: ./.github/actions/setup-make
-      - name: Set up Go
-        if: "hashFiles('pyproject.toml') != ''"
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        with:
-          cache: "false"
-          go-version: stable
-      - name: Install spec
-        if: "hashFiles('pyproject.toml') != ''"
-        uses: stealth-scale/spec/.github/actions/setup-spec@78d70fd5be63102e43f8dd9628d4594914bb390e # v0.2.0
-        with:
-          version: v0.2.0
       - if: "hashFiles('pyproject.toml') != ''"
         uses: ./.github/actions/setup-ergon
       - name: Keep the tools of ergon
@@ -256,7 +273,7 @@ jobs:
   result:
     name: Result
     if: always()
-    needs: [skip, docs, commits, changeset, baseline, workflows, license, check-python]
+    needs: [skip, docs, commits, changeset, baseline, workflows, license, spec, check-python]
     runs-on: ubuntu-26.04
     timeout-minutes: 15
     permissions: {}
