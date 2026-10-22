@@ -45,5 +45,6 @@ they record why not.
 | [0032](0032-ten-counts-of-an-allocation-ceiling.md) | Ten counts of an allocation ceiling | Accepted |
 | [0033](0033-faults-through-the-seat.md) | Faults through the seat | Accepted |
 | [0034](0034-a-check-that-ends-with-a-fault.md) | A check that ends with a fault | Accepted |
-| [0035](0035-the-values-of-a-generator-for-a-seed.md) | The values of a generator for a seed | Accepted |
+| [0035](0035-the-values-of-a-generator-for-a-seed.md) | The values of a generator for a seed | Accepted, superseded in part by [RFC-0037](0037-the-values-of-a-generator-under-using.md) |
 | [0036](0036-whether-a-run-checks-allocation-ceilings.md) | Whether a run checks allocation ceilings | Accepted |
+| [0037](0037-the-values-of-a-generator-under-using.md) | The values of a generator under the option using | Accepted |
