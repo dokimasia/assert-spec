@@ -40,5 +40,10 @@ they record why not.
 | [0027](0027-the-values-in-the-records-of-empty-and-matches.md) | The values in the records of empty, not-empty and matches | Accepted |
 | [0028](0028-writing-a-tree-into-a-directory-that-exists.md) | Writing a tree into a directory that exists | Accepted |
 | [0029](0029-the-cancellation-handle-of-a-seat.md) | The cancellation handle of a seat | Accepted |
-| [0030](0030-an-allocation-ceiling-of-zero.md) | An allocation ceiling of zero | Accepted |
+| [0030](0030-an-allocation-ceiling-of-zero.md) | An allocation ceiling of zero | Accepted, superseded in part by [RFC-0032](0032-ten-counts-of-an-allocation-ceiling.md) |
 | [0031](0031-a-wrapper-around-each-run-of-a-property.md) | A wrapper around each run of a property | Accepted |
+| [0032](0032-ten-counts-of-an-allocation-ceiling.md) | Ten counts of an allocation ceiling | Accepted |
+| [0033](0033-faults-through-the-seat.md) | Faults through the seat | Accepted |
+| [0034](0034-a-check-that-ends-with-a-fault.md) | A check that ends with a fault | Accepted |
+| [0035](0035-the-values-of-a-generator-for-a-seed.md) | The values of a generator for a seed | Accepted |
+| [0036](0036-whether-a-run-checks-allocation-ceilings.md) | Whether a run checks allocation ceilings | Accepted |

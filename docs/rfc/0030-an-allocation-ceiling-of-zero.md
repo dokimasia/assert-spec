@@ -7,7 +7,7 @@ created: 2026-10-11
 updated: 2026-10-11
 discussion: https://github.com/dokimasia/assert-spec/issues/11
 supersedes: none
-superseded-by: none
+superseded-by: RFC-0032, in part
 produces-adr: none
 ---
 
