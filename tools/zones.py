@@ -27,7 +27,6 @@ import calendar
 import hashlib
 import itertools
 import json
-import os
 import re
 import shutil
 import subprocess
@@ -244,19 +243,29 @@ def compile_zones(tarball: Path, directory: Path) -> Path:
 def list_zone(zone: str, compiled: Path) -> str:
     """Return zdump's verbose listing of one compiled zone over the table's years.
 
+    zdump reads the compiled file of the zone by its absolute path. glibc and
+    the libc of macOS both load a time zone from an absolute path, and only
+    glibc reads the variable TZDIR.
+
     Raises:
         ZonesError: zdump is not on PATH or fails, or the compiled release lacks
             the zone.
     """
-    if not (compiled / zone).is_file():
+    path = compiled / zone
+    if not path.is_file():
         msg = f"tzdata{RELEASE} has no zone {zone}"
         raise ZonesError(msg)
     result = subprocess.run(
-        [program("zdump"), "-v", "-c", f"{FROM_YEAR},{UNTIL_YEAR}", zone],
+        [
+            program("zdump"),
+            "-v",
+            "-c",
+            f"{FROM_YEAR},{UNTIL_YEAR}",
+            str(path.absolute()),
+        ],
         capture_output=True,
         text=True,
         check=False,
-        env={**os.environ, "TZDIR": str(compiled)},
     )
     if result.returncode != 0:
         msg = f"zdump {zone}: {result.stderr.strip()}"
