@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 # Fixtures: native types and the shape each must read as. Each
 # implementation declares every fixture type natively, as it builds the
 # named subjects, and its reader must produce the stated shape. A language

@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 # is-file: a file is at a path, and a link to a file is a link. Each case
 # states `workspace`, the tree that the runner writes before the call,
 # `args`, the path relative to the workspace's root, and `expect`. The

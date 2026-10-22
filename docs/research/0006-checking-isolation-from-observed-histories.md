@@ -10,6 +10,11 @@ supersedes: none
 superseded-by: none
 ---
 
+<!--
+  ~ Copyright Dokimasia B.V. 2026
+  ~ SPDX-License-Identifier: MIT
+-->
+
 # Research-0006: Which transactional isolation levels can a checker decide from client-observed histories, at what cost, and what must the workload guarantee?
 
 ## The question

@@ -1,3 +1,8 @@
+<!--
+  ~ Copyright Dokimasia B.V. 2026
+  ~ SPDX-License-Identifier: MIT
+-->
+
 # The definition
 
 People edit `assertions.yaml` and `naming.yaml`, which are the

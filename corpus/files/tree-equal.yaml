@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 # tree-equal: the tree read from a directory has the entries of a stated
 # tree, no more and no fewer. Each case states `workspace`, the tree that
 # the runner writes before the call, `args`, the stated tree, and `expect`.

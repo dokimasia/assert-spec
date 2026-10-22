@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 # path-absent: nothing is at a path, a link whose target is missing
 # included. Each case states `workspace`, the tree that the runner writes
 # before the call, `args`, the path relative to the workspace's root, and

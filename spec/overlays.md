@@ -1,3 +1,8 @@
+<!--
+  ~ Copyright Dokimasia B.V. 2026
+  ~ SPDX-License-Identifier: MIT
+-->
+
 # Overlays
 
 Every assertion in the set is required. No assertion is marked

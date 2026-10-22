@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 # tree-contains: the tree read from a directory has every entry of a stated
 # tree, each as the stated entry states it, and may have more. Each case
 # states `workspace`, the tree that the runner writes before the call,

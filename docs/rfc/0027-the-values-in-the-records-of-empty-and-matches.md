@@ -11,6 +11,11 @@ superseded-by: none
 produces-adr: none
 ---
 
+<!--
+  ~ Copyright Dokimasia B.V. 2026
+  ~ SPDX-License-Identifier: MIT
+-->
+
 # RFC-0027: The values in the records of empty, not-empty and matches
 
 ## Summary

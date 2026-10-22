@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 # golden-match-tree: the tree read from a directory equals the golden tree
 # that a name resolves to. Each case states `workspace`, the output that the
 # runner writes before the call, `args`, the name and update, `golden`, the

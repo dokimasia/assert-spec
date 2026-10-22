@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 # Generation: the first cases a seed generates for a generator. Case i
 # draws from the random source initialised with the seed plus i. Each
 # case pins the choices it drew and the value they decode to, so a

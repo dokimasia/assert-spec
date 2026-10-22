@@ -11,6 +11,11 @@ superseded-by: none
 produces-adr: none
 ---
 
+<!--
+  ~ Copyright Dokimasia B.V. 2026
+  ~ SPDX-License-Identifier: MIT
+-->
+
 # RFC-0028: Writing a tree into a directory that exists
 
 ## Summary

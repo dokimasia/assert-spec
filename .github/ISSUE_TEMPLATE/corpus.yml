@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 name: A corpus case is wrong or missing
 description: What an assertion must report is stated wrongly, or not at all.
 labels: ["corpus", "standard"]

@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 name: A name is wrong for a language
 description: The naming table calls something by a name that language would not.
 labels: ["naming", "standard"]

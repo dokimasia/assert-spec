@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 # Machines: a named machine subject run as a property. Each case names a
 # subject of the definition's `machines` section, which states the subject,
 # its machine and its draws, and may state:

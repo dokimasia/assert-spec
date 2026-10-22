@@ -10,6 +10,11 @@ supersedes: none
 superseded-by: mutate-spec docs/research/0001-mutation-testing-as-a-library-from-one-build.md
 ---
 
+<!--
+  ~ Copyright Dokimasia B.V. 2026
+  ~ SPDX-License-Identifier: MIT
+-->
+
 # Research-0007: Can mutation testing run as a library that the test runner drives, and from one build for all mutants, in Go, Java, Kotlin, Python, TypeScript and Rust?
 
 This research is in the mutate-spec repository as Research-0001, at

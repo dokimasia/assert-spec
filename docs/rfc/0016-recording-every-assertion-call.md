@@ -11,6 +11,11 @@ superseded-by: none
 produces-adr: none
 ---
 
+<!--
+  ~ Copyright Dokimasia B.V. 2026
+  ~ SPDX-License-Identifier: MIT
+-->
+
 # RFC-0016: Recording every assertion call
 
 ## Summary

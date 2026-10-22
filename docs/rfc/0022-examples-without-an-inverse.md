@@ -11,6 +11,11 @@ superseded-by: none
 produces-adr: none
 ---
 
+<!--
+  ~ Copyright Dokimasia B.V. 2026
+  ~ SPDX-License-Identifier: MIT
+-->
+
 # RFC-0022: Examples without an inverse, and any number of examples in one option
 
 ## Summary

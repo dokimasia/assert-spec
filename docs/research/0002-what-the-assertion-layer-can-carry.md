@@ -10,6 +10,11 @@ supersedes: none
 superseded-by: none
 ---
 
+<!--
+  ~ Copyright Dokimasia B.V. 2026
+  ~ SPDX-License-Identifier: MIT
+-->
+
 # Research-0002: Which of the shape catalogue's 107 relations can the assertion standard carry?
 
 ## The question

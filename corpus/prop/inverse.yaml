@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 # Inverse: a value run backwards to the choices that decode to it. Each case
 # states a shape or a generator and a value, and pins the choices. Every
 # shape and every generator has a vector. Where more than one sequence of

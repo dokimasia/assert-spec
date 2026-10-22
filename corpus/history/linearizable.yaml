@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 # Linearizable: a history checked against a named spec. Each case names a
 # spec of the definition's `specs` section and states its history as a
 # script of the seam. A case may also state `budget`, `memo-limit` and

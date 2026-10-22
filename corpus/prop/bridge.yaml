@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 # The fuzz bridge: a generator applied to a fuzzer's bytes, stated as
 # lowercase hexadecimal. Each case pins the choices the bytes decode to
 # and the value. Every byte string decodes to a valid case.

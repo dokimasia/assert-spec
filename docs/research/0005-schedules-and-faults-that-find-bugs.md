@@ -10,6 +10,11 @@ supersedes: none
 superseded-by: none
 ---
 
+<!--
+  ~ Copyright Dokimasia B.V. 2026
+  ~ SPDX-License-Identifier: MIT
+-->
+
 # Research-0005: Which scheduling and fault-injection strategies have measured results for finding concurrency and distribution bugs, and how large must a test be?
 
 ## The question

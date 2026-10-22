@@ -1,3 +1,8 @@
+<!--
+  ~ Copyright Dokimasia B.V. 2026
+  ~ SPDX-License-Identifier: MIT
+-->
+
 # The typed-literal encoding
 
 A corpus case states its values in a language-neutral form. Each

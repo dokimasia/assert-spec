@@ -1,3 +1,8 @@
+<!--
+  ~ Copyright Dokimasia B.V. 2026
+  ~ SPDX-License-Identifier: MIT
+-->
+
 # The failure record
 
 A failing assertion reports a record, not a sentence. The record is the

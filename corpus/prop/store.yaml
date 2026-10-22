@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 # The store: the entry a runner writes for a property's minimal failing
 # case and the entry's file name, or the verdict a runner gives the text of
 # one file of a test's store directory. A verdict is replay, other, skip or

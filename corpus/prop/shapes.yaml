@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 # Shapes: the values a seed produces from a shape. Each case states a shape
 # file, a seed and a number of cases, and pins each case's choices and
 # value, as generation vectors pin a generator's. A value is stated in the

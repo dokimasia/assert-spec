@@ -10,6 +10,11 @@ supersedes: none
 superseded-by: none
 ---
 
+<!--
+  ~ Copyright Dokimasia B.V. 2026
+  ~ SPDX-License-Identifier: MIT
+-->
+
 # Research-0004: What decides whether a linearizability check of a recorded history finishes, reports only real violations, and explains the ones it finds?
 
 ## The question

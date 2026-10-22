@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 # has-mode: a file or a directory whose nine permission bits equal a stated
 # mode is at a path, and a link has no mode. Each case states `workspace`,
 # the tree that the runner writes before the call, `args`, the path relative

@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 # Seam: calls recorded through the history, as a script or as intervals.
 # Each case pins the events the history records, in its JSON form, or the
 # entry that the seam refuses.

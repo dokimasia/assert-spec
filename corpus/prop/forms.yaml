@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 # Forms: each property form, run from a seed over a shape. A case names
 # the form, the kinds of the subjects that its assertion takes, and the
 # values that the assertion takes beside them. The subjects come in the

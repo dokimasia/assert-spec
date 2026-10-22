@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 # Behaviour: a body run under settings. Each case pins the detail of the
 # run, with every field present and the fields its outcome does not use
 # null. A body draws one value, labelled `value`, and classifies, rejects

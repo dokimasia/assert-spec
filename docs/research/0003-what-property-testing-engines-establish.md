@@ -10,6 +10,11 @@ supersedes: none
 superseded-by: none
 ---
 
+<!--
+  ~ Copyright Dokimasia B.V. 2026
+  ~ SPDX-License-Identifier: MIT
+-->
+
 # Research-0003: Which property-testing engine capabilities have evidence behind them, and does any engine give the same inputs in more than one language?
 
 ## The question

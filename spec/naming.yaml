@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 # Assertion id to the name a user types. No user types an id.
 #
 # A qualified name names a member of the subpackage the assertion table

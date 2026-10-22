@@ -1,3 +1,8 @@
+<!--
+  ~ Copyright Dokimasia B.V. 2026
+  ~ SPDX-License-Identifier: MIT
+-->
+
 # Research
 
 Answers to questions about the world outside this repository, with the

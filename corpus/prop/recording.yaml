@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 # Recording: a body that asserts once per call, with true, run under
 # settings. Each case pins the verdict of the property and, in order, each
 # call of true that a recorded run writes: the call of the body that made

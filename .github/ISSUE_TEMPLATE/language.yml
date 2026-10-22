@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 name: Add a language
 description: Propose a new target language for the standard.
 labels: ["language", "standard"]

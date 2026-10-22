@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 # Canonical assertion definitions. Language-neutral.
 #
 # arity counts required arguments to the function form, excluding the

@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 # Shrinking: a property that draws one value and fails when a predicate
 # holds of it, run with a seed and, where stated, a shrink budget. Each
 # case pins the outcome, the valid cases before the failure, the minimal

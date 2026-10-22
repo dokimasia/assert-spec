@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 # Decoding: a generator applied to stated choices. Each case pins the
 # choices the case recorded and the value they decode to. A recorded
 # choice of another kind, or outside the bounds the generator now

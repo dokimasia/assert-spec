@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 name: Propose an assertion
 description: Add something to the set of 42.
 labels: ["assertion", "standard"]

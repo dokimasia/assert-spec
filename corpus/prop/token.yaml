@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 # The replay token. A case states choices, and pins the one token that
 # encodes them, or states a token, and pins the choices it decodes to or
 # that a replay refuses it. A replay accepts a token only in the form an

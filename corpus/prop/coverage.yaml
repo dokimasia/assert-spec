@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 # Coverage: the verdict on one requirement at one check. A case states
 # the cases the label counted, the valid cases, the required share,
 # whether the check is the run's last, and whether the run tested every

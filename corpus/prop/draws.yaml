@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 # Draws: the case that a property's known draws state. Each case states a
 # body's draws, a label and a generator each in the order the body makes
 # them, and the entries of a Draws option, a label and a typed literal each.

@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 # snapshot-isolation: a history of list-append transactions checked for an anomaly
 # that snapshot isolation forbids. Each case states its history as a script of the
 # seam, as a linearizable case does. Every case of this file has a twin, with
