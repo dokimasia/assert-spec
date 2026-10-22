@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@10.0.0",
+  "extends": "spec://assertions@10.1.0",
   "language": "typescript",
   "diverge": [
     {
@@ -57,7 +57,7 @@
     },
     {
       "id": "prop.using",
-      "what": "Gives a property form the generator of its input. A run of forAll and fuzz does not take the option, because its body states each generator that it draws from.",
+      "what": "Gives a property form the generator of its input. A run of forAll and fuzz and a call of prop.values do not take the option, because the body or the caller states each generator that it draws from.",
       "why": "The TypeScript compiler erases every type, so a run has no type to give a generator to. A property derives its inputs from shape files alone, and a form takes its input's generator through using."
     },
     {

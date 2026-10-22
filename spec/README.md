@@ -61,7 +61,9 @@ case that known draws state, a passing and a failing run of each
 property form, the runs of a form's examples, and the call records of a
 property's runs. The generation and shapes vectors pin the values that
 `prop.values` returns for a seed as well: the values of their cases that
-the generator does not reject, in order.
+the generator does not reject, in order. No vector pins a call of
+`prop.values` that takes options of `prop.using`, because the executable
+reference has no `using`.
 `prop-max-allocs` and `prop-max-allocs-with-setup` have no vector,
 because no case can state an allocation count. People write each vector's inputs in
 `corpus/prop/<kind>.yaml`. `make render` computes the outputs with the
