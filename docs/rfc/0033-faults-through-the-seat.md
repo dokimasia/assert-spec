@@ -234,6 +234,7 @@ that a seat received through `fail` before.
 def fault(seat: Seat, error: BaseException) -> None:
     """End the call of a helper with error, a fault."""
 
+
 class Recorder:
     def report_fault(self, fault: BaseException, ending: bool) -> None: ...
     @property
