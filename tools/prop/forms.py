@@ -551,7 +551,7 @@ class Form:
 @functools.cache
 def rule() -> dict[str, tuple[str, tuple[str, ...]]]:
     """Return each form's assertion and the labels of what it generates, by its id."""
-    document = json.loads(TABLE.read_text())
+    document = json.loads(TABLE.read_text(encoding="utf-8"))
     return {
         aid: (str(entry["form"]["of"]), tuple(map(str, entry["form"]["generates"])))
         for aid, entry in document["assertions"].items()

@@ -270,7 +270,7 @@ def main() -> int:
         directory = Path(scratch)
         compiled = compile_zones(fetch(directory), directory)
         table = {zone: changes(list_zone(zone, compiled)) for zone in ZONES}
-    (ROOT / "spec" / "zones.json").write_text(render(table))
+    (ROOT / "spec" / "zones.json").write_text(render(table), encoding="utf-8")
     total = sum(len(found) for found in table.values())
     sys.stdout.write(f"spec/zones.json: {total} offset changes in {len(table)} zones\n")
     return 0

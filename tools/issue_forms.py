@@ -44,7 +44,7 @@ for repo in sys.argv[1:] or [str(ROOT)]:
     names = {p.name for p in forms}
     for path in forms:
         where = f"{repo}/{path.name}"
-        form = yaml.safe_load(path.read_text())
+        form = yaml.safe_load(path.read_text(encoding="utf-8"))
 
         for key in ("name", "description", "body"):
             if not form.get(key):
@@ -84,7 +84,7 @@ for repo in sys.argv[1:] or [str(ROOT)]:
         at(repo, "has no ISSUE_TEMPLATE/config.yml")
         continue
 
-    settings = yaml.safe_load(config.read_text())
+    settings = yaml.safe_load(config.read_text(encoding="utf-8"))
     for link in settings.get("contact_links", []):
         for key in ("name", "url", "about"):
             if not link.get(key):

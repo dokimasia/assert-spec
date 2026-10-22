@@ -15,6 +15,7 @@ Run with:
 from __future__ import annotations
 
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -39,9 +40,9 @@ def _edit(path: Path, change: Callable[[dict[str, Any]], object]) -> None:
     The return value of change is ignored, so an edit written as a lambda
     over dict.pop removes the key and nothing else.
     """
-    document = json.loads(path.read_text())
+    document = json.loads(path.read_text(encoding="utf-8"))
     change(document)
-    path.write_text(json.dumps(document, indent=2))
+    path.write_text(json.dumps(document, indent=2), encoding="utf-8")
 
 
 @final
@@ -65,11 +66,16 @@ class Validator(unittest.TestCase):
                 shutil.copy2(source, target)
 
     def run_validator(self) -> subprocess.CompletedProcess[str]:
-        """Run the validator over the scratch tree."""
+        """Run the validator over the scratch tree.
+
+        The validator writes its output in UTF-8 and the case reads it in
+        UTF-8, whatever the encoding of the locale.
+        """
         return subprocess.run(
             [sys.executable, str(self.tree / "tools" / "validate.py")],
             capture_output=True,
-            text=True,
+            encoding="utf-8",
+            env={**os.environ, "PYTHONIOENCODING": "utf-8"},
             check=False,
         )
 
@@ -87,7 +93,7 @@ class Validator(unittest.TestCase):
 
     def test_a_version_disagreement_is_caught(self) -> None:
         """The VERSION file and the tables state the same version."""
-        (self.tree / "VERSION").write_text("9.9.9\n")
+        (self.tree / "VERSION").write_text("9.9.9\n", encoding="utf-8")
         self.assert_caught("VERSION states '9.9.9'")
 
     def test_an_assertion_with_no_summary_is_caught(self) -> None:
@@ -359,7 +365,8 @@ class Validator(unittest.TestCase):
                     "language": "cobol",
                     "diverge": [],
                 }
-            )
+            ),
+            encoding="utf-8",
         )
         self.assert_caught("which the naming table does not list")
 
@@ -369,7 +376,9 @@ class Validator(unittest.TestCase):
         Full compliance is then stated, and never read from a missing
         file.
         """
-        naming = json.loads((self.tree / "spec" / "naming.json").read_text())
+        naming = json.loads(
+            (self.tree / "spec" / "naming.json").read_text(encoding="utf-8")
+        )
         named = {language for entry in naming["names"].values() for language in entry}
         overlays = {p.stem for p in (self.tree / "overlays").glob("*.json")}
 
@@ -641,7 +650,7 @@ class Validator(unittest.TestCase):
 
     def test_unreadable_json_is_reported_not_raised(self) -> None:
         """A broken file is a finding, not a traceback."""
-        (self.tree / "corpus" / "equal.json").write_text("{not json")
+        (self.tree / "corpus" / "equal.json").write_text("{not json", encoding="utf-8")
         self.assert_caught("cannot be read")
 
     def test_every_problem_is_reported_in_one_run(self) -> None:
@@ -806,7 +815,7 @@ class Validator(unittest.TestCase):
 
     def test_a_file_that_is_no_json_object_is_reported_not_raised(self) -> None:
         """Every file the validator reads is one JSON object."""
-        (self.tree / "corpus" / "equal.json").write_text("[]")
+        (self.tree / "corpus" / "equal.json").write_text("[]", encoding="utf-8")
         self.assert_caught("corpus/equal.json: is not a JSON object")
 
     def test_a_case_with_both_args_and_a_subject_is_caught(self) -> None:
@@ -951,7 +960,8 @@ class Validator(unittest.TestCase):
     def test_a_vector_file_of_an_unknown_kind_is_caught(self) -> None:
         """A vector file states one of the definition's kinds."""
         (self.tree / "corpus" / "prop" / "fuzzing.json").write_text(
-            json.dumps({"kind": "fuzzing", "cases": [{"id": "fuzzing/one"}]})
+            json.dumps({"kind": "fuzzing", "cases": [{"id": "fuzzing/one"}]}),
+            encoding="utf-8",
         )
         self.assert_caught("states kind 'fuzzing', which no vector has")
 
@@ -1564,7 +1574,7 @@ class Validator(unittest.TestCase):
 
     def test_an_unreadable_zone_table_is_reported_not_raised(self) -> None:
         """A broken table is a finding, not a traceback."""
-        (self.tree / "spec" / "zones.json").write_text("{not json")
+        (self.tree / "spec" / "zones.json").write_text("{not json", encoding="utf-8")
         self.assert_caught("spec/zones.json: cannot be read")
 
     def test_a_table_without_zones_is_caught(self) -> None:

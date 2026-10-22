@@ -44,7 +44,7 @@ class Zone:
 @functools.cache
 def zones() -> tuple[Zone, ...]:
     """Return the zone list, in the definition's order."""
-    document = json.loads(TABLE.read_text())
+    document = json.loads(TABLE.read_text(encoding="utf-8"))
     return tuple(
         Zone(
             str(zone["name"]),

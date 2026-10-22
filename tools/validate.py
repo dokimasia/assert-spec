@@ -213,7 +213,7 @@ def _load(path: Path, problems: Problems) -> dict[str, Any] | None:
     """
     where = str(path.relative_to(ROOT))
     try:
-        document = json.loads(path.read_text())
+        document = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as err:
         problems.at(where, f"cannot be read: {err}")
         return None
@@ -1926,7 +1926,7 @@ def main() -> int:
     """Run every check over the published files, and print every problem once."""
     problems = Problems()
 
-    version = (ROOT / "VERSION").read_text().strip()
+    version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
     spec = _load(ROOT / "spec" / "assertions.json", problems)
     naming = _load(ROOT / "spec" / "naming.json", problems)
     if spec is None or naming is None:

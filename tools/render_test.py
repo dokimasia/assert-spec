@@ -38,7 +38,9 @@ class FormsTest(unittest.TestCase):
         """A table the YAML no longer renders fails here, tracked or not."""
         for name, document in zip(TABLES, _tables(), strict=True):
             with self.subTest(table=name):
-                on_disk = json.loads((ROOT / "spec" / f"{name}.json").read_text())
+                on_disk = json.loads(
+                    (ROOT / "spec" / f"{name}.json").read_text(encoding="utf-8")
+                )
                 assert on_disk == document, "run make render"
 
     def test_a_relation_form_loses_the_arguments_it_generates(self) -> None:
@@ -174,7 +176,9 @@ class VectorsTest(unittest.TestCase):
         for family, (kinds, _) in FAMILIES.items():
             for kind in kinds:
                 with self.subTest(family=family, kind=kind):
-                    on_disk = (CORPUS / family / f"{kind}.json").read_text()
+                    on_disk = (CORPUS / family / f"{kind}.json").read_text(
+                        encoding="utf-8"
+                    )
                     assert on_disk == vectors_text(family, kind), "run make render"
 
     def test_a_case_keeps_its_inputs_and_gains_the_outputs(self) -> None:

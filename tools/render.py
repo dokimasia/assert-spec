@@ -94,9 +94,9 @@ class Form:
 
 def write(target: Path, rendered: str) -> bool:
     """Write rendered to target, and return whether the file on disk changed."""
-    if target.exists() and target.read_text() == rendered:
+    if target.exists() and target.read_text(encoding="utf-8") == rendered:
         return False
-    target.write_text(rendered)
+    target.write_text(rendered, encoding="utf-8")
     return True
 
 
@@ -228,7 +228,7 @@ def published(
 def load(name: str) -> dict[str, Any]:
     """Return one table as its YAML states it."""
     document: dict[str, Any] = yaml.safe_load(
-        (ROOT / "spec" / f"{name}.yaml").read_text()
+        (ROOT / "spec" / f"{name}.yaml").read_text(encoding="utf-8")
     )
     return document
 
@@ -264,7 +264,7 @@ def vectors_text(family: str, kind: str) -> str:
         RenderError: the YAML states another kind, or no list of cases.
     """
     source = CORPUS / family / f"{kind}.yaml"
-    document = yaml.safe_load(source.read_text())
+    document = yaml.safe_load(source.read_text(encoding="utf-8"))
     if not isinstance(document, dict) or document.get("kind") != kind:
         msg = f"{source.name} does not state kind {kind!r}"
         raise RenderError(msg)

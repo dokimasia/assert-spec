@@ -38,7 +38,9 @@ class SourceTest(unittest.TestCase):
 
     def test_the_stream_equals_the_published_c_code(self) -> None:
         """Five seeds, 32 outputs each, as Jenkins's code prints them."""
-        outputs: dict[str, list[str]] = json.loads(ORACLE.read_text())["outputs"]
+        outputs: dict[str, list[str]] = json.loads(ORACLE.read_text(encoding="utf-8"))[
+            "outputs"
+        ]
         assert len(outputs) == 5
         for seed, expected in outputs.items():
             source = Source(int(seed))
