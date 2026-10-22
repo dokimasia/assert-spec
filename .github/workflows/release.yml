@@ -6,6 +6,7 @@
 # passed on the content of the commit, such as the run of the version pull request. The jobs pack
 # and publish then release each package of the publish plan. The job pack sets up the toolchains of
 # the repository before ergon, which build the artifacts.
+# The job publish sets them up too, and the toolchain of each registry uploads the packages.
 
 name: Release
 
@@ -103,8 +104,13 @@ jobs:
     needs: pack
     runs-on: ubuntu-26.04
     timeout-minutes: 15
+    # The trusted publisher of each registry names this environment, which the subject of the OIDC
+    # token of the job states.
+    environment: release
     permissions:
       contents: write
+      # The registries exchange the OIDC token of the job for a token that uploads the packages.
+      id-token: write
     outputs:
       published: ${{ steps.publish.outputs.published }}
       published-packages: ${{ steps.publish.outputs.published-packages }}
