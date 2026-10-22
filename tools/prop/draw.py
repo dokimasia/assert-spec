@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """How a generated case draws each value from its random source.
 
 Every draw consumes the source in a fixed order, and the order is part of
@@ -10,10 +13,8 @@ and a one-element range consume nothing.
 from __future__ import annotations
 
 import math
-from collections.abc import Sequence
-from fractions import Fraction
 from itertools import accumulate
-from typing import Final
+from typing import TYPE_CHECKING, Final
 
 from .choice import (
     NAN,
@@ -28,7 +29,12 @@ from .choice import (
     next_up,
     same_float,
 )
-from .source import Source
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+    from fractions import Fraction
+
+    from .source import Source
 
 #: One integer draw in EDGE_ODDS takes an edge value.
 EDGE_ODDS: Final = 8
@@ -121,11 +127,11 @@ def weighted(source: Source, weights: Sequence[int]) -> int:
     return next(i for i, total in enumerate(accumulate(weights)) if point < total)
 
 
-def keep(source: Source, probability: Fraction, kept: bool, remaining: int) -> int:
+def keep(source: Source, probability: Fraction, remaining: int, *, kept: bool) -> int:
     """Decide whether swarm keeps an action: 1 keeps it, and 0 disables it.
 
-    kept states whether an earlier action is kept, and remaining counts
-    this action and the actions after it. Once an earlier action is kept,
+    remaining is the number of actions from this one on, and kept is true
+    when an earlier action is kept. Once an earlier action is kept,
     one coin with the probability decides. While none is, the last action
     is kept and consumes nothing. Before it, the draw tosses one coin for
     this action and one for each later action, again until a coin comes

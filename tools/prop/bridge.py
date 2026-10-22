@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """The fuzz bridge: a fuzzer's bytes decoded into the choices of one case.
 
 Bridging is a provider that reads each value from the bytes, in request
@@ -25,9 +28,8 @@ a choice sequence the shrinker can minimise and the store can keep.
 
 from __future__ import annotations
 
-from typing import Final, final
+from typing import TYPE_CHECKING, Final, final
 
-from .case import Request
 from .choice import (
     WIDTH_64,
     Choice,
@@ -38,6 +40,9 @@ from .choice import (
     from_bits,
     from_bits32,
 )
+
+if TYPE_CHECKING:
+    from .case import Request
 
 #: The lengths a sequence without a maximum may take beyond its minimum,
 #: read from two bytes.

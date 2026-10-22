@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """Predicates as data: the conditions that bodies and filters state.
 
 A predicate is a JSON object with a ``kind`` and its parameters, and
@@ -46,15 +49,18 @@ def predicate(spec: object) -> Predicate:
         PredicateError: the spec names no predicate, or lacks a parameter.
     """
     if not isinstance(spec, Mapping):
-        raise PredicateError(f"prop: {spec!r} is not a predicate")
+        msg = f"prop: {spec!r} is not a predicate"
+        raise PredicateError(msg)
     kind = spec.get("kind")
     factory = _PREDICATES.get(str(kind))
     if factory is None:
-        raise PredicateError(f"prop: {kind!r} names no predicate")
+        msg = f"prop: {kind!r} names no predicate"
+        raise PredicateError(msg)
     try:
         holds = factory(spec)
     except KeyError as missing:
-        raise PredicateError(f"prop: predicate {kind!r} lacks {missing}") from None
+        msg = f"prop: predicate {kind!r} lacks {missing}"
+        raise PredicateError(msg) from None
     if spec.get("not", False) is True:
         return lambda value: not holds(value)
     return holds
@@ -75,13 +81,13 @@ def _is_number(value: object) -> bool:
 def _always(spec: Mapping[str, Any]) -> Predicate:
     """Hold for every value."""
     del spec
-    return lambda value: True
+    return lambda _: True
 
 
 def _never(spec: Mapping[str, Any]) -> Predicate:
     """Hold for no value."""
     del spec
-    return lambda value: False
+    return lambda _: False
 
 
 def _equals(spec: Mapping[str, Any]) -> Predicate:

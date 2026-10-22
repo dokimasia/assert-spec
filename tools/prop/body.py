@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """Bodies as data: the properties the corpus states without code.
 
 A body spec draws one value, labelled DRAWN, from its ``draw`` generator.
@@ -18,12 +21,15 @@ Three named bodies state what no predicate can:
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, Final
+from typing import TYPE_CHECKING, Any, Final
 
-from .case import Case
-from .execution import Body
 from .generator import build
 from .predicate import predicate
+from .value import as_type
+
+if TYPE_CHECKING:
+    from .case import Case
+    from .execution import Body
 
 #: The label of a body's one draw.
 DRAWN: Final = "value"
@@ -63,7 +69,8 @@ def build_body(spec: Mapping[str, Any]) -> Body:
     if kind == FAILS_ONCE:
         return _failing_once()
     if kind is not None:
-        raise BodyError(f"prop: {kind!r} names no body")
+        msg = f"prop: {kind!r} names no body"
+        raise BodyError(msg)
     return _drawing(spec)
 
 
@@ -90,8 +97,7 @@ def _failing_once() -> Body:
     wide = build(_WIDE)
 
     def body(case: Case) -> None:
-        value = case.draw(wide, DRAWN)
-        assert isinstance(value, int)
+        value = as_type(case.draw(wide, DRAWN), int)
         if value > ONCE_ABOVE and not failed:
             failed.append(None)
             case.fail(ONCE)
@@ -113,7 +119,8 @@ def _drawing(spec: Mapping[str, Any]) -> Body:
             for entry in _list(spec, "fails")
         ]
     except KeyError as missing:
-        raise BodyError(f"prop: a fails entry lacks {missing}") from None
+        msg = f"prop: a fails entry lacks {missing}"
+        raise BodyError(msg) from None
 
     def body(case: Case) -> None:
         value = case.draw(generator, DRAWN)
@@ -137,7 +144,8 @@ def _name(value: object) -> str:
             boolean.
     """
     if not isinstance(value, str):
-        raise BodyError(f"prop: {value!r} is not a label or an identity")
+        msg = f"prop: {value!r} is not a label or an identity"
+        raise BodyError(msg)
     return value
 
 
@@ -145,7 +153,8 @@ def _mapping(spec: Mapping[str, Any], key: str) -> Mapping[str, Any]:
     """Return an optional object parameter, empty when absent."""
     value = spec.get(key, {})
     if not isinstance(value, Mapping):
-        raise BodyError(f"prop: {key} is {value!r}, not an object")
+        msg = f"prop: {key} is {value!r}, not an object"
+        raise BodyError(msg)
     return value
 
 
@@ -153,5 +162,6 @@ def _list(spec: Mapping[str, Any], key: str) -> list[Mapping[str, Any]]:
     """Return an optional list parameter of objects, empty when absent."""
     value = spec.get(key, [])
     if not isinstance(value, list) or not all(isinstance(e, Mapping) for e in value):
-        raise BodyError(f"prop: {key} is {value!r}, not a list of objects")
+        msg = f"prop: {key} is {value!r}, not a list of objects"
+        raise BodyError(msg)
     return value

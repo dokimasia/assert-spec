@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """The portable pattern subset: what it accepts, refuses and decodes."""
 
 from __future__ import annotations
@@ -5,6 +8,8 @@ from __future__ import annotations
 import re
 import unittest
 from typing import final
+
+import pytest
 
 from . import alphabet
 from .case import Case, Generating, Replaying, Span
@@ -143,7 +148,7 @@ class ParseTest(unittest.TestCase):
     def test_a_pattern_outside_the_subset_raises(self) -> None:
         """Each construct the engines read differently, or not at all."""
         for name, text in REFUSED.items():
-            with self.assertRaises(PatternError, msg=name):
+            with self.subTest(name), pytest.raises(PatternError):
                 parse(text)
 
 
@@ -159,7 +164,7 @@ class MatchTest(unittest.TestCase):
             for seed in range(SEEDS):
                 value = generator.decode(Case(Generating(Source(seed))))
                 assert isinstance(value, str)
-                self.assertIsNotNone(compiled.fullmatch(value), (text, seed, value))
+                assert compiled.fullmatch(value) is not None, (text, seed, value)
 
 
 @final
@@ -181,7 +186,7 @@ class TargetTest(unittest.TestCase):
             "[\\d_]": "0",
         }
         for text, want in cases.items():
-            self.assertEqual(decode(text)[0], want, text)
+            assert decode(text)[0] == want, text
 
 
 @final
@@ -190,37 +195,34 @@ class DecodeTest(unittest.TestCase):
 
     def test_an_alternation_index_selects_a_branch(self) -> None:
         """Index 1 is the second branch."""
-        self.assertEqual(decode("(foo|bar)", 1)[0], "bar")
+        assert decode("(foo|bar)", 1)[0] == "bar"
 
     def test_a_class_index_follows_the_default_alphabet(self) -> None:
         """Digits, then lowercase, then uppercase, whatever the stated order."""
-        self.assertEqual([decode("[A0a]", i)[0] for i in range(3)], ["0", "a", "A"])
+        assert [decode("[A0a]", i)[0] for i in range(3)] == ["0", "a", "A"]
 
     def test_a_negated_class_skips_its_members(self) -> None:
         """Index 10 of [^a] is b, because a is index 10 of the alphabet."""
-        self.assertEqual(decode("[^a]", 10)[0], "b")
+        assert decode("[^a]", 10)[0] == "b"
 
     def test_a_repetition_decodes_as_a_collection(self) -> None:
         """Two continue flags and a stop flag repeat a twice."""
-        self.assertEqual(decode("a*", 1, 1, 0)[0], "aa")
+        assert decode("a*", 1, 1, 0)[0] == "aa"
 
     def test_a_fixed_count_forces_its_flags(self) -> None:
         """{2} repeats twice whatever the flags record."""
-        self.assertEqual(decode("(ab|c){2}", 0, 1, 0, 0, 1)[0], "cab")
+        assert decode("(ab|c){2}", 0, 1, 0, 0, 1)[0] == "cab"
 
     def test_spans_and_edges_mark_each_construct(self) -> None:
         """The alternation index and the flags have edges; the class has none."""
         _, case = decode("(a|b)[cd]*", 1, 1, 1, 0)
-        self.assertEqual(
-            case.spans,
-            [
-                Span("string-matching", 0, 4, 0, None),
-                Span("alternation", 0, 1, 1, 0),
-                Span("repeat", 1, 4, 1, 0),
-                Span("element", 1, 3, 2, 2),
-            ],
-        )
-        self.assertEqual([r.edge for r in case.requests], [0, 1, None, 0])
+        assert case.spans == [
+            Span("string-matching", 0, 4, 0, None),
+            Span("alternation", 0, 1, 1, 0),
+            Span("repeat", 1, 4, 1, 0),
+            Span("element", 1, 3, 2, 2),
+        ]
+        assert [r.edge for r in case.requests] == [0, 1, None, 0]
 
 
 @final
@@ -229,10 +231,10 @@ class ClassTest(unittest.TestCase):
 
     def test_dot_is_every_character_but_the_line_terminators(self) -> None:
         """Five characters fewer than the alphabet."""
-        self.assertEqual(DOT.size, alphabet.SIZE - len(TERMINATORS))
+        assert DOT.size == alphabet.SIZE - len(TERMINATORS)
         for char in TERMINATORS:
             position = alphabet.index(char)
-            self.assertFalse(any(a <= position <= b for a, b in DOT.intervals), char)
+            assert not any(a <= position <= b for a, b in DOT.intervals), char
 
     def test_the_digit_and_word_shorthands_hold_the_ascii_members(self) -> None:
         """Ten digits; 26 lowercase, 26 uppercase, ten digits and the underscore."""
@@ -240,17 +242,17 @@ class ClassTest(unittest.TestCase):
         for text, size in sizes.items():
             node = parse(text)
             assert isinstance(node, Class)
-            self.assertEqual(node.size, size, text)
+            assert node.size == size, text
 
     def test_the_space_shorthand_holds_five_members_from_space(self) -> None:
         """Space, tab, newline, form feed and carriage return, in alphabet order."""
         node = parse("\\s")
         assert isinstance(node, Class)
-        self.assertEqual(node.size, len(WHITESPACE))
-        self.assertEqual([decode("\\s", i)[0] for i in range(5)], WHITESPACE)
+        assert node.size == len(WHITESPACE)
+        assert [decode("\\s", i)[0] for i in range(5)] == WHITESPACE
 
     def test_a_class_index_is_a_value_with_its_size_as_bounds(self) -> None:
         """[a-c] has three members."""
         _, case = decode("[a-c]", 2)
-        self.assertEqual(case.requests[0].bounds, IntegerBounds(0, 2))
-        self.assertEqual(decode("[a-c]", 2)[0], "c")
+        assert case.requests[0].bounds == IntegerBounds(0, 2)
+        assert decode("[a-c]", 2)[0] == "c"

@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """The functions of the subject kinds that take one input."""
 
 from __future__ import annotations
@@ -25,4 +28,4 @@ class FunctionTest(unittest.TestCase):
         ]
         for kind, given, result in cases:
             with self.subTest(kind=kind):
-                self.assertEqual(FUNCTIONS[kind](given), result)
+                assert FUNCTIONS[kind](given) == result

@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """A case: the choices one call of a body makes, recorded with their spans.
 
 A generator never reads the random source itself. It asks the case for a
@@ -16,17 +19,20 @@ them pass.
 
 from __future__ import annotations
 
-import collections.abc
 from collections.abc import Callable, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Final, Protocol, final, runtime_checkable
+from typing import TYPE_CHECKING, Final, Protocol, final, runtime_checkable
 
 from history.seam import History
 
 from . import draw
 from .choice import UINT64_MAX, Bounds, Choice, IntegerBounds, SequenceBounds, Value
 from .source import Source
+from .value import as_type
+
+if TYPE_CHECKING:
+    import collections.abc
 
 #: The most choices one case may make. A sequence counts as one choice
 #: plus one for each element.
@@ -388,8 +394,7 @@ class Case:
         value = self.choose(
             Request(bounds, lambda source: draw.integer(source, bounds), edge, reuse)
         )
-        assert isinstance(value, int)
-        return value
+        return as_type(value, int)
 
     def sequence(self, bounds: SequenceBounds) -> tuple[int, ...]:
         """Return a sequence choice inside bounds, drawn as draw.sequence draws.
@@ -400,8 +405,7 @@ class Case:
         value = self.choose(
             Request(bounds, lambda source: draw.sequence(source, bounds))
         )
-        assert isinstance(value, tuple)
-        return value
+        return as_type(value, tuple)
 
     @contextmanager
     def span(
@@ -471,7 +475,7 @@ class Case:
         """Record a step a machine took, after every draw recorded so far."""
         self.steps.append((len(self.draws), taken))
 
-    def assume(self, condition: bool) -> None:
+    def assume(self, condition: object) -> None:
         """Reject the case when condition is false.
 
         Raises:

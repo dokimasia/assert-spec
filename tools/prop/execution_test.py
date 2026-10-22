@@ -1,9 +1,14 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """One call of a body: each way it can end."""
 
 from __future__ import annotations
 
 import unittest
 from typing import final
+
+import pytest
 
 from .case import Case, Place, Replaying
 from .choice import Choice
@@ -30,24 +35,29 @@ class ExecuteTest(unittest.TestCase):
     def test_a_body_that_returns_passes(self) -> None:
         """The case and its draws come back."""
         execution = execute(draws, Replaying([Choice("integer", 4)]), 8192)
-        self.assertIs(execution.status, Status.PASSED)
-        self.assertEqual(execution.case.draws[0].value, 4)
-        self.assertIsNone(execution.identity)
+        assert execution.status is Status.PASSED
+        assert execution.case.draws[0].value == 4
+        assert execution.identity is None
+        with pytest.raises(ValueError, match="ended as passed has no failure"):
+            execution.failed_identity()
 
     def test_a_body_that_fails_reports_its_identity(self) -> None:
         """The failure and its identity."""
         execution = execute(
             lambda case: case.fail("broken", "why"), Replaying([]), 8192
         )
-        self.assertIs(execution.status, Status.FAILED)
-        self.assertEqual(execution.identity, "broken")
+        assert execution.status is Status.FAILED
+        assert execution.identity == "broken"
+        assert execution.failed_identity() == "broken"
         assert execution.failure is not None
-        self.assertEqual(execution.failure.message, "why")
+        assert execution.failure.message == "why"
 
     def test_a_body_that_assumes_false_is_rejected(self) -> None:
         """assume(False) rejects the case."""
-        execution = execute(lambda case: case.assume(False), Replaying([]), 8192)
-        self.assertIs(execution.status, Status.REJECTED)
+        execution = execute(
+            lambda case: case.assume(condition=False), Replaying([]), 8192
+        )
+        assert execution.status is Status.REJECTED
 
     def test_a_case_past_its_cap_is_rejected(self) -> None:
         """Two draws exceed a cap of one choice."""
@@ -56,21 +66,21 @@ class ExecuteTest(unittest.TestCase):
             case.draw(DIGIT, "a")
             case.draw(DIGIT, "b")
 
-        self.assertIs(execute(two, Replaying([]), ONE_CHOICE).status, Status.REJECTED)
+        assert execute(two, Replaying([]), ONE_CHOICE).status is Status.REJECTED
 
     def test_a_case_that_repeats_a_leaf_is_repeated(self) -> None:
         """The second identical case stops at its draw."""
         tree = Tree()
         execute(draws, Replaying([Choice("integer", 4)]), 8192, tree)
         again = execute(draws, Replaying([Choice("integer", 4)]), 8192, tree)
-        self.assertIs(again.status, Status.REPEATED)
+        assert again.status is Status.REPEATED
 
     def test_a_case_that_requests_other_bounds_diverges(self) -> None:
         """The divergence names the request, the position and the draw's label."""
         tree = Tree()
         execute(draws, Replaying([]), 8192, tree)
         other = execute(lambda case: case.draw(BOOLEAN, "b"), Replaying([]), 8192, tree)
-        self.assertIs(other.status, Status.DIVERGED)
+        assert other.status is Status.DIVERGED
         assert other.divergence is not None
         got = (
             other.divergence.what,
@@ -78,7 +88,7 @@ class ExecuteTest(unittest.TestCase):
             other.divergence.label,
             other.divergence.step,
         )
-        self.assertEqual(got, ("request", 0, "b", None))
+        assert got == ("request", 0, "b", None)
 
     def test_a_divergence_states_the_place_of_its_request(self) -> None:
         """A request that a machine's step made names the step."""
@@ -91,17 +101,17 @@ class ExecuteTest(unittest.TestCase):
 
         other = execute(stepping, Replaying([]), 8192, tree)
         assert other.divergence is not None
-        self.assertEqual(other.divergence.step, Place("sequential", 3))
+        assert other.divergence.step == Place("sequential", 3)
 
     def test_a_case_that_ends_where_another_drew_diverges(self) -> None:
         """An end where the tree recorded a request is a divergence too."""
         tree = Tree()
         execute(draws, Replaying([]), 8192, tree)
-        other = execute(lambda case: None, Replaying([]), 8192, tree)
-        self.assertIs(other.status, Status.DIVERGED)
+        other = execute(lambda _case: None, Replaying([]), 8192, tree)
+        assert other.status is Status.DIVERGED
         assert other.divergence is not None
         got = (other.divergence.replayed, other.divergence.label, other.divergence.step)
-        self.assertEqual(got, (None, None, None))
+        assert got == (None, None, None)
 
     def test_a_case_marks_its_leaf_with_how_it_ended(self) -> None:
         """A rejected case leaves a rejected leaf."""
@@ -109,8 +119,8 @@ class ExecuteTest(unittest.TestCase):
 
         def reject(case: Case) -> None:
             case.draw(DIGIT, "n")
-            case.assume(False)
+            case.assume(condition=False)
 
         execute(reject, Replaying([Choice("integer", 3)]), 8192, tree)
         bounds_node = tree.root.children[3]
-        self.assertIs(bounds_node.ending, Ending.REJECTED)
+        assert bounds_node.ending is Ending.REJECTED

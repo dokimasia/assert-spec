@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """The fixed algorithms of the property engine, in a form that runs.
 
 This package is the definition of ``prop-for-all`` and of the property

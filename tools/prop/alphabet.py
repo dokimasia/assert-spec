@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """The default alphabet of the string generator, ordered from simplest.
 
 A string is a sequence of indices into an alphabet, so the order of the
@@ -46,7 +49,8 @@ def character(index: int) -> str:
         IndexError: index is outside [0, SIZE).
     """
     if not 0 <= index < SIZE:
-        raise IndexError(f"prop: index {index} is outside the default alphabet")
+        msg = f"prop: index {index} is outside the default alphabet"
+        raise IndexError(msg)
     if index < len(PRINTABLE):
         return PRINTABLE[index]
     offset = index - len(PRINTABLE)
@@ -54,7 +58,8 @@ def character(index: int) -> str:
         if offset <= hi - lo:
             return chr(lo + offset)
         offset -= hi - lo + 1
-    raise AssertionError("unreachable: SIZE covers every range")
+    msg = "unreachable: SIZE covers every range"
+    raise AssertionError(msg)
 
 
 def index(char: str) -> int:
@@ -64,7 +69,8 @@ def index(char: str) -> int:
         ValueError: char is not one Unicode scalar value.
     """
     if len(char) != 1:
-        raise ValueError(f"prop: {char!r} is not one character")
+        msg = f"prop: {char!r} is not one character"
+        raise ValueError(msg)
     if char in _PRINTABLE_INDEX:
         return _PRINTABLE_INDEX[char]
     point = ord(char)
@@ -73,7 +79,8 @@ def index(char: str) -> int:
         if lo <= point <= hi:
             return offset + point - lo
         offset += hi - lo + 1
-    raise ValueError(f"prop: U+{point:04X} is a surrogate, not a scalar value")
+    msg = f"prop: U+{point:04X} is a surrogate, not a scalar value"
+    raise ValueError(msg)
 
 
 def indices(lo: int, hi: int) -> list[tuple[int, int]]:

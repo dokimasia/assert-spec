@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """The choice kinds: their bounds, targets, sort keys and replay rules."""
 
 from __future__ import annotations
@@ -5,6 +8,8 @@ from __future__ import annotations
 import math
 import unittest
 from typing import final
+
+import pytest
 
 from .choice import (
     GROUP_FRACTION,
@@ -44,12 +49,12 @@ class IntegerBoundsTest(unittest.TestCase):
         """Zero when the bounds admit it, otherwise the bound nearer zero."""
         cases = {(-5, 5): 0, (0, 9): 0, (3, 9): 3, (-9, -3): -3, (7, 7): 7}
         for (lo, hi), target in cases.items():
-            self.assertEqual(IntegerBounds(lo, hi).target, target, f"[{lo}, {hi}]")
+            assert IntegerBounds(lo, hi).target == target, f"[{lo}, {hi}]"
 
     def test_the_key_orders_by_distance_then_above_before_below(self) -> None:
         """Around a target of zero: 0, 1, -1, 2, -2."""
         bounds = IntegerBounds(-2, 2)
-        self.assertEqual(sorted(range(-2, 3), key=bounds.key), [0, 1, -1, 2, -2])
+        assert sorted(range(-2, 3), key=bounds.key) == [0, 1, -1, 2, -2]
 
     def test_rank_numbers_the_values_in_key_order(self) -> None:
         """rank() and at_rank() are inverse, and follow key() over every value."""
@@ -57,19 +62,19 @@ class IntegerBoundsTest(unittest.TestCase):
             bounds = IntegerBounds(lo, hi)
             ordered = sorted(range(lo, hi + 1), key=bounds.key)
             ranks = range(hi - lo + 1)
-            self.assertEqual([bounds.at_rank(r) for r in ranks], ordered)
-            self.assertEqual([bounds.rank(v) for v in ordered], list(ranks))
+            assert [bounds.at_rank(r) for r in ranks] == ordered
+            assert [bounds.rank(v) for v in ordered] == list(ranks)
 
     def test_rank_continues_on_the_longer_side(self) -> None:
         """In [-2, 9], after -2 come 3, 4 and 5, one per rank."""
         bounds = IntegerBounds(-2, 9)
-        self.assertEqual([bounds.at_rank(r) for r in range(4, 8)], [-2, 3, 4, 5])
+        assert [bounds.at_rank(r) for r in range(4, 8)] == [-2, 3, 4, 5]
 
     def test_rank_reaches_the_ends_of_the_unsigned_range(self) -> None:
         """The largest unsigned value is the last of its bounds."""
         bounds = IntegerBounds(0, UINT64_MAX)
-        self.assertEqual(bounds.rank(UINT64_MAX), UINT64_MAX)
-        self.assertEqual(bounds.at_rank(UINT64_MAX), UINT64_MAX)
+        assert bounds.rank(UINT64_MAX) == UINT64_MAX
+        assert bounds.at_rank(UINT64_MAX) == UINT64_MAX
 
     def test_both_64_bit_ranges_are_accepted(self) -> None:
         """The whole signed range and the whole unsigned range are bounds."""
@@ -78,13 +83,17 @@ class IntegerBoundsTest(unittest.TestCase):
 
     def test_empty_or_straddling_bounds_are_refused(self) -> None:
         """An empty range, or a span inside neither 64-bit range."""
-        for lo, hi in ((5, 4), (-1, UINT64_MAX), (INT64_MIN - 1, 0)):
-            with self.assertRaises(ValueError):
+        for lo, hi, reason in (
+            (5, 4, "are empty"),
+            (-1, UINT64_MAX, "are inside neither"),
+            (INT64_MIN - 1, 0, "are inside neither"),
+        ):
+            with pytest.raises(ValueError, match=reason):
                 IntegerBounds(lo, hi)
 
     def test_a_recorded_value_inside_the_bounds_replays(self) -> None:
         """A fitting integer comes back unchanged."""
-        self.assertEqual(IntegerBounds(0, 9).coerce(Choice("integer", 4)), 4)
+        assert IntegerBounds(0, 9).coerce(Choice("integer", 4)) == 4
 
     def test_a_recorded_value_that_does_not_fit_becomes_the_target(self) -> None:
         """Out of bounds, another kind, or a bool all replay as the target."""
@@ -93,9 +102,9 @@ class IntegerBoundsTest(unittest.TestCase):
             Choice("integer", 10),
             Choice("float", 4.0),
             Choice("sequence", (4,)),
-            Choice("integer", True),
+            Choice("integer", value=True),
         ):
-            self.assertEqual(bounds.coerce(recorded), 3, recorded)
+            assert bounds.coerce(recorded) == 3, recorded
 
 
 @final
@@ -118,22 +127,22 @@ class FloatBoundsTest(unittest.TestCase):
         ]
         for (lo, hi, width), target in cases:
             got = FloatBounds(lo, hi, width=width).target
-            self.assertTrue(same_float(got, target), f"[{lo}, {hi}]: {got}")
+            assert same_float(got, target), f"[{lo}, {hi}]: {got}"
 
     def test_a_range_with_no_value_of_the_width_is_refused(self) -> None:
         """No binary32 value lies between 2^30 + 0.25 and 2^30 + 0.75."""
-        with self.assertRaises(ValueError):
+        with pytest.raises(ValueError, match="contains no float of width 32"):
             simplest_float(2.0**30 + 0.25, 2.0**30 + 0.75, WIDTH_32)
 
     def test_malformed_bounds_are_refused(self) -> None:
         """A bad width, a NaN bound, an empty range, or a bound off its width."""
-        for lo, hi, width in (
-            (0.0, 1.0, 16),
-            (math.nan, 1.0, WIDTH_64),
-            (1.0, 0.0, WIDTH_64),
-            (0.1, 1.0, WIDTH_32),
+        for lo, hi, width, reason in (
+            (0.0, 1.0, 16, "is neither 32 nor 64"),
+            (math.nan, 1.0, WIDTH_64, "are empty"),
+            (1.0, 0.0, WIDTH_64, "are empty"),
+            (0.1, 1.0, WIDTH_32, "is not a value of width 32"),
         ):
-            with self.assertRaises(ValueError):
+            with pytest.raises(ValueError, match=reason):
                 FloatBounds(lo, hi, width=width)
 
     def test_the_key_orders_integral_then_fractional_then_infinite_then_nan(
@@ -158,32 +167,32 @@ class FloatBoundsTest(unittest.TestCase):
         shuffled = list(reversed(ordered))
         result = sorted(shuffled, key=float_key)
         for got, want in zip(result, ordered, strict=True):
-            self.assertTrue(same_float(got, want), f"{got} != {want}")
+            assert same_float(got, want), f"{got} != {want}"
 
     def test_the_integral_group_ends_below_2_to_the_53(self) -> None:
         """2^52 + 1 sorts by magnitude, and 2^53 as a fraction without bits."""
-        self.assertEqual(float_key(float(2**52 + 1)), (GROUP_INTEGRAL, 2**52 + 1, 0))
-        self.assertEqual(float_key(float(2**53)), (GROUP_FRACTION, 0, 2**53, 0))
-        self.assertEqual(float_key(-0.5), (GROUP_FRACTION, 1, 1, 1))
+        assert float_key(float(2**52 + 1)) == (GROUP_INTEGRAL, 2**52 + 1, 0)
+        assert float_key(float(2**53)) == (GROUP_FRACTION, 0, 2**53, 0)
+        assert float_key(-0.5) == (GROUP_FRACTION, 1, 1, 1)
 
     def test_signed_zeros_and_nan_compare_by_value(self) -> None:
         """-0 is not +0, and any NaN is NaN."""
-        self.assertFalse(same_float(0.0, -0.0))
-        self.assertTrue(same_float(math.nan, -math.nan))
-        self.assertFalse(same_float(math.nan, 0.0))
+        assert not same_float(0.0, -0.0)
+        assert same_float(math.nan, -math.nan)
+        assert not same_float(math.nan, 0.0)
 
     def test_the_next_value_of_a_width_steps_one_unit(self) -> None:
         """Steps of one unit in the last place, through zero and to inf."""
-        self.assertEqual(next_up(1.0, WIDTH_32), 1.0 + 2.0**-23)
-        self.assertEqual(next_up(0.0, WIDTH_32), MIN_FLOAT32)
-        self.assertEqual(next_up(-0.0, WIDTH_32), MIN_FLOAT32)
-        self.assertEqual(next_down(0.0, WIDTH_32), -MIN_FLOAT32)
-        self.assertEqual(next_up(-MIN_FLOAT32, WIDTH_32), -0.0)
-        self.assertEqual(next_up(MAX_FLOAT32, WIDTH_32), math.inf)
-        self.assertEqual(next_up(-math.inf, WIDTH_32), -MAX_FLOAT32)
-        self.assertEqual(next_up(math.inf, WIDTH_32), math.inf)
-        self.assertEqual(next_up(0.0, WIDTH_64), MIN_FLOAT64)
-        self.assertEqual(next_down(1.0, WIDTH_64), 1.0 - 2.0**-53)
+        assert next_up(1.0, WIDTH_32) == 1.0 + 2.0**-23
+        assert next_up(0.0, WIDTH_32) == MIN_FLOAT32
+        assert next_up(-0.0, WIDTH_32) == MIN_FLOAT32
+        assert next_down(0.0, WIDTH_32) == -MIN_FLOAT32
+        assert next_up(-MIN_FLOAT32, WIDTH_32) == -0.0
+        assert next_up(MAX_FLOAT32, WIDTH_32) == math.inf
+        assert next_up(-math.inf, WIDTH_32) == -MAX_FLOAT32
+        assert next_up(math.inf, WIDTH_32) == math.inf
+        assert next_up(0.0, WIDTH_64) == MIN_FLOAT64
+        assert next_down(1.0, WIDTH_64) == 1.0 - 2.0**-53
 
     def test_a_recorded_nan_replays_as_the_canonical_nan_when_allowed(
         self,
@@ -191,7 +200,7 @@ class FloatBoundsTest(unittest.TestCase):
         """Any NaN payload comes back with the canonical bits."""
         bounds = FloatBounds(0.0, 1.0, allow_nan=True)
         got = bounds.coerce(Choice("float", -math.nan))
-        self.assertEqual(bits_of(got), NAN_BITS)
+        assert bits_of(got) == NAN_BITS
 
     def test_a_recorded_value_that_does_not_fit_becomes_the_target(self) -> None:
         """Out of range, NaN not allowed, wrong width, or another kind."""
@@ -202,12 +211,12 @@ class FloatBoundsTest(unittest.TestCase):
             Choice("float", 1.1),
             Choice("integer", 1),
         ):
-            self.assertEqual(bounds.coerce(recorded), 1.0, recorded)
+            assert bounds.coerce(recorded) == 1.0, recorded
 
     def test_a_recorded_value_inside_the_bounds_replays(self) -> None:
         """A fitting float comes back unchanged, signed zero included."""
         bounds = FloatBounds(-1.0, 1.0)
-        self.assertTrue(same_float(bounds.coerce(Choice("float", -0.0)), -0.0))
+        assert same_float(bounds.coerce(Choice("float", -0.0)), -0.0)
 
 
 @final
@@ -216,38 +225,40 @@ class SequenceBoundsTest(unittest.TestCase):
 
     def test_the_target_is_min_size_zeros(self) -> None:
         """The simplest sequence is as short as allowed and all zeros."""
-        self.assertEqual(SequenceBounds(256, 3, 8).target, (0, 0, 0))
+        assert SequenceBounds(256, 3, 8).target == (0, 0, 0)
 
     def test_the_key_orders_shorter_first_then_element_by_element(self) -> None:
         """(1,) before (0, 0), and (0, 1) before (1, 0)."""
         bounds = SequenceBounds(4)
         values = [(1, 0), (0, 0), (1,), (0, 1)]
-        self.assertEqual(sorted(values, key=bounds.key), [(1,), (0, 0), (0, 1), (1, 0)])
+        assert sorted(values, key=bounds.key) == [(1,), (0, 0), (0, 1), (1, 0)]
 
     def test_a_recorded_sequence_is_fitted_to_the_bounds(self) -> None:
         """Cut to max_size, extended to min_size, out-of-range elements zeroed."""
         bounds = SequenceBounds(10, 2, 4)
-        self.assertEqual(
-            bounds.coerce(Choice("sequence", (1, 2, 3, 4, 5))), (1, 2, 3, 4)
-        )
-        self.assertEqual(bounds.coerce(Choice("sequence", (7,))), (7, 0))
-        self.assertEqual(bounds.coerce(Choice("sequence", (11, -1, 3))), (0, 0, 3))
+        assert bounds.coerce(Choice("sequence", (1, 2, 3, 4, 5))) == (1, 2, 3, 4)
+        assert bounds.coerce(Choice("sequence", (7,))) == (7, 0)
+        assert bounds.coerce(Choice("sequence", (11, -1, 3))) == (0, 0, 3)
 
     def test_another_kind_replays_as_the_target(self) -> None:
         """An integer recorded where a sequence is requested is the target."""
-        self.assertEqual(SequenceBounds(10, 1).coerce(Choice("integer", 5)), (0,))
+        assert SequenceBounds(10, 1).coerce(Choice("integer", 5)) == (0,)
 
     def test_bounds_that_admit_no_sequence_are_refused(self) -> None:
         """No element value, a negative minimum, or a maximum below the minimum."""
-        for k, min_size, max_size in ((0, 0, None), (2, -1, None), (2, 3, 2)):
-            with self.assertRaises(ValueError):
+        for k, min_size, max_size, reason in (
+            (0, 0, None, "has no element"),
+            (2, -1, None, "are empty"),
+            (2, 3, 2, "are empty"),
+        ):
+            with pytest.raises(ValueError, match=reason):
                 SequenceBounds(k, min_size, max_size)
 
     def test_admits_checks_length_and_elements(self) -> None:
         """Length inside [min, max] and every element inside [0, k)."""
         bounds = SequenceBounds(3, 1, 2)
-        self.assertTrue(bounds.admits((2,)))
-        self.assertFalse(bounds.admits(()))
-        self.assertFalse(bounds.admits((0, 0, 0)))
-        self.assertFalse(bounds.admits((3,)))
-        self.assertFalse(bounds.admits([1]))
+        assert bounds.admits((2,))
+        assert not bounds.admits(())
+        assert not bounds.admits((0, 0, 0))
+        assert not bounds.admits((3,))
+        assert not bounds.admits([1])

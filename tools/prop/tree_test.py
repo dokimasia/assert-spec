@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """The case tree: repeats, divergences, exhaustion and its size limit."""
 
 from __future__ import annotations
@@ -5,6 +8,8 @@ from __future__ import annotations
 import math
 import unittest
 from typing import final
+
+import pytest
 
 from .case import Request
 from .choice import Bounds, FloatBounds, IntegerBounds, SequenceBounds, Value
@@ -22,7 +27,8 @@ def _request(bounds: Bounds) -> Request:
     """Return a request with bounds, whose draw the tree never calls."""
 
     def unused(source: object) -> Value:
-        raise AssertionError(f"the tree drew from {source}")
+        msg = f"the tree drew from {source}"
+        raise AssertionError(msg)
 
     return Request(bounds, unused)
 
@@ -43,13 +49,13 @@ class SizeTest(unittest.TestCase):
 
     def test_integer_and_bounded_sequence_bounds_are_counted(self) -> None:
         """Ten digits; 1 + 2 + 4 sequences of length up to 2 over two values."""
-        self.assertEqual(size(DIGIT), 10)
-        self.assertEqual(size(SequenceBounds(2, 0, 2)), 7)
+        assert size(DIGIT) == 10
+        assert size(SequenceBounds(2, 0, 2)) == 7
 
     def test_floats_and_unbounded_sequences_are_not_counted(self) -> None:
         """Neither ever exhausts."""
-        self.assertIsNone(size(ONE_FLOAT))
-        self.assertIsNone(size(SequenceBounds(2)))
+        assert size(ONE_FLOAT) is None
+        assert size(SequenceBounds(2)) is None
 
 
 @final
@@ -60,14 +66,14 @@ class RepeatTest(unittest.TestCase):
         """The second case of 7 stops at its first choice."""
         tree = Tree()
         walk(tree, (DIGIT, 7))
-        with self.assertRaises(Repeated):
+        with pytest.raises(Repeated):
             walk(tree, (DIGIT, 7))
 
     def test_a_rejected_case_is_a_leaf_too(self) -> None:
         """A repeat of a rejected case stops as well."""
         tree = Tree()
         walk(tree, (DIGIT, 3), ending=Ending.REJECTED)
-        with self.assertRaises(Repeated):
+        with pytest.raises(Repeated):
             walk(tree, (DIGIT, 3))
 
     def test_every_nan_is_one_edge_and_the_zeros_are_two(self) -> None:
@@ -75,11 +81,11 @@ class RepeatTest(unittest.TestCase):
         tree = Tree()
         nan = FloatBounds(-math.inf, math.inf, allow_nan=True)
         walk(tree, (nan, math.nan))
-        with self.assertRaises(Repeated):
+        with pytest.raises(Repeated):
             walk(tree, (nan, -math.nan))
         walk(tree, (nan, 0.0))
         walk(tree, (nan, -0.0))
-        self.assertEqual(len(tree.root.children), 3)
+        assert len(tree.root.children) == 3
 
 
 @final
@@ -90,24 +96,21 @@ class DivergenceTest(unittest.TestCase):
         """Both requests are reported, with the position."""
         tree = Tree()
         walk(tree, (DIGIT, 1), (DIGIT, 2))
-        with self.assertRaises(Diverged) as caught:
+        with pytest.raises(Diverged) as caught:
             walk(tree, (DIGIT, 1), (BIT, 0))
-        self.assertEqual(
-            (
-                caught.exception.index,
-                caught.exception.recorded,
-                caught.exception.requested,
-            ),
-            (1, DIGIT, BIT),
-        )
+        assert (
+            caught.value.index,
+            caught.value.recorded,
+            caught.value.requested,
+        ) == (1, DIGIT, BIT)
 
     def test_a_request_where_an_earlier_case_ended_raises_diverged(self) -> None:
         """The recorded side is None, for an end."""
         tree = Tree()
         walk(tree)
-        with self.assertRaises(Diverged) as caught:
+        with pytest.raises(Diverged) as caught:
             walk(tree, (DIGIT, 1))
-        self.assertIsNone(caught.exception.recorded)
+        assert caught.value.recorded is None
 
     def test_an_end_where_an_earlier_case_made_a_request_raises_diverged(
         self,
@@ -115,10 +118,10 @@ class DivergenceTest(unittest.TestCase):
         """The requested side is None, for an end."""
         tree = Tree()
         walk(tree, (DIGIT, 1))
-        with self.assertRaises(Diverged) as caught:
+        with pytest.raises(Diverged) as caught:
             walk(tree)
-        self.assertEqual(caught.exception.index, 0)
-        self.assertIsNone(caught.exception.requested)
+        assert caught.value.index == 0
+        assert caught.value.requested is None
 
 
 @final
@@ -130,30 +133,30 @@ class ExhaustionTest(unittest.TestCase):
         tree = Tree()
         for first, second in ((0, 0), (0, 1), (1, 0)):
             walk(tree, (BIT, first), (BIT, second))
-            self.assertFalse(tree.exhausted)
+            assert not tree.exhausted
         walk(tree, (BIT, 1), (BIT, 1))
-        self.assertTrue(tree.exhausted)
+        assert tree.exhausted
 
     def test_a_shorter_branch_exhausts_by_its_leaf(self) -> None:
         """A 0 ends at once; a 1 needs both of its children."""
         tree = Tree()
         walk(tree, (BIT, 0))
         walk(tree, (BIT, 1), (BIT, 0))
-        self.assertFalse(tree.exhausted)
+        assert not tree.exhausted
         walk(tree, (BIT, 1), (BIT, 1))
-        self.assertTrue(tree.exhausted)
+        assert tree.exhausted
 
     def test_a_case_without_choices_exhausts_the_domain(self) -> None:
         """The root itself is the leaf."""
         tree = Tree()
         walk(tree)
-        self.assertTrue(tree.exhausted)
+        assert tree.exhausted
 
     def test_a_float_never_exhausts(self) -> None:
         """Even a float range of one value."""
         tree = Tree()
         walk(tree, (ONE_FLOAT, 1.0))
-        self.assertFalse(tree.exhausted)
+        assert not tree.exhausted
 
 
 @final
@@ -162,16 +165,16 @@ class LimitTest(unittest.TestCase):
 
     def test_the_limit_is_2_to_the_20_nodes(self) -> None:
         """The fixed limit."""
-        self.assertEqual(NODE_LIMIT, PINNED_LIMIT)
+        assert NODE_LIMIT == PINNED_LIMIT
 
     def test_a_full_tree_stops_checking_and_reports_no_exhaustion(self) -> None:
         """Past the limit a walk adds nothing, finds nothing, and exhausts nothing."""
         tree = Tree(limit=3)
         walk(tree, (BIT, 0), (BIT, 0))
-        self.assertEqual(tree.nodes, 3)
+        assert tree.nodes == 3
         walk(tree, (BIT, 0), (BIT, 1))
-        self.assertTrue(tree.full)
-        self.assertEqual(tree.nodes, 3)
+        assert tree.full
+        assert tree.nodes == 3
         walk(tree, (BIT, 0), (BIT, 1))
         tree.root.exhausted = True
-        self.assertFalse(tree.exhausted)
+        assert not tree.exhausted

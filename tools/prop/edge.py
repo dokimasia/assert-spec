@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """The edge phase: four cases, each with every value at one boundary.
 
 A choice that decides structure takes the edge its request states, so a
@@ -18,9 +21,8 @@ max_size is 0.
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Final, final
+from typing import TYPE_CHECKING, Final, final
 
-from .case import Request
 from .choice import (
     FloatBounds,
     IntegerBounds,
@@ -29,6 +31,9 @@ from .choice import (
     next_down,
     next_up,
 )
+
+if TYPE_CHECKING:
+    from .case import Request
 
 
 class Boundary(StrEnum):

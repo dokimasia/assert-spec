@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """One call of a body, and how it ended.
 
 The runner, the shrinker and the explain phase each call the body through
@@ -42,7 +45,8 @@ class Phase(StrEnum):
     REPLAY = "replay"
     SHRINK = "shrink"
     EXPLAIN = "explain"
-    TOKEN = "token"
+    # TOKEN is a phase name and not a password.
+    TOKEN = "token"  # noqa: S105
     FUZZ = "fuzz"
 
 
@@ -105,6 +109,17 @@ class Execution:
     def identity(self) -> str | None:
         """Return the failure's identity, or None when the case did not fail."""
         return None if self.failure is None else self.failure.identity
+
+    def failed_identity(self) -> str:
+        """Return the identity of the failure.
+
+        Raises:
+            ValueError: the case did not fail.
+        """
+        if self.failure is None:
+            msg = f"prop: a case that ended as {self.status} has no failure"
+            raise ValueError(msg)
+        return self.failure.identity
 
 
 #: What watches the calls of a run's body: the phase of each call and how

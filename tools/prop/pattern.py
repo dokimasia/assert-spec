@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 r"""The portable pattern subset: parsed, then decoded from a case.
 
 string-matching takes a regular expression from a subset that the engines
@@ -35,12 +38,14 @@ from __future__ import annotations
 
 import string
 from dataclasses import dataclass
-from typing import Final, Protocol, final
+from typing import TYPE_CHECKING, Final, Protocol, final
 
 from . import alphabet
-from .case import Case
 from .choice import IntegerBounds
 from .collection import ELEMENT, Sizes, collect
+
+if TYPE_CHECKING:
+    from .case import Case
 
 #: The characters that are literal only after a backslash.
 METACHARACTERS: Final = frozenset("\\.^$|?*+()[]{}")
@@ -192,7 +197,8 @@ def _class_of(intervals: list[tuple[int, int]]) -> Class:
     merged = tuple(alphabet.merge(intervals))
     size = sum(end - start + 1 for start, end in merged)
     if size == 0:
-        raise PatternError("prop: a class in the pattern has no member")
+        msg = "prop: a class in the pattern has no member"
+        raise PatternError(msg)
     return Class(merged, size)
 
 
@@ -241,7 +247,8 @@ class _Parser:
             for char in text:
                 alphabet.index(char)
         except ValueError as bad:
-            raise PatternError(f"prop: pattern {text!r}: {bad}") from bad
+            msg = f"prop: pattern {text!r}: {bad}"
+            raise PatternError(msg) from bad
         self._text = text
         self._at = 0
         self._depth = 0
@@ -275,7 +282,8 @@ class _Parser:
         if self._peek() == "$" and self._at == len(self._text) - 1:
             self._at += 1
         if self._at != len(self._text):
-            raise self._fail(f"{self._peek()!r} is not expected")
+            msg = f"{self._peek()!r} is not expected"
+            raise self._fail(msg)
         return node
 
     def _alternation(self) -> Node:
@@ -310,7 +318,8 @@ class _Parser:
             return atom
         repeat = Repeat(atom, self._quantifier())
         if (weight := _weight(repeat)) > MAX_COUNT:
-            raise self._fail(f"nested counts multiply to {weight}, above {MAX_COUNT}")
+            msg = f"nested counts multiply to {weight}, above {MAX_COUNT}"
+            raise self._fail(msg)
         return repeat
 
     def _quantifier(self) -> Sizes:
@@ -328,9 +337,11 @@ class _Parser:
             self._at += 1
             high = None if self._peek() == "}" else self._count()
         if self._next("a count is not closed") != "}":
-            raise self._fail("a count is not closed by }")
+            msg = "a count is not closed by }"
+            raise self._fail(msg)
         if high is not None and high < low:
-            raise self._fail(f"the count {{{low},{high}}} runs backwards")
+            msg = f"the count {{{low},{high}}} runs backwards"
+            raise self._fail(msg)
         return Sizes(low, high)
 
     def _count(self) -> int:
@@ -343,13 +354,16 @@ class _Parser:
         while self._peek().isdigit() and self._peek().isascii():
             self._at += 1
         if start == self._at:
-            raise self._fail("a count has no digits")
+            msg = "a count has no digits"
+            raise self._fail(msg)
         digits = self._text[start : self._at]
         if len(digits) > 1 and digits[0] == "0":
-            raise self._fail(f"the count {digits} has a leading zero")
+            msg = f"the count {digits} has a leading zero"
+            raise self._fail(msg)
         count = int(digits)
         if count > MAX_COUNT:
-            raise self._fail(f"the count {count} is above {MAX_COUNT}")
+            msg = f"the count {count} is above {MAX_COUNT}"
+            raise self._fail(msg)
         return count
 
     def _atom(self) -> Node:
@@ -366,24 +380,29 @@ class _Parser:
             if escaped in SHORTHANDS:
                 return _class_of(_members(SHORTHANDS[escaped]))
             if escaped not in METACHARACTERS:
-                raise self._fail(f"\\{escaped} is not in the portable subset")
+                msg = f"\\{escaped} is not in the portable subset"
+                raise self._fail(msg)
             return Literal(escaped)
         if char in METACHARACTERS:
-            raise self._fail(f"{char!r} must be escaped here")
+            msg = f"{char!r} must be escaped here"
+            raise self._fail(msg)
         return Literal(char)
 
     def _group(self) -> Node:
         """Parse a group after its (, at most MAX_DEPTH deep."""
         self._depth += 1
         if self._depth > MAX_DEPTH:
-            raise self._fail(f"groups nest deeper than {MAX_DEPTH}")
+            msg = f"groups nest deeper than {MAX_DEPTH}"
+            raise self._fail(msg)
         if self._peek() == "?":
             if self._peek(1) != ":":
-                raise self._fail("only the (?: group is in the portable subset")
+                msg = "only the (?: group is in the portable subset"
+                raise self._fail(msg)
             self._at += 2
         node = self._alternation()
         if self._next("a group is not closed") != ")":
-            raise self._fail("a group is not closed by )")
+            msg = "a group is not closed by )"
+            raise self._fail(msg)
         self._depth -= 1
         return node
 
@@ -405,18 +424,21 @@ class _Parser:
             first = False
             if self._peek() == "-" and self._peek(1) not in ("", "]"):
                 if previous + "-" in RESERVED_PAIRS:
-                    raise self._fail("'--' is reserved inside a class")
+                    msg = "'--' is reserved inside a class"
+                    raise self._fail(msg)
                 self._at += 1
                 end = self._next("a class is not closed")
                 high = self._class_char(end, "-", first=False)
                 if ord(high) < ord(low):
-                    raise self._fail(f"the range {low}-{high} runs backwards")
+                    msg = f"the range {low}-{high} runs backwards"
+                    raise self._fail(msg)
                 members += alphabet.indices(ord(low), ord(high))
                 previous = ""
             else:
                 members += _members(low)
         if first:
-            raise self._fail("a class is empty")
+            msg = "a class is empty"
+            raise self._fail(msg)
         return _class_of(_complement(members) if negated else members)
 
     def _class_char(self, char: str, previous: str, *, first: bool) -> str:
@@ -429,12 +451,16 @@ class _Parser:
         if char == "\\":
             escaped = self._next("a class ends inside an escape")
             if escaped not in CLASS_ESCAPES:
-                raise self._fail(f"\\{escaped} is not in the portable subset")
+                msg = f"\\{escaped} is not in the portable subset"
+                raise self._fail(msg)
             return escaped
         if char == "[":
-            raise self._fail("[ must be escaped inside a class")
+            msg = "[ must be escaped inside a class"
+            raise self._fail(msg)
         if previous + char in RESERVED_PAIRS:
-            raise self._fail(f"{previous + char!r} is reserved inside a class")
+            msg = f"{previous + char!r} is reserved inside a class"
+            raise self._fail(msg)
         if char == "-" and not first and self._peek() != "]":
-            raise self._fail("a hyphen inside a class must be escaped")
+            msg = "a hyphen inside a class must be escaped"
+            raise self._fail(msg)
         return char

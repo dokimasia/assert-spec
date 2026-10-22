@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """Traces: a case stated as the draws it makes and the machine steps it takes.
 
 A trace lists entries in request order. A draw entry states a label and a
@@ -27,13 +30,15 @@ runs.
 from __future__ import annotations
 
 from collections import deque
-from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import NoReturn, final
+from typing import TYPE_CHECKING, NoReturn, final
 
 from .case import Case, Generator, Request, Step
 from .choice import Choice, Value
 from .inverse import CannotInvert, invert
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 
 @dataclass(frozen=True)
@@ -143,8 +148,11 @@ class Tracing:
         """Fail on the next entry, a step entry the machine cannot take.
 
         Raises:
-            TraceError: always.
+            TraceError: the next entry is a step entry.
+            ValueError: the next entry is not a step entry.
         """
         step = self.next_step()
-        assert step is not None
+        if step is None:
+            msg = f"prop: trace entry {self._at} is not a step entry"
+            raise ValueError(msg)
         raise TraceError(self._at, step.action, "step")

@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """The coverage test: whether a label covers a required share of the cases.
 
 A requirement is decided with the Wilson score interval of the label's
@@ -46,7 +49,8 @@ def bound(k: int, n: int, z: float) -> float:
         ValueError: n is not positive, or k is outside [0, n].
     """
     if n < 1 or not 0 <= k <= n:
-        raise ValueError(f"prop: {k} of {n} is not a share")
+        msg = f"prop: {k} of {n} is not a share"
+        raise ValueError(msg)
     p = k / n
     a = z * z / n
     centre = p + a / 2

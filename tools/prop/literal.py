@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """Typed literals: the language-neutral form of a value in the corpus.
 
 A typed literal is a JSON object with a ``type`` key. decode() turns one
@@ -61,7 +64,8 @@ def decode(literal: object) -> object:
         LiteralError: the literal is not one the encoding defines.
     """
     if not isinstance(literal, Mapping):
-        raise LiteralError(f"prop: {literal!r} is not a typed literal")
+        msg = f"prop: {literal!r} is not a typed literal"
+        raise LiteralError(msg)
     kind = literal.get("type")
     if isinstance(kind, str) and kind in _DECODERS:
         return _DECODERS[kind](literal)
@@ -82,7 +86,8 @@ def scalar(kind: object, value: object) -> object:
         return number(value)
     if kind == "string" and isinstance(value, str):
         return value
-    raise LiteralError(f"prop: {value!r} is not a literal of type {kind!r}")
+    msg = f"prop: {value!r} is not a literal of type {kind!r}"
+    raise LiteralError(msg)
 
 
 def integer(value: object) -> int:
@@ -93,16 +98,17 @@ def integer(value: object) -> int:
     """
     if isinstance(value, int) and not isinstance(value, bool):
         if abs(value) > SAFE_INTEGER:
-            raise LiteralError(
-                f"prop: {value} is beyond 2^53 - 1; state it as a string"
-            )
+            msg = f"prop: {value} is beyond 2^53 - 1; state it as a string"
+            raise LiteralError(msg)
         return value
     if isinstance(value, str) and value.lstrip("-").isdigit() and value.isascii():
         parsed = int(value)
         if abs(parsed) <= SAFE_INTEGER or str(parsed) != value:
-            raise LiteralError(f"prop: {value!r} is not a canonical large integer")
+            msg = f"prop: {value!r} is not a canonical large integer"
+            raise LiteralError(msg)
         return parsed
-    raise LiteralError(f"prop: {value!r} is not an integer")
+    msg = f"prop: {value!r} is not an integer"
+    raise LiteralError(msg)
 
 
 def number(value: object) -> float:
@@ -115,17 +121,20 @@ def number(value: object) -> float:
         return NON_FINITE[value]
     if isinstance(value, int | float) and not isinstance(value, bool):
         return float(value)
-    raise LiteralError(f"prop: {value!r} is not a float")
+    msg = f"prop: {value!r} is not a float"
+    raise LiteralError(msg)
 
 
 def _bytes(value: object) -> bytes:
     """Return bytes stated as lowercase hexadecimal."""
     if not isinstance(value, str) or value != value.lower():
-        raise LiteralError(f"prop: {value!r} is not lowercase hexadecimal")
+        msg = f"prop: {value!r} is not lowercase hexadecimal"
+        raise LiteralError(msg)
     try:
         return bytes.fromhex(value)
     except ValueError as bad:
-        raise LiteralError(f"prop: {value!r} is not hexadecimal") from bad
+        msg = f"prop: {value!r} is not hexadecimal"
+        raise LiteralError(msg) from bad
 
 
 def _absent(literal: Mapping[str, Any]) -> bool:
@@ -137,7 +146,8 @@ def _absent(literal: Mapping[str, Any]) -> bool:
     if "value" not in literal or literal["value"] is not None:
         return False
     if literal.get("of") not in SCALARS:
-        raise LiteralError(f"prop: {literal!r} states no type for its absent value")
+        msg = f"prop: {literal!r} states no type for its absent value"
+        raise LiteralError(msg)
     return True
 
 
@@ -146,13 +156,15 @@ def _list(literal: Mapping[str, Any]) -> list[object] | None:
     if "items" in literal:
         items = literal["items"]
         if not isinstance(items, list):
-            raise LiteralError(f"prop: items is {items!r}, not a list")
+            msg = f"prop: items is {items!r}, not a list"
+            raise LiteralError(msg)
         return [decode(item) for item in items]
     if _absent(literal):
         return None
     values = literal.get("value")
     if not isinstance(values, list):
-        raise LiteralError(f"prop: {literal!r} states no list")
+        msg = f"prop: {literal!r} states no list"
+        raise LiteralError(msg)
     return [scalar(literal.get("of"), v) for v in values]
 
 
@@ -163,15 +175,18 @@ def _map(literal: Mapping[str, Any]) -> Pairs | None:
         if not isinstance(entries, list) or not all(
             isinstance(e, list) and len(e) == _ENTRY for e in entries
         ):
-            raise LiteralError(f"prop: entries is {entries!r}, not key and value pairs")
+            msg = f"prop: entries is {entries!r}, not key and value pairs"
+            raise LiteralError(msg)
         return Pairs(tuple((decode(k), decode(v)) for k, v in entries))
     if literal.get("key") != "string":
-        raise LiteralError(f"prop: {literal!r} is not a map with string keys")
+        msg = f"prop: {literal!r} is not a map with string keys"
+        raise LiteralError(msg)
     if _absent(literal):
         return None
     values = literal.get("value")
     if not isinstance(values, Mapping):
-        raise LiteralError(f"prop: {literal!r} is not a map with string keys")
+        msg = f"prop: {literal!r} is not a map with string keys"
+        raise LiteralError(msg)
     return Pairs(tuple((k, scalar(literal.get("of"), v)) for k, v in values.items()))
 
 
@@ -186,10 +201,12 @@ def _record(fields: object) -> Record:
         isinstance(f, list) and len(f) == _ENTRY and isinstance(f[0], str) and f[0]
         for f in fields
     ):
-        raise LiteralError(f"prop: fields is {fields!r}, not name and value pairs")
+        msg = f"prop: fields is {fields!r}, not name and value pairs"
+        raise LiteralError(msg)
     names = [f[0] for f in fields]
     if len(set(names)) != len(names):
-        raise LiteralError(f"prop: the record {names!r} names a field twice")
+        msg = f"prop: the record {names!r} names a field twice"
+        raise LiteralError(msg)
     return Record(tuple((str(name), decode(value)) for name, value in fields))
 
 
@@ -201,7 +218,8 @@ def _variant(literal: Mapping[str, Any]) -> Variant:
     """
     name = literal.get("name")
     if not isinstance(name, str) or not name:
-        raise LiteralError(f"prop: {literal!r} names no variant")
+        msg = f"prop: {literal!r} names no variant"
+        raise LiteralError(msg)
     if "payload" in literal:
         return Variant(name, decode(literal["payload"]))
     return Variant(name)
@@ -216,10 +234,12 @@ def _reference(literal: Mapping[str, Any]) -> object:
     """
     rid = literal.get("id")
     if not isinstance(rid, str) or not rid:
-        raise LiteralError(f"prop: {literal!r} states no id")
+        msg = f"prop: {literal!r} states no id"
+        raise LiteralError(msg)
     value = literal.get("value")
     if isinstance(value, Mapping) and value.get("type") == "null":
-        raise LiteralError(f"prop: the reference {rid!r} refers to null, no object")
+        msg = f"prop: the reference {rid!r} refers to null, no object"
+        raise LiteralError(msg)
     return decode(value)
 
 
@@ -238,7 +258,8 @@ def encode(value: object) -> dict[str, Any]:
         return composite
     kind = _scalar_kind(value)
     if kind is None:
-        raise TypeError(f"prop: {value!r} is not a decoded value")
+        msg = f"prop: {value!r} is not a decoded value"
+        raise TypeError(msg)
     return {"type": kind, "value": plain(value)}
 
 
@@ -266,10 +287,8 @@ def _composite(value: object) -> dict[str, Any] | None:
 
 def _list_literal(value: list[object]) -> dict[str, Any]:
     """Return a list's literal: the of form for one scalar type, else items."""
-    kinds = {_scalar_kind(item) for item in value}
-    if value and len(kinds) == 1 and None not in kinds:
-        kind = kinds.pop()
-        assert kind is not None
+    found = [_scalar_kind(item) for item in value]
+    if found and len(set(found)) == 1 and (kind := found[0]) is not None:
         return {"type": "list", "of": kind, "value": [plain(item) for item in value]}
     return {"type": "list", "items": [encode(item) for item in value]}
 

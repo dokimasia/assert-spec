@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """The zone list and every offset change of its zones, as spec/zones.json states them.
 
 The zone shapes sample the list, and the zoned-date-time and wall-time

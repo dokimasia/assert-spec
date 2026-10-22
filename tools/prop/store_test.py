@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """The store: an entry's name, its format, and the verdict on each file."""
 
 from __future__ import annotations
@@ -79,16 +82,16 @@ class NameTest(unittest.TestCase):
     def test_the_name_is_the_mix_in_hexadecimal_with_the_json_suffix(self) -> None:
         """16 lowercase hexadecimal digits, then .json."""
         data = CONTRACT.encode() + b"\x00" + replay.encode(CHOICES).encode()
-        self.assertEqual(name(CONTRACT, CHOICES), f"{mix(data):016x}.json")
-        self.assertRegex(name(CONTRACT, CHOICES), re.compile(r"[0-9a-f]{16}\.json"))
+        assert name(CONTRACT, CHOICES) == f"{mix(data):016x}.json"
+        assert re.search(re.compile(r"[0-9a-f]{16}\.json"), name(CONTRACT, CHOICES))
 
     def test_the_name_of_the_failure_is_pinned(self) -> None:
         """The value every language computes."""
-        self.assertEqual(name(CONTRACT, CHOICES), PINNED_NAME)
+        assert name(CONTRACT, CHOICES) == PINNED_NAME
 
     def test_another_contract_names_the_same_choices_otherwise(self) -> None:
         """Two properties of one test never share an entry."""
-        self.assertNotEqual(name("another", CHOICES), name(CONTRACT, CHOICES))
+        assert name("another", CHOICES) != name(CONTRACT, CHOICES)
 
 
 @final
@@ -98,16 +101,16 @@ class EntryTest(unittest.TestCase):
     def test_an_entry_states_exactly_the_fields_of_the_format(self) -> None:
         """Seven fields, store first among them as FORMAT."""
         written = _written()
-        self.assertEqual(set(written), FIELDS)
-        self.assertEqual(written["store"], FORMAT)
-        self.assertEqual(written["found"], "2026-10-01")
-        self.assertEqual(written["choices"], replay.encode(CHOICES))
+        assert set(written) == FIELDS
+        assert written["store"] == FORMAT
+        assert written["found"] == "2026-10-01"
+        assert written["choices"] == replay.encode(CHOICES)
 
     def test_an_entry_reads_back_as_a_replay_of_its_choices(self) -> None:
         """What a runner writes, the next run replays."""
         got = read(json.dumps(_written()), CONTRACT)
-        self.assertEqual(got.verdict, Verdict.REPLAY)
-        self.assertEqual(got.choices, CHOICES)
+        assert got.verdict == Verdict.REPLAY
+        assert got.choices == CHOICES
 
     def test_a_value_at_the_deepest_level_is_recorded(self) -> None:
         """The entry then nests exactly MAX_DEPTH levels, and replays."""
@@ -118,8 +121,8 @@ class EntryTest(unittest.TestCase):
             ({"label": "v", "value": _nested(DEEPEST_VALUE)},),
         )
         written = entry(deep, "1.2.0", datetime.date(2026, 10, 1))
-        self.assertEqual(depth(written), MAX_DEPTH)
-        self.assertEqual(_verdict(written), Verdict.REPLAY)
+        assert depth(written) == MAX_DEPTH
+        assert _verdict(written) == Verdict.REPLAY
 
     def test_a_value_past_the_deepest_level_is_recorded_by_its_label(self) -> None:
         """One level more, and the draw has no value."""
@@ -130,12 +133,12 @@ class EntryTest(unittest.TestCase):
             ({"label": "v", "value": _nested(DEEPEST_VALUE + 1)},),
         )
         written = entry(deep, "1.2.0", datetime.date(2026, 10, 1))
-        self.assertEqual(written["counterexample"], [{"label": "v"}])
+        assert written["counterexample"] == [{"label": "v"}]
 
     def test_the_format_and_the_token_version_are_pinned(self) -> None:
         """Format 1, and the tokens of prop1."""
-        self.assertEqual(FORMAT, 1)
-        self.assertEqual(replay.PREFIX, f"prop{TOKEN_VERSION}:")
+        assert FORMAT == 1
+        assert f"prop{TOKEN_VERSION}:" == replay.PREFIX
 
 
 @final
@@ -145,32 +148,32 @@ class ReadTest(unittest.TestCase):
     def test_an_entry_of_another_property_is_other(self) -> None:
         """The test's other property replays it."""
         written = {**_written(), "property": "another"}
-        self.assertEqual(_verdict(written), Verdict.OTHER)
+        assert _verdict(written) == Verdict.OTHER
 
     def test_an_entry_of_another_definition_version_replays(self) -> None:
         """Its choices decode with the current generators."""
         written = {**_written(), "definition": "1.1.0"}
-        self.assertEqual(_verdict(written), Verdict.REPLAY)
+        assert _verdict(written) == Verdict.REPLAY
 
     def test_an_entry_of_a_later_format_is_skipped(self) -> None:
         """Whatever its other fields state, at any later format."""
         for version in (2, 10**30):
-            self.assertEqual(_verdict({"store": version}), Verdict.SKIP, version)
+            assert _verdict({"store": version}) == Verdict.SKIP, version
 
     def test_an_entry_whose_token_is_of_a_later_version_is_skipped(self) -> None:
         """prop2 is a later token version."""
         written = {**_written(), "choices": "prop2:AAc"}
-        self.assertEqual(_verdict(written), Verdict.SKIP)
+        assert _verdict(written) == Verdict.SKIP
 
     def test_a_draw_without_a_value_replays(self) -> None:
         """A value without a typed literal is recorded by its label alone."""
         written = {**_written(), "counterexample": [{"label": "conn"}]}
-        self.assertEqual(_verdict(written), Verdict.REPLAY)
+        assert _verdict(written) == Verdict.REPLAY
 
     def test_a_draw_whose_value_is_no_typed_literal_replays(self) -> None:
         """A reader leaves the value unread."""
         written = {**_written(), "counterexample": [{"label": "x", "value": [1]}]}
-        self.assertEqual(_verdict(written), Verdict.REPLAY)
+        assert _verdict(written) == Verdict.REPLAY
 
     def test_each_identity_shape_replays(self) -> None:
         """A record with and without a location, a message and an error."""
@@ -182,7 +185,7 @@ class ReadTest(unittest.TestCase):
         ]
         for identity in shapes:
             written = {**_written(), "identity": identity}
-            self.assertEqual(_verdict(written), Verdict.REPLAY, identity)
+            assert _verdict(written) == Verdict.REPLAY, identity
 
     def test_text_that_is_not_one_json_object_is_damaged(self) -> None:
         """Not JSON, a repeated name, NaN, another value, or nesting past the parser."""
@@ -195,14 +198,14 @@ class ReadTest(unittest.TestCase):
             "[" * 100_000 + "]" * 100_000,
         ]
         for text in texts:
-            self.assertEqual(read(text, CONTRACT).verdict, Verdict.DAMAGED, text)
+            assert read(text, CONTRACT).verdict == Verdict.DAMAGED, text
 
     def test_an_entry_nested_past_max_depth_is_damaged(self) -> None:
         """A value one level deeper than a writer records."""
         too_deep = [{"label": "v", "value": _nested(DEEPEST_VALUE + 1)}]
         written = {**_written(), "counterexample": too_deep}
-        self.assertEqual(depth(written), MAX_DEPTH + 1)
-        self.assertEqual(_verdict(written), Verdict.DAMAGED)
+        assert depth(written) == MAX_DEPTH + 1
+        assert _verdict(written) == Verdict.DAMAGED
 
     def test_an_entry_whose_store_is_no_format_is_damaged(self) -> None:
         """Absent, zero, a bool, a fraction or a string."""
@@ -210,7 +213,7 @@ class ReadTest(unittest.TestCase):
             written = {**_written(), "store": version}
             if version is None:
                 del written["store"]
-            self.assertEqual(_verdict(written), Verdict.DAMAGED, version)
+            assert _verdict(written) == Verdict.DAMAGED, version
 
     def test_an_entry_with_a_field_out_of_form_is_damaged(self) -> None:
         """Each field the format checks, each out of its form once."""
@@ -242,12 +245,12 @@ class ReadTest(unittest.TestCase):
         ]
         for change in changes:
             written = {**_written(), **change}
-            self.assertEqual(_verdict(written), Verdict.DAMAGED, change)
+            assert _verdict(written) == Verdict.DAMAGED, change
 
     def test_an_entry_missing_a_field_or_stating_another_is_damaged(self) -> None:
         """The fields of the format, exactly."""
         missing = _written()
         del missing["found"]
-        self.assertEqual(_verdict(missing), Verdict.DAMAGED)
+        assert _verdict(missing) == Verdict.DAMAGED
         extra = {**_written(), "comment": "found in review"}
-        self.assertEqual(_verdict(extra), Verdict.DAMAGED)
+        assert _verdict(extra) == Verdict.DAMAGED

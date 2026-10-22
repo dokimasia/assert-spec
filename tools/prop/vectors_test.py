@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """The vector functions: the notation and one computed vector of each kind."""
 
 from __future__ import annotations
@@ -5,6 +8,8 @@ from __future__ import annotations
 import math
 import unittest
 from typing import Any, final
+
+import pytest
 
 from .choice import Choice, FloatBounds, IntegerBounds, SequenceBounds
 from .vectors import (
@@ -36,20 +41,20 @@ class NotationTest(unittest.TestCase):
         for choice in choices:
             written = choice_literal(choice)
             again = parse_choice(written)
-            self.assertEqual(again.kind, choice.kind)
-            self.assertEqual(repr(again.value), repr(choice.value))
+            assert again.kind == choice.kind
+            assert repr(again.value) == repr(choice.value)
 
     def test_the_forms_are_as_stated(self) -> None:
         """A JSON integer, a string past 2^53, a float object, a sequence object."""
-        self.assertEqual(choice_literal(Choice("integer", 7)), 7)
-        self.assertEqual(choice_literal(Choice("integer", 2**60)), str(2**60))
-        self.assertEqual(choice_literal(Choice("float", math.nan)), {"float": "NaN"})
-        self.assertEqual(choice_literal(Choice("sequence", (1,))), {"sequence": [1]})
+        assert choice_literal(Choice("integer", 7)) == 7
+        assert choice_literal(Choice("integer", 2**60)) == str(2**60)
+        assert choice_literal(Choice("float", math.nan)) == {"float": "NaN"}
+        assert choice_literal(Choice("sequence", (1,))) == {"sequence": [1]}
 
     def test_a_form_that_is_no_choice_raises(self) -> None:
         """A bool, a list, an object with two keys."""
         for written in (True, [1], {"float": 1.0, "sequence": []}):
-            with self.assertRaises(VectorError, msg=str(written)):
+            with pytest.raises(VectorError):
                 parse_choice(written)
 
 
@@ -60,27 +65,27 @@ class ComputeTest(unittest.TestCase):
     def test_decoding_records_the_choices_and_the_value(self) -> None:
         """The RFC's example: 1, 7, 1, 3, 0 is [7, 3]."""
         got = compute("decoding", {"generator": DIGITS, "choices": [1, 7, 1, 3, 0]})
-        self.assertEqual(got["recorded"], [1, 7, 1, 3, 0])
-        self.assertEqual(got["value"], {"type": "list", "of": "int", "value": [7, 3]})
+        assert got["recorded"] == [1, 7, 1, 3, 0]
+        assert got["value"] == {"type": "list", "of": "int", "value": [7, 3]}
 
     def test_decoding_reports_a_rejected_case(self) -> None:
         """A unique list of two from the targets."""
         unique = {**DIGITS, "unique": True, "min_size": 2}
         got = compute("decoding", {"generator": unique, "choices": []})
-        self.assertEqual((got["value"], got["rejected"]), (None, True))
+        assert (got["value"], got["rejected"]) == (None, True)
 
     def test_generation_states_each_cases_choices_and_value(self) -> None:
         """Three cases of seed 42, each from its own source."""
         spec = {"gen": "integer", "min": -100, "max": 100}
         got = compute("generation", {"generator": spec, "seed": "42", "count": 3})
-        self.assertEqual([c["choices"] for c in got["cases"]], [[11], [0], [76]])
-        self.assertEqual(got["cases"][0]["value"], {"type": "int", "value": 11})
+        assert [c["choices"] for c in got["cases"]] == [[11], [0], [76]]
+        assert got["cases"][0]["value"] == {"type": "int", "value": 11}
 
     def test_a_seed_that_is_no_decimal_string_raises(self) -> None:
         """A seed is digits only."""
         spec = {"gen": "integer", "min": 0, "max": 9}
         for seed in ("7.5", "-1", 7):
-            with self.assertRaises(VectorError, msg=str(seed)):
+            with pytest.raises(VectorError):
                 compute("generation", {"generator": spec, "seed": seed, "count": 1})
 
     def test_shrinking_stops_at_the_stated_budget(self) -> None:
@@ -92,7 +97,7 @@ class ComputeTest(unittest.TestCase):
             "seed": "7",
             "budget": 5,
         }
-        self.assertEqual(compute("shrinking", case)["runs"], 5)
+        assert compute("shrinking", case)["runs"] == 5
 
     def test_shrinking_reports_the_minimal_case(self) -> None:
         """A sum above 10 shrinks to [11]."""
@@ -105,8 +110,8 @@ class ComputeTest(unittest.TestCase):
                 "seed": "7",
             },
         )
-        self.assertEqual(got["value"], {"type": "list", "of": "int", "value": [11]})
-        self.assertEqual(got["outcome"], "counterexample")
+        assert got["value"] == {"type": "list", "of": "int", "value": [11]}
+        assert got["outcome"] == "counterexample"
 
     def test_coverage_bridge_and_token_vectors(self) -> None:
         """A verdict, bytes decoded, and a token."""
@@ -114,13 +119,14 @@ class ComputeTest(unittest.TestCase):
             "coverage",
             {"counted": 40, "valid": 100, "share": 0.1, "last": False, "exact": False},
         )
-        self.assertEqual(verdict, {"verdict": "met"})
+        assert verdict == {"verdict": "met"}
         bridged = compute("bridge", {"generator": {"gen": "bytes"}, "bytes": "0100ff"})
-        self.assertEqual(bridged["value"], {"type": "bytes", "value": "ff"})
-        self.assertEqual(compute("token", {"choices": []}), {"token": "prop1:"})
-        self.assertEqual(
-            compute("token", {"token": "prop1:AAA="}), {"decoded": None, "error": True}
-        )
+        assert bridged["value"] == {"type": "bytes", "value": "ff"}
+        assert compute("token", {"choices": []}) == {"token": "prop1:"}
+        assert compute("token", {"token": "prop1:AAA="}) == {
+            "decoded": None,
+            "error": True,
+        }
 
     def test_behaviour_states_every_detail_field(self) -> None:
         """A vacuous run fills only its own fields."""
@@ -129,25 +135,22 @@ class ComputeTest(unittest.TestCase):
             {"body": {"kind": "draws-nothing"}, "settings": {"seed": "7"}},
         )
         detail = got["detail"]
-        self.assertEqual(
-            sorted(detail),
-            sorted(
-                [
-                    "outcome",
-                    "cases",
-                    "rejected",
-                    "seed",
-                    "counterexample",
-                    "failure",
-                    "choices",
-                    "others",
-                    "divergence",
-                    "coverage",
-                ]
-            ),
+        assert sorted(detail) == sorted(
+            [
+                "outcome",
+                "cases",
+                "rejected",
+                "seed",
+                "counterexample",
+                "failure",
+                "choices",
+                "others",
+                "divergence",
+                "coverage",
+            ]
         )
-        self.assertEqual((detail["outcome"], detail["cases"]), ("vacuous", 1))
-        self.assertIsNone(detail["counterexample"])
+        assert (detail["outcome"], detail["cases"]) == ("vacuous", 1)
+        assert detail["counterexample"] is None
 
     def test_a_divergence_states_the_label_and_the_step_of_its_request(self) -> None:
         """The diverging body's draw is labelled value, and it runs no machine."""
@@ -155,7 +158,7 @@ class ComputeTest(unittest.TestCase):
             "behaviour", {"body": {"kind": "diverges"}, "settings": {"seed": "7"}}
         )
         divergence = got["detail"]["divergence"]
-        self.assertEqual((divergence["label"], divergence["step"]), ("value", None))
+        assert (divergence["label"], divergence["step"]) == ("value", None)
 
     def test_a_counterexample_states_the_nearest_passing_value(self) -> None:
         """Above 1000 fails, so 1001 fails and 1000 passes."""
@@ -164,38 +167,36 @@ class ComputeTest(unittest.TestCase):
             "fails": [{"identity": "big", "when": {"kind": "at-least", "n": 1001}}],
         }
         got = compute("behaviour", {"body": body, "settings": {"seed": "7"}})
-        self.assertEqual(
-            got["detail"]["counterexample"],
-            [
-                {
-                    "label": "value",
-                    "value": {"type": "int", "value": 1001},
-                    "any-value-fails": False,
-                    "nearest-passing": {"type": "int", "value": 1000},
-                }
-            ],
-        )
+        assert got["detail"]["counterexample"] == [
+            {
+                "label": "value",
+                "value": {"type": "int", "value": 1001},
+                "any-value-fails": False,
+                "nearest-passing": {"type": "int", "value": 1000},
+            }
+        ]
 
     def test_bounds_are_stated_with_every_parameter(self) -> None:
         """A float's width and NaN, a sequence's element count and sizes."""
-        self.assertEqual(
-            bounds_literal(FloatBounds(-math.inf, 1.5, True, 32)),
-            {
-                "kind": "float",
-                "min": "-Inf",
-                "max": 1.5,
-                "allow_nan": True,
-                "width": 32,
-            },
-        )
-        self.assertEqual(
-            bounds_literal(SequenceBounds(256, 1, None)),
-            {"kind": "sequence", "k": 256, "min_size": 1, "max_size": None},
-        )
-        self.assertEqual(
-            bounds_literal(IntegerBounds(0, 2**64 - 1)),
-            {"kind": "integer", "min": 0, "max": str(2**64 - 1)},
-        )
+        bounds = FloatBounds(-math.inf, 1.5, allow_nan=True, width=32)
+        assert bounds_literal(bounds) == {
+            "kind": "float",
+            "min": "-Inf",
+            "max": 1.5,
+            "allow_nan": True,
+            "width": 32,
+        }
+        assert bounds_literal(SequenceBounds(256, 1, None)) == {
+            "kind": "sequence",
+            "k": 256,
+            "min_size": 1,
+            "max_size": None,
+        }
+        assert bounds_literal(IntegerBounds(0, 2**64 - 1)) == {
+            "kind": "integer",
+            "min": 0,
+            "max": str(2**64 - 1),
+        }
 
     def test_a_stored_case_runs_before_the_simplest(self) -> None:
         """The stored case fails before any case passes."""
@@ -205,14 +206,14 @@ class ComputeTest(unittest.TestCase):
         }
         stored = {"seed": "7", "stored": [[950]]}
         got = compute("behaviour", {"body": body, "settings": stored})
-        self.assertEqual(got["detail"]["cases"], 0)
+        assert got["detail"]["cases"] == 0
 
     def test_max_choices_rejects_a_larger_case(self) -> None:
         """A list of at least three digits needs seven choices."""
         body = {"draw": {**DIGITS, "min_size": 3, "max_size": None}}
         capped = {"seed": "7", "max-choices": 4}
         got = compute("behaviour", {"body": body, "settings": capped})
-        self.assertEqual(got["detail"]["outcome"], "rejected")
+        assert got["detail"]["outcome"] == "rejected"
 
     def test_a_replayed_token_runs_one_case(self) -> None:
         """A failing token is reported as found."""
@@ -224,31 +225,27 @@ class ComputeTest(unittest.TestCase):
             "behaviour",
             {"body": body, "settings": {"seed": "7", "replay": "prop1:AAc"}},
         )
-        self.assertEqual(got["detail"]["outcome"], "counterexample")
-        self.assertEqual(got["detail"]["choices"], "prop1:AAc")
+        assert got["detail"]["outcome"] == "counterexample"
+        assert got["detail"]["choices"] == "prop1:AAc"
 
     def test_a_shape_vector_states_each_cases_choices_and_value(self) -> None:
         """Three cases of a bool shape, each from its own source."""
         got = compute("shapes", {"shape": {"shape": "bool"}, "seed": "7", "count": 3})
-        self.assertEqual(len(got["cases"]), 3)
+        assert len(got["cases"]) == 3
         for case in got["cases"]:
-            self.assertEqual(len(case["choices"]), 1)
-            self.assertEqual(case["value"]["type"], "bool")
+            assert len(case["choices"]) == 1
+            assert case["value"]["type"] == "bool"
 
     def test_an_inverse_vector_states_the_choices_or_an_error(self) -> None:
         """A value of the shape, and one outside a generator's bounds."""
         shape = {"shape": "int", "width": 8, "signed": False}
-        self.assertEqual(
-            compute("inverse", {"shape": shape, "value": {"type": "int", "value": 9}}),
-            {"choices": [9], "error": False},
-        )
+        assert compute(
+            "inverse", {"shape": shape, "value": {"type": "int", "value": 9}}
+        ) == {"choices": [9], "error": False}
         digit = {"gen": "integer", "min": 0, "max": 9}
-        self.assertEqual(
-            compute(
-                "inverse", {"generator": digit, "value": {"type": "int", "value": 12}}
-            ),
-            {"choices": None, "error": True},
-        )
+        assert compute(
+            "inverse", {"generator": digit, "value": {"type": "int", "value": 12}}
+        ) == {"choices": None, "error": True}
 
     def test_an_inverse_vector_states_a_shape_or_a_generator(self) -> None:
         """Both, or neither, names nothing to run backwards."""
@@ -259,12 +256,12 @@ class ComputeTest(unittest.TestCase):
             "value": value,
         }
         for case in (both, {"value": value}):
-            with self.assertRaisesRegex(VectorError, "a shape or a generator"):
+            with pytest.raises(VectorError, match="a shape or a generator"):
                 compute("inverse", case)
 
     def test_a_shape_that_does_not_read_raises(self) -> None:
         """The reader's failure, as a vector error."""
-        with self.assertRaisesRegex(VectorError, "no shape"):
+        with pytest.raises(VectorError, match="no shape"):
             compute("shapes", {"shape": {"shape": "widget"}, "seed": "1", "count": 1})
 
     def test_a_fixture_vector_computes_nothing(self) -> None:
@@ -275,10 +272,10 @@ class ComputeTest(unittest.TestCase):
             "covers": "bool",
             "shape": {"shape": "record", "fields": [["enabled", {"shape": "bool"}]]},
         }
-        self.assertEqual(compute("fixtures", fixture), {})
-        with self.assertRaisesRegex(VectorError, "states no summary"):
+        assert compute("fixtures", fixture) == {}
+        with pytest.raises(VectorError, match="states no summary"):
             compute("fixtures", {**fixture, "summary": " "})
-        with self.assertRaisesRegex(VectorError, "which is no shape"):
+        with pytest.raises(VectorError, match="which is no shape"):
             compute("fixtures", {**fixture, "shape": {"shape": "widget"}})
 
     def test_a_draws_vector_matches_runs_out_or_names_the_draw(self) -> None:
@@ -298,19 +295,19 @@ class ComputeTest(unittest.TestCase):
                 ],
             },
         )
-        self.assertEqual((matched["choices"], matched["error"]), ([4, 1], None))
+        assert (matched["choices"], matched["error"]) == ([4, 1], None)
         short = compute("draws", {"draws": draws, "entries": [four]})
-        self.assertEqual(
-            short["values"][1],
-            {"label": "flag", "value": {"type": "bool", "value": False}},
-        )
+        assert short["values"][1] == {
+            "label": "flag",
+            "value": {"type": "bool", "value": False},
+        }
         mislabelled = compute(
             "draws", {"draws": draws, "entries": [{**four, "label": "flag"}]}
         )
-        self.assertEqual(mislabelled["error"], {"label": "count", "reason": "label"})
+        assert mislabelled["error"] == {"label": "count", "reason": "label"}
         large = {"label": "count", "value": {"type": "int", "value": 12}}
         bounded = compute("draws", {"draws": draws, "entries": [large]})
-        self.assertEqual(bounded["error"], {"label": "count", "reason": "value"})
+        assert bounded["error"] == {"label": "count", "reason": "value"}
 
     def test_a_form_vector_states_the_record_of_the_minimal_case(self) -> None:
         """The minimal input of true over -9 to 9 is -1, and 0 passes."""
@@ -321,19 +318,16 @@ class ComputeTest(unittest.TestCase):
             "seed": "7",
         }
         detail = compute("forms", case)["detail"]
-        self.assertEqual(detail["outcome"], "counterexample")
-        self.assertEqual(detail["failure"], {"assertion": "true", "detail": {}})
-        self.assertEqual(
-            detail["counterexample"],
-            [
-                {
-                    "label": "input",
-                    "value": {"type": "int", "value": -1},
-                    "any-value-fails": False,
-                    "nearest-passing": {"type": "int", "value": 0},
-                }
-            ],
-        )
+        assert detail["outcome"] == "counterexample"
+        assert detail["failure"] == {"assertion": "true", "detail": {}}
+        assert detail["counterexample"] == [
+            {
+                "label": "input",
+                "value": {"type": "int", "value": -1},
+                "any-value-fails": False,
+                "nearest-passing": {"type": "int", "value": 0},
+            }
+        ]
 
     def test_a_passing_form_vector_states_no_failure(self) -> None:
         """Every input from 0 to 9 is non-negative."""
@@ -344,8 +338,8 @@ class ComputeTest(unittest.TestCase):
             "seed": "7",
         }
         detail = compute("forms", case)["detail"]
-        self.assertEqual((detail["outcome"], detail["cases"]), ("passed", 10))
-        self.assertIsNone(detail["failure"])
+        assert (detail["outcome"], detail["cases"]) == ("passed", 10)
+        assert detail["failure"] is None
 
     def test_a_form_vector_whose_run_depends_on_earlier_cases_raises(self) -> None:
         """A cell that one case sets to 1 is not changed by the next that sets 1."""
@@ -356,13 +350,13 @@ class ComputeTest(unittest.TestCase):
             "shape": {"shape": "int", "width": 8, "signed": False, "max": 1},
             "seed": "7",
         }
-        with self.assertRaisesRegex(VectorError, "depends on what earlier cases leave"):
+        with pytest.raises(VectorError, match="depends on what earlier cases leave"):
             compute("forms", case)
 
     def test_a_form_vector_that_names_no_form_raises(self) -> None:
         """The form's error, as a vector error."""
         case = {"form": "prop-invented", "shape": {"shape": "bool"}, "seed": "7"}
-        with self.assertRaisesRegex(VectorError, "is no form of the definition"):
+        with pytest.raises(VectorError, match="is no form of the definition"):
             compute("forms", case)
 
     def test_a_form_vector_over_a_map_fails_at_its_example_as_found(self) -> None:
@@ -375,21 +369,20 @@ class ComputeTest(unittest.TestCase):
             "seed": "7",
         }
         detail = compute("forms", case)["detail"]
-        self.assertEqual(
-            (detail["outcome"], detail["cases"], detail["choices"], detail["others"]),
-            ("counterexample", 0, None, []),
-        )
-        self.assertEqual(
-            detail["counterexample"],
-            [
-                {
-                    "label": "input",
-                    "value": {"type": "int", "value": -5},
-                    "any-value-fails": None,
-                    "nearest-passing": None,
-                }
-            ],
-        )
+        assert (
+            detail["outcome"],
+            detail["cases"],
+            detail["choices"],
+            detail["others"],
+        ) == ("counterexample", 0, None, [])
+        assert detail["counterexample"] == [
+            {
+                "label": "input",
+                "value": {"type": "int", "value": -5},
+                "any-value-fails": None,
+                "nearest-passing": None,
+            }
+        ]
 
     def test_a_form_vector_states_one_of_a_shape_and_a_generator(self) -> None:
         """Both, and neither."""
@@ -399,7 +392,7 @@ class ComputeTest(unittest.TestCase):
         for case in ({**base, "shape": shape, "generator": DIGIT}, base):
             with (
                 self.subTest(keys=sorted(case)),
-                self.assertRaisesRegex(VectorError, refusal),
+                pytest.raises(VectorError, match=refusal),
             ):
                 compute("forms", case)
 
@@ -412,7 +405,7 @@ class ComputeTest(unittest.TestCase):
         settings = {"seed": "7", "replay": "prop1:AAc"}
         got = compute("recording", {"body": body, "settings": settings})
         call = {"run": 1, "phase": "token", "verdict": "fail"}
-        self.assertEqual(got, {"verdict": "fail", "calls": [call]})
+        assert got == {"verdict": "fail", "calls": [call]}
 
     def test_a_recording_vector_numbers_each_call_of_the_body(self) -> None:
         """An example and a stored case pass, and the second stored case fails."""
@@ -422,14 +415,11 @@ class ComputeTest(unittest.TestCase):
         }
         settings = {"seed": "7", "examples": [[5]], "stored": [[3], [950]], "shrink": 0}
         got = compute("recording", {"body": body, "settings": settings})
-        self.assertEqual(
-            got["calls"],
-            [
-                {"run": 1, "phase": "example", "verdict": "pass"},
-                {"run": 2, "phase": "stored", "verdict": "pass"},
-                {"run": 3, "phase": "stored", "verdict": "fail"},
-            ],
-        )
+        assert got["calls"] == [
+            {"run": 1, "phase": "example", "verdict": "pass"},
+            {"run": 2, "phase": "stored", "verdict": "pass"},
+            {"run": 3, "phase": "stored", "verdict": "fail"},
+        ]
 
     def test_a_body_that_ends_before_true_makes_no_call(self) -> None:
         """Every case is rejected, so the run fails and true is never called."""
@@ -438,11 +428,11 @@ class ComputeTest(unittest.TestCase):
             "rejects-when": {"kind": "always"},
         }
         got = compute("recording", {"body": body, "settings": {"seed": "7"}})
-        self.assertEqual(got, {"verdict": "fail", "calls": []})
+        assert got == {"verdict": "fail", "calls": []}
 
     def test_an_unknown_kind_or_missing_input_raises(self) -> None:
         """No such kind; a decoding vector without choices."""
-        with self.assertRaises(VectorError):
+        with pytest.raises(VectorError):
             compute("haiku", {})
-        with self.assertRaises(VectorError):
+        with pytest.raises(VectorError):
             compute("decoding", {"generator": DIGITS})

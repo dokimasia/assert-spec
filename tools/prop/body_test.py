@@ -1,9 +1,14 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """Bodies as data: the drawing body and the named bodies."""
 
 from __future__ import annotations
 
 import unittest
 from typing import Any, final
+
+import pytest
 
 from .body import BodyError, build_body
 from .case import Case, Replaying
@@ -29,7 +34,7 @@ class DrawingBodyTest(unittest.TestCase):
     def test_the_draw_is_labelled_value(self) -> None:
         """One draw, under the label value."""
         case = call({"draw": DIGIT}, 4)
-        self.assertEqual([(d.label, d.value) for d in case.draws], [("value", 4)])
+        assert [(d.label, d.value) for d in case.draws] == [("value", 4)]
 
     def test_the_first_failing_identity_wins(self) -> None:
         """A value that matches both entries fails with the first."""
@@ -41,7 +46,7 @@ class DrawingBodyTest(unittest.TestCase):
             ],
         }
         execution = execute(build_body(spec), Replaying([Choice("integer", 7)]), 8192)
-        self.assertEqual(execution.identity, "big")
+        assert execution.identity == "big"
 
     def test_a_rejecting_body_rejects_before_it_fails(self) -> None:
         """rejects-when holds, so the failure is never checked."""
@@ -51,7 +56,7 @@ class DrawingBodyTest(unittest.TestCase):
             "fails": [{"identity": "any", "when": {"kind": "always"}}],
         }
         execution = execute(build_body(spec), Replaying([]), 8192)
-        self.assertIs(execution.status, Status.REJECTED)
+        assert execution.status is Status.REJECTED
 
     def test_classification_counts_labels_whose_predicate_holds(self) -> None:
         """Even and small, not big."""
@@ -62,7 +67,7 @@ class DrawingBodyTest(unittest.TestCase):
                 "big": {"kind": "at-least", "n": 5},
             },
         }
-        self.assertEqual(call(spec, 2).labels, {"even"})
+        assert call(spec, 2).labels == {"even"}
 
     def test_a_malformed_body_raises(self) -> None:
         """An unknown named body, a fails entry without when, a bad classify."""
@@ -75,7 +80,7 @@ class DrawingBodyTest(unittest.TestCase):
             {"draw": DIGIT, "classify": {True: {"kind": "never"}}},
         ]
         for spec in malformed:
-            with self.assertRaises(BodyError, msg=str(spec)):
+            with pytest.raises(BodyError):
                 build_body(spec)
 
 
@@ -86,28 +91,28 @@ class NamedBodyTest(unittest.TestCase):
     def test_draws_nothing_makes_no_choice(self) -> None:
         """No draw and no choice."""
         case = call({"kind": "draws-nothing"})
-        self.assertEqual((case.draws, case.choices), ([], []))
+        assert (case.draws, case.choices) == ([], [])
 
     def test_diverges_requests_a_boolean_after_its_first_call(self) -> None:
         """A digit's bounds first, a boolean's after."""
         body = build_body({"kind": "diverges"})
         first = execute(body, Replaying([]), 8192).case.requests[0].bounds
         second = execute(body, Replaying([]), 8192).case.requests[0].bounds
-        self.assertEqual((first.kind, second.kind), ("integer", "integer"))
-        self.assertNotEqual(first, second)
+        assert (first.kind, second.kind) == ("integer", "integer")
+        assert first != second
 
     def test_fails_once_fails_on_the_first_value_above_1000_only(self) -> None:
         """The same value passes the second time."""
         body = build_body({"kind": "fails-once"})
         recorded = [Choice("integer", 5000)]
-        self.assertEqual(execute(body, Replaying(recorded), 8192).identity, "once")
-        self.assertIs(execute(body, Replaying(recorded), 8192).status, Status.PASSED)
+        assert execute(body, Replaying(recorded), 8192).identity == "once"
+        assert execute(body, Replaying(recorded), 8192).status is Status.PASSED
 
     def test_fails_once_passes_1000(self) -> None:
         """1000 is not above 1000."""
         body = build_body({"kind": "fails-once"})
         recorded = [Choice("integer", 1000)]
-        self.assertIs(execute(body, Replaying(recorded), 8192).status, Status.PASSED)
+        assert execute(body, Replaying(recorded), 8192).status is Status.PASSED
 
     def test_each_build_starts_fresh(self) -> None:
         """A second body of fails-once fails again."""
@@ -116,4 +121,4 @@ class NamedBodyTest(unittest.TestCase):
             execution = execute(
                 build_body({"kind": "fails-once"}), Replaying(recorded), 8192
             )
-            self.assertEqual(execution.identity, "once")
+            assert execution.identity == "once"

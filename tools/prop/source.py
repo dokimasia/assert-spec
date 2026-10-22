@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """The random source behind every generated case.
 
 The source is the 64-bit three-rotate variant of Bob Jenkins's small
@@ -53,7 +56,8 @@ class Source:
             ValueError: seed is outside [0, 2^64).
         """
         if not 0 <= seed <= MASK:
-            raise ValueError(f"prop: seed {seed} is not an unsigned 64-bit integer")
+            msg = f"prop: seed {seed} is not an unsigned 64-bit integer"
+            raise ValueError(msg)
         self._a = FIRST_WORD
         self._b = seed
         self._c = seed
@@ -81,7 +85,8 @@ class Source:
             ValueError: n is outside [1, 2^64].
         """
         if not 1 <= n <= MASK + 1:
-            raise ValueError(f"prop: below({n}) needs 1 <= n <= 2^64")
+            msg = f"prop: below({n}) needs 1 <= n <= 2^64"
+            raise ValueError(msg)
         if n == 1:
             return 0
         width = (n - 1).bit_length()
@@ -97,7 +102,8 @@ class Source:
             ValueError: den is below 1, or num is outside [0, den].
         """
         if den < 1 or not 0 <= num <= den:
-            raise ValueError(f"prop: coin({num}, {den}) needs 0 <= num <= den")
+            msg = f"prop: coin({num}, {den}) needs 0 <= num <= den"
+            raise ValueError(msg)
         return self.below(den) < num
 
 

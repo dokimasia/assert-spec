@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """Property forms as data: an assertion run on every case of a run.
 
 A form vector names a form, the kinds of the subjects that its assertion
@@ -30,19 +33,21 @@ import functools
 import json
 import re
 from collections import Counter
-from collections.abc import Callable, Collection, Mapping, Sequence
+from collections.abc import Callable, Collection, Iterable, Mapping, Sequence, Sized
 from dataclasses import dataclass, replace
 from itertools import pairwise
 from pathlib import Path
-from typing import Any, Final
+from typing import TYPE_CHECKING, Any, Final
 
 from . import literal
-from .case import Case, Generator
-from .choice import Choice
 from .function import FUNCTIONS
 from .inverse import CannotInvert, NoInverse, invert
 from .runner import Outcome, Settings, Values, run
 from .value import canonical
+
+if TYPE_CHECKING:
+    from .case import Case, Generator
+    from .choice import Choice
 
 #: The table whose forms rule states each form's assertion and labels.
 TABLE: Final = Path(__file__).resolve().parents[2] / "spec" / "assertions.json"
@@ -76,15 +81,15 @@ PREDICATES: Final[dict[str, Callable[[Any, Any], bool]]] = {
 
 #: Whether each subject kind returns its own failure for an input.
 FAILS: Final[dict[str, Callable[[Any], bool]]] = {
-    "returns-ok": lambda x: False,
-    "fails-otherwise": lambda x: True,
+    "returns-ok": lambda _: False,
+    "fails-otherwise": lambda _: True,
     "fails-on-negative": lambda x: x < 0,
 }
 
 #: Whether each subject kind raises for an input.
 RAISES: Final[dict[str, Callable[[Any], bool]]] = {
-    "returns-ok": lambda x: False,
-    "raises": lambda x: True,
+    "returns-ok": lambda _: False,
+    "raises": lambda _: True,
     "raises-on-negative": lambda x: x < 0,
 }
 
@@ -164,16 +169,17 @@ def _takes(
             or a kind that its table does not have.
     """
     if not isinstance(subjects, list) or len(subjects) != len(tables):
-        raise FormError(
-            f"prop: the form takes {len(tables)} subjects, not {subjects!r}"
-        )
+        msg = f"prop: the form takes {len(tables)} subjects, not {subjects!r}"
+        raise FormError(msg)
     if len(values) != count:
-        raise FormError(
+        msg = (
             f"prop: the vector states {len(values)} values, and the form takes {count}"
         )
+        raise FormError(msg)
     for kind, table in zip(subjects, tables, strict=True):
         if not isinstance(kind, str) or kind not in table:
-            raise FormError(f"prop: the subject {kind!r} is none of {sorted(table)}")
+            msg = f"prop: the subject {kind!r} is none of {sorted(table)}"
+            raise FormError(msg)
     return [str(kind) for kind in subjects]
 
 
@@ -182,69 +188,69 @@ def _same(first: object, second: object) -> bool:
     return canonical(first) == canonical(second)
 
 
-def _found(haystack: Any, needle: object) -> bool:
+def _found(haystack: str | Iterable[object], needle: object) -> bool:
     """Report whether text contains a substring, or a sequence an element."""
     if isinstance(haystack, str):
         return isinstance(needle, str) and needle in haystack
     return any(_same(item, needle) for item in haystack)
 
 
-def _equal(got: Any, want: Any) -> Detail | None:
+def _equal(got: object, want: object) -> Detail | None:
     """Decide equal: got equals want."""
     return None if _same(got, want) else {"want": want, "got": got}
 
 
-def _not_equal(got: Any, want: Any) -> Detail | None:
+def _not_equal(got: object, want: object) -> Detail | None:
     """Decide not-equal: got does not equal want."""
     return {"got": got} if _same(got, want) else None
 
 
-def _true(cond: Any) -> Detail | None:
+def _true(cond: object) -> Detail | None:
     """Decide true: the condition holds."""
     return None if cond is True else {}
 
 
-def _false(cond: Any) -> Detail | None:
+def _false(cond: object) -> Detail | None:
     """Decide false: the condition does not hold."""
     return None if cond is False else {}
 
 
-def _nil(got: Any) -> Detail | None:
+def _nil(got: object) -> Detail | None:
     """Decide nil: the value is absent."""
     return None if got is None else {"got": got}
 
 
-def _not_nil(got: Any) -> Detail | None:
+def _not_nil(got: object) -> Detail | None:
     """Decide not-nil: the value is present."""
     return {} if got is None else None
 
 
-def _length(got: Any, want: Any) -> Detail | None:
+def _length(got: Sized, want: int) -> Detail | None:
     """Decide length: the container has want items."""
     return None if len(got) == want else {"want": want, "got": len(got)}
 
 
-def _empty(got: Any) -> Detail | None:
+def _empty(got: Sized) -> Detail | None:
     """Decide empty: the container has no item."""
     return None if len(got) == 0 else {"got": got, "length": len(got)}
 
 
-def _not_empty(got: Any) -> Detail | None:
+def _not_empty(got: Sized) -> Detail | None:
     """Decide not-empty: the container has an item."""
     return {"got": got} if len(got) == 0 else None
 
 
-def _contains(got: Any, needle: Any) -> Detail | None:
+def _contains(got: str | Iterable[object], needle: object) -> Detail | None:
     """Decide contains: the needle is in the haystack."""
     return None if _found(got, needle) else {"haystack": got, "needle": needle}
 
 
-def _not_contains(got: Any, needle: Any) -> Detail | None:
+def _not_contains(got: str | Iterable[object], needle: object) -> Detail | None:
     """Decide not-contains: the needle is not in the haystack."""
     return {"haystack": got, "needle": needle} if _found(got, needle) else None
 
 
-def _contains_in_order(got: Any, needles: Any) -> Detail | None:
+def _contains_in_order(got: str, needles: Iterable[str]) -> Detail | None:
     """Decide contains-in-order: each needle is in the text after the previous match."""
     at = 0
     for index, needle in enumerate(needles):
@@ -255,23 +261,23 @@ def _contains_in_order(got: Any, needles: Any) -> Detail | None:
     return None
 
 
-def _permutation(got: Any, want: Any) -> Detail | None:
+def _permutation(got: Iterable[object], want: Iterable[object]) -> Detail | None:
     """Decide permutation: got has want's elements, each as often."""
     same = Counter(map(canonical, got)) == Counter(map(canonical, want))
     return None if same else {"want": want, "got": got}
 
 
-def _has_prefix(got: Any, prefix: Any) -> Detail | None:
+def _has_prefix(got: str, prefix: str) -> Detail | None:
     """Decide has-prefix: the text starts with the prefix."""
     return None if got.startswith(prefix) else {"got": got, "prefix": prefix}
 
 
-def _has_suffix(got: Any, suffix: Any) -> Detail | None:
+def _has_suffix(got: str, suffix: str) -> Detail | None:
     """Decide has-suffix: the text ends with the suffix."""
     return None if got.endswith(suffix) else {"got": got, "suffix": suffix}
 
 
-def _matches(got: Any, pattern: Any) -> Detail | None:
+def _matches(got: str, pattern: str) -> Detail | None:
     """Decide matches: the pattern matches somewhere in the text.
 
     A plain pattern is inside the portable subset, so the reason of a
@@ -281,20 +287,21 @@ def _matches(got: Any, pattern: Any) -> Detail | None:
         FormError: the pattern is not one of PLAIN_PATTERN's.
     """
     if not PLAIN_PATTERN.fullmatch(pattern):
-        raise FormError(f"prop: the reference matches no pattern such as {pattern!r}")
+        msg = f"prop: the reference matches no pattern such as {pattern!r}"
+        raise FormError(msg)
     if re.search(pattern, got):
         return None
     return {"got": got, "pattern": pattern, "reason": None}
 
 
-def _close_to(got: Any, want: Any, tolerance: Any) -> Detail | None:
+def _close_to(got: float, want: float, tolerance: float) -> Detail | None:
     """Decide close-to: the number is within the tolerance of want."""
     if abs(got - want) <= tolerance:
         return None
     return {"got": got, "want": want, "tolerance": tolerance}
 
 
-def _in_range(got: Any, low: Any, high: Any) -> Detail | None:
+def _in_range(got: float, low: float, high: float) -> Detail | None:
     """Decide in-range: the number is in the closed interval from low to high."""
     return None if low <= got <= high else {"got": got, "low": low, "high": high}
 
@@ -379,7 +386,7 @@ def _honours(subjects: object, given: Sequence[object]) -> Judge:
     fails when the subject returns success, which got states as null.
     """
     honours, _ = HANDLES[_takes(subjects, given, [HANDLES])[0]]
-    return lambda drawn: None if honours else {"got": None}
+    return lambda _: None if honours else {"got": None}
 
 
 def _safe_without_handle(subjects: object, given: Sequence[object]) -> Judge:
@@ -388,7 +395,7 @@ def _safe_without_handle(subjects: object, given: Sequence[object]) -> Judge:
     It fails when an absent handle crashes the subject.
     """
     _, crashes = HANDLES[_takes(subjects, given, [HANDLES])[0]]
-    return lambda drawn: {} if crashes else None
+    return lambda _: {} if crashes else None
 
 
 def _observing(decide: Callable[[Observed, int], Detail | None]) -> Builder:
@@ -562,14 +569,17 @@ def build(spec: Mapping[str, Any]) -> Form:
     """
     stated = rule().get(str(spec.get("form")))
     if stated is None:
-        raise FormError(f"prop: {spec.get('form')!r} is no form of the definition")
+        msg = f"prop: {spec.get('form')!r} is no form of the definition"
+        raise FormError(msg)
     assertion, generates = stated
     builder = ROOTS.get(assertion)
     if builder is None:
-        raise FormError(f"prop: no case can state the form of {assertion!r}")
+        msg = f"prop: no case can state the form of {assertion!r}"
+        raise FormError(msg)
     values = spec.get("args", [])
     if not isinstance(values, list):
-        raise FormError(f"prop: args is {values!r}, not a list of typed literals")
+        msg = f"prop: args is {values!r}, not a list of typed literals"
+        raise FormError(msg)
     judge = builder(spec.get("subjects"), [literal.decode(value) for value in values])
     return Form(assertion, generates, judge)
 
@@ -589,12 +599,14 @@ def examples(
     """
     stated = spec.get("examples", [])
     if not isinstance(stated, list):
-        raise FormError(f"prop: examples is {stated!r}, not a list of typed literals")
+        msg = f"prop: examples is {stated!r}, not a list of typed literals"
+        raise FormError(msg)
     if stated and len(form.generates) != 1:
-        raise FormError(
+        msg = (
             f"prop: examples states one value per case, and the form generates "
             f"{len(form.generates)}"
         )
+        raise FormError(msg)
     cases: list[tuple[Choice, ...] | Values] = []
     for value in map(literal.decode, stated):
         try:
@@ -602,7 +614,8 @@ def examples(
         except NoInverse:
             cases.append(Values((value,)))
         except CannotInvert as bad:
-            raise FormError(f"prop: the example {value!r}: {bad}") from bad
+            msg = f"prop: the example {value!r}: {bad}"
+            raise FormError(msg) from bad
     return tuple(cases)
 
 

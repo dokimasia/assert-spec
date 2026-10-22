@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """A run: its phases, its counts and its outcome.
 
 The runner calls a body once per case, in four phases, and stops at the
@@ -54,14 +57,12 @@ replay token.
 from __future__ import annotations
 
 from collections import Counter, deque
-from collections.abc import Sequence
 from dataclasses import dataclass, field, replace
 from enum import StrEnum
-from typing import Final, final
+from typing import TYPE_CHECKING, Final, final
 
 from . import coverage, shrink
 from .case import MAX_CHOICES, Generating, Provider, Replaying, Valuing
-from .choice import Choice
 from .edge import BOUNDARIES, Edge
 from .execution import (
     Body,
@@ -77,6 +78,11 @@ from .replay import encode
 from .source import case_source
 from .trace import Entry, Tracing
 from .tree import Tree
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
+
+    from .choice import Choice
 
 #: The valid cases a run aims for when the caller states no number.
 DEFAULT_CASES: Final = 100
@@ -156,7 +162,8 @@ class Settings:
             ValueError: cases is below 1.
         """
         if self.cases < 1:
-            raise ValueError(f"prop: a run of {self.cases} cases tests nothing")
+            msg = f"prop: a run of {self.cases} cases tests nothing"
+            raise ValueError(msg)
 
 
 @dataclass(frozen=True)
@@ -290,8 +297,7 @@ def _conclude(
         body, failing, settings.max_choices, settings.shrink, observer
     )
     shrinker.shrink_all()
-    assert failing.identity is not None
-    first = shrinker.failures[failing.identity]
+    first = shrinker.failures[failing.failed_identity()]
     others = tuple(
         found.execution
         for identity, found in shrinker.failures.items()

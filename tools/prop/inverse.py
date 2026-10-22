@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """Running a generator backwards: the choices that decode to a given value.
 
 invert() walks a generator with a value and emits each choice in the order
@@ -40,14 +43,12 @@ sequence of choices as any other value.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass
-from typing import Any, Final
+from typing import TYPE_CHECKING, Any, Final
 
 from . import alphabet, pattern
 from .case import Case, Generator, Rejected, Replaying, Request
 from .choice import Bounds, Choice, IntegerBounds, Value
-from .collection import Sizes
 from .draw import flag_bounds
 from .generator import (
     Boolean,
@@ -88,8 +89,13 @@ from .shape import (
     second_part,
 )
 from .shrink import Node, choice_key
-from .value import NO_PAYLOAD, Pairs, Record, Variant, canonical
+from .value import NO_PAYLOAD, Pairs, Record, Variant, as_type, canonical
 from .zone import zones
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterator, Sequence
+
+    from .collection import Sizes
 
 #: The choice of a zoned-date-time or a wall-time whose zone has a change
 #: that takes the whole range.
@@ -141,9 +147,11 @@ def invert(generator: Generator, value: object) -> tuple[Choice, ...]:
     try:
         decoded = generator.decode(case)
     except Rejected as rejected:
-        raise CannotInvert(f"prop: {value!r} decodes to no value") from rejected
+        msg = f"prop: {value!r} decodes to no value"
+        raise CannotInvert(msg) from rejected
     if case.choices != choices or canonical(decoded) != canonical(normal):
-        raise CannotInvert(f"prop: {value!r} is not a value the generator produces")
+        msg = f"prop: {value!r} is not a value the generator produces"
+        raise CannotInvert(msg)
     return tuple(choices)
 
 
@@ -157,7 +165,8 @@ def emit(generator: Generator, value: object) -> Emitted:
     """
     emitter = _EMITTERS.get(type(generator))
     if emitter is None:
-        raise NoInverse(f"prop: {type(generator).__name__} does not run backwards")
+        msg = f"prop: {type(generator).__name__} does not run backwards"
+        raise NoInverse(msg)
     return emitter(generator, value)
 
 
@@ -167,29 +176,31 @@ def _step(bounds: Bounds, value: object) -> Step:
     Raises:
         CannotInvert: the bounds do not admit value.
     """
-    if not bounds.admits(value):
-        raise CannotInvert(f"prop: {value!r} is outside {bounds}")
-    assert isinstance(value, int | float | tuple)
+    if not bounds.admits(value) or not isinstance(value, int | float | tuple):
+        msg = f"prop: {value!r} is outside {bounds}"
+        raise CannotInvert(msg)
     return Step(bounds, value)
 
 
-def _emit_number(generator: Any, value: object) -> Emitted:
+def _emit_number(generator: Integer | Duration | Float, value: object) -> Emitted:
     """Return an integer's or a float's one choice: the value itself."""
     return [_step(generator.bounds, value)], value
 
 
-def _emit_boolean(generator: Any, value: object) -> Emitted:
+def _emit_boolean(generator: Boolean, value: object) -> Emitted:
     """Return a boolean's one choice: 1 for true and 0 for false."""
     del generator
     if not isinstance(value, bool):
-        raise CannotInvert(f"prop: {value!r} is not a boolean")
+        msg = f"prop: {value!r} is not a boolean"
+        raise CannotInvert(msg)
     return [Step(IntegerBounds(0, 1), 1 if value else 0)], value
 
 
-def _emit_just(generator: Any, value: object) -> Emitted:
+def _emit_just(generator: Just, value: object) -> Emitted:
     """Return no choice, for the one value just decodes."""
     if canonical(value) != canonical(generator.value):
-        raise CannotInvert(f"prop: {value!r} is not {generator.value!r}")
+        msg = f"prop: {value!r} is not {generator.value!r}"
+        raise CannotInvert(msg)
     return [], value
 
 
@@ -203,10 +214,11 @@ def _index_of(values: Sequence[object], value: object) -> int:
     for index, candidate in enumerate(values):
         if canonical(candidate) == wanted:
             return index
-    raise CannotInvert(f"prop: {value!r} is none of the values")
+    msg = f"prop: {value!r} is none of the values"
+    raise CannotInvert(msg)
 
 
-def _emit_sampled_from(generator: Any, value: object) -> Emitted:
+def _emit_sampled_from(generator: SampledFrom, value: object) -> Emitted:
     """Return the index of the first equal value."""
     values: tuple[object, ...] = generator.values
     index = _index_of(values, value)
@@ -238,11 +250,13 @@ def _first_branch(
             continue
         return [Step(bounds, index), *steps], normal
     if unknown:
-        raise NoInverse(f"prop: {refusal}, and one of them has no inverse")
-    raise CannotInvert(f"prop: {refusal}")
+        msg = f"prop: {refusal}, and one of them has no inverse"
+        raise NoInverse(msg)
+    msg = f"prop: {refusal}"
+    raise CannotInvert(msg)
 
 
-def _emit_one_of(generator: Any, value: object) -> Emitted:
+def _emit_one_of(generator: OneOf, value: object) -> Emitted:
     """Return the index of the first alternative that produces value, then its steps."""
     alternatives: tuple[Generator, ...] = generator.of
     bounds = IntegerBounds(0, len(alternatives) - 1)
@@ -250,7 +264,7 @@ def _emit_one_of(generator: Any, value: object) -> Emitted:
     return _first_branch(list(enumerate(alternatives)), value, bounds, refusal)
 
 
-def _emit_optional(generator: Any, value: object) -> Emitted:
+def _emit_optional(generator: Optional | OptionalShape, value: object) -> Emitted:
     """Return absent, or present and then the value's steps."""
     if value is None:
         return [Step(IntegerBounds(0, 1), 0)], None
@@ -264,7 +278,8 @@ def no_draw(source: object) -> Value:
     Raises:
         AssertionError: always, because nothing draws an inverse's step.
     """
-    raise AssertionError(f"prop: an inverse's step does not draw from {source!r}")
+    msg = f"prop: an inverse's step does not draw from {source!r}"
+    raise AssertionError(msg)
 
 
 def _shortlex(steps: Sequence[Step]) -> tuple[int, tuple[tuple[int, ...], ...]]:
@@ -285,7 +300,8 @@ def _collection(sizes: Sizes, items: Sequence[list[Step]]) -> list[Step]:
     if count < sizes.min_size or (
         sizes.max_size is not None and count > sizes.max_size
     ):
-        raise CannotInvert(f"prop: {count} items are outside the collection's sizes")
+        msg = f"prop: {count} items are outside the collection's sizes"
+        raise CannotInvert(msg)
     steps: list[Step] = []
     for index, item in enumerate(items):
         steps.append(Step(flag_bounds(index, sizes.min_size, sizes.max_size), 1))
@@ -301,7 +317,8 @@ def _distinct(values: Sequence[object]) -> None:
         CannotInvert: two values are equal.
     """
     if len({canonical(value) for value in values}) != len(values):
-        raise CannotInvert(f"prop: {list(values)!r} repeats a value")
+        msg = f"prop: {list(values)!r} repeats a value"
+        raise CannotInvert(msg)
 
 
 def _elements(
@@ -313,20 +330,21 @@ def _elements(
         CannotInvert: value is not a list, or repeats an element of a unique one.
     """
     if not isinstance(value, list):
-        raise CannotInvert(f"prop: {value!r} is not a list")
+        msg = f"prop: {value!r} is not a list"
+        raise CannotInvert(msg)
     if unique:
         _distinct(value)
     return [emit(of, element) for element in value]
 
 
-def _emit_list(generator: Any, value: object) -> Emitted:
+def _emit_list(generator: List, value: object) -> Emitted:
     """Return a list's flags and elements, in the list's order."""
     elements = _elements(generator.of, value, unique=generator.unique)
     steps = _collection(generator.sizes, [element for element, _ in elements])
     return steps, [normal for _, normal in elements]
 
 
-def _emit_list_shape(generator: Any, value: object) -> Emitted:
+def _emit_list_shape(generator: ListShape, value: object) -> Emitted:
     """Return a list's or a set's flags and elements, a set's in shortlex order."""
     elements = _elements(generator.of, value, unique=generator.unique)
     if generator.unique:
@@ -335,7 +353,9 @@ def _emit_list_shape(generator: Any, value: object) -> Emitted:
     return steps, [normal for _, normal in elements]
 
 
-def _entries(generator: Any, key: Generator, of: Generator, value: object) -> Emitted:
+def _entries(
+    generator: Dict | MapShape, key: Generator, of: Generator, value: object
+) -> Emitted:
     """Return a map's flags and entries, each its key's steps then its value's.
 
     The entries are in shortlex order.
@@ -344,7 +364,8 @@ def _entries(generator: Any, key: Generator, of: Generator, value: object) -> Em
         CannotInvert: value is not a map, or repeats a key.
     """
     if not isinstance(value, Pairs):
-        raise CannotInvert(f"prop: {value!r} is not a map")
+        msg = f"prop: {value!r} is not a map"
+        raise CannotInvert(msg)
     _distinct([entry_key for entry_key, _ in value.items])
     entries: list[tuple[list[Step], tuple[object, object]]] = []
     for entry_key, entry_value in value.items:
@@ -356,20 +377,21 @@ def _entries(generator: Any, key: Generator, of: Generator, value: object) -> Em
     return steps, Pairs(tuple(normal for _, normal in entries))
 
 
-def _emit_dict(generator: Any, value: object) -> Emitted:
+def _emit_dict(generator: Dict, value: object) -> Emitted:
     """Return a dict's flags and entries, in shortlex order."""
     return _entries(generator, generator.keys, generator.values, value)
 
 
-def _emit_map_shape(generator: Any, value: object) -> Emitted:
+def _emit_map_shape(generator: MapShape, value: object) -> Emitted:
     """Return a map shape's flags and entries, in shortlex order."""
     return _entries(generator, generator.key, generator.of, value)
 
 
-def _emit_string(generator: Any, value: object) -> Emitted:
+def _emit_string(generator: String, value: object) -> Emitted:
     """Return a string's one sequence: the index of each character in its alphabet."""
     if not isinstance(value, str):
-        raise CannotInvert(f"prop: {value!r} is not a string")
+        msg = f"prop: {value!r} is not a string"
+        raise CannotInvert(msg)
     characters: str | None = generator.characters
     try:
         if characters is None:
@@ -377,24 +399,25 @@ def _emit_string(generator: Any, value: object) -> Emitted:
         else:
             indices = tuple(characters.index(char) for char in value)
     except ValueError as bad:
-        raise CannotInvert(
-            f"prop: {value!r} has a character outside the alphabet"
-        ) from bad
+        msg = f"prop: {value!r} has a character outside the alphabet"
+        raise CannotInvert(msg) from bad
     return [_step(generator.bounds, indices)], value
 
 
-def _emit_bytes(generator: Any, value: object) -> Emitted:
+def _emit_bytes(generator: Bytes, value: object) -> Emitted:
     """Return a byte string's one sequence: its bytes."""
     if not isinstance(value, bytes):
-        raise CannotInvert(f"prop: {value!r} is not bytes")
+        msg = f"prop: {value!r} is not bytes"
+        raise CannotInvert(msg)
     return [_step(generator.bounds, tuple(value))], value
 
 
-def _emit_permutation(generator: Any, value: object) -> Emitted:
+def _emit_permutation(generator: Permutation, value: object) -> Emitted:
     """Return the smallest index at each swap that orders the values as value is."""
     current = list(generator.values)
     if not isinstance(value, list) or len(value) != len(current):
-        raise CannotInvert(f"prop: {value!r} is not a permutation of the values")
+        msg = f"prop: {value!r} is not a permutation of the values"
+        raise CannotInvert(msg)
     steps: list[Step] = []
     last = len(current) - 1
     for i in range(last):
@@ -402,11 +425,12 @@ def _emit_permutation(generator: Any, value: object) -> Emitted:
         steps.append(Step(IntegerBounds(i, last), j))
         current[i], current[j] = current[j], current[i]
     if canonical(current) != canonical(value):
-        raise CannotInvert(f"prop: {value!r} is not a permutation of the values")
+        msg = f"prop: {value!r} is not a permutation of the values"
+        raise CannotInvert(msg)
     return steps, value
 
 
-def _emit_filter(generator: Any, value: object) -> Emitted:
+def _emit_filter(generator: Filter, value: object) -> Emitted:
     """Return the steps of the source, for a value the predicate keeps.
 
     Raises:
@@ -414,33 +438,34 @@ def _emit_filter(generator: Any, value: object) -> Emitted:
     """
     keep: Callable[[object], bool] = generator.keep
     if not keep(value):
-        raise CannotInvert(f"prop: the filter rejects {value!r}")
+        msg = f"prop: the filter rejects {value!r}"
+        raise CannotInvert(msg)
     return emit(generator.of, value)
 
 
-def _emit_recursive(generator: Any, value: object) -> Emitted:
+def _emit_recursive(generator: Recursive, value: object) -> Emitted:
     """Return one position of a recursive value: the base, or else the extension."""
     branches = [(0, generator.base), (1, generator.extend)]
     refusal = f"neither the base nor the extension produces {value!r}"
     return _first_branch(branches, value, IntegerBounds(0, 1), refusal)
 
 
-def _emit_self(generator: Any, value: object) -> Emitted:
+def _emit_self(generator: Self, value: object) -> Emitted:
     """Return a position of the recursive value that the extension refers to."""
     return _emit_recursive(generator.owner, value)
 
 
-def _emit_root(generator: Any, value: object) -> Emitted:
+def _emit_root(generator: Root, value: object) -> Emitted:
     """Return the steps of the root shape."""
     return emit(generator.node, value)
 
 
-def _emit_ref(generator: Any, value: object) -> Emitted:
+def _emit_ref(generator: Ref, value: object) -> Emitted:
     """Return the steps of the named definition."""
     return emit(generator.definitions[generator.name], value)
 
 
-def _emit_record(generator: Any, value: object) -> Emitted:
+def _emit_record(generator: RecordShape, value: object) -> Emitted:
     """Return each field's steps, in declaration order.
 
     Raises:
@@ -449,7 +474,8 @@ def _emit_record(generator: Any, value: object) -> Emitted:
     fields: tuple[tuple[str, Generator], ...] = generator.fields
     names = [name for name, _ in fields]
     if not isinstance(value, Record) or [name for name, _ in value.fields] != names:
-        raise CannotInvert(f"prop: {value!r} is not a record of {names}")
+        msg = f"prop: {value!r} is not a record of {names}"
+        raise CannotInvert(msg)
     steps: list[Step] = []
     normal: list[tuple[str, object]] = []
     for (name, of), (_, field) in zip(fields, value.fields, strict=True):
@@ -459,7 +485,7 @@ def _emit_record(generator: Any, value: object) -> Emitted:
     return steps, Record(tuple(normal))
 
 
-def _emit_enum(generator: Any, value: object) -> Emitted:
+def _emit_enum(generator: EnumShape, value: object) -> Emitted:
     """Return the variant's index, then its payload's steps.
 
     Raises:
@@ -469,22 +495,25 @@ def _emit_enum(generator: Any, value: object) -> Emitted:
     variants: tuple[tuple[str, Generator | None], ...] = generator.variants
     names = [name for name, _ in variants]
     if not isinstance(value, Variant) or value.name not in names:
-        raise CannotInvert(f"prop: {value!r} is no variant of {names}")
+        msg = f"prop: {value!r} is no variant of {names}"
+        raise CannotInvert(msg)
     index = names.index(value.name)
     payload = variants[index][1]
     head = Step(IntegerBounds(0, len(variants) - 1), index)
     if payload is None:
         if value.payload is not NO_PAYLOAD:
-            raise CannotInvert(f"prop: the variant {value.name!r} has no payload")
+            msg = f"prop: the variant {value.name!r} has no payload"
+            raise CannotInvert(msg)
         return [head], value
     steps, normal = emit(payload, value.payload)
     return [head, *steps], Variant(value.name, normal)
 
 
-def _emit_int128(generator: Any, value: object) -> Emitted:
+def _emit_int128(generator: Int128Shape, value: object) -> Emitted:
     """Return the high half, then the low half."""
     if not isinstance(value, int) or isinstance(value, bool):
-        raise CannotInvert(f"prop: {value!r} is not an integer")
+        msg = f"prop: {value!r} is not an integer"
+        raise CannotInvert(msg)
     lo = (generator.lo >> HALF, generator.lo & LOW_MASK)
     hi = (generator.hi >> HALF, generator.hi & LOW_MASK)
     high, low = value >> HALF, value & LOW_MASK
@@ -499,35 +528,32 @@ def _two_parts(value: object, names: tuple[str, str]) -> tuple[object, object]:
         CannotInvert: value is not a record of those two fields.
     """
     if not isinstance(value, Record) or [n for n, _ in value.fields] != list(names):
-        raise CannotInvert(f"prop: {value!r} is not a record of {list(names)}")
+        msg = f"prop: {value!r} is not a record of {list(names)}"
+        raise CannotInvert(msg)
     first, second = (part for _, part in value.fields)
     return first, second
 
 
-def _emit_instant(generator: Any, value: object) -> Emitted:
+def _emit_instant(shape: InstantShape, value: object) -> Emitted:
     """Return the seconds, then the units within the second below a unit of s."""
-    shape: InstantShape = generator
     seconds, units = _two_parts(value, ("seconds", "units"))
     steps = [_step(IntegerBounds(shape.lo[0], shape.hi[0]), seconds)]
     if shape.per == 1:
         if units != 0:
-            raise CannotInvert(
-                f"prop: an instant at seconds has no units, not {units!r}"
-            )
+            msg = f"prop: an instant at seconds has no units, not {units!r}"
+            raise CannotInvert(msg)
         return steps, value
-    assert isinstance(seconds, int)
-    bounds = second_part(seconds, shape.lo, shape.hi, shape.per - 1)
+    bounds = second_part(as_type(seconds, int), shape.lo, shape.hi, shape.per - 1)
     return [*steps, _step(bounds, units)], value
 
 
-def _emit_local(generator: Any, value: object) -> Emitted:
+def _emit_local(shape: LocalDateTimeShape, value: object) -> Emitted:
     """Return the date, then the time of day."""
-    shape: LocalDateTimeShape = generator
     day, time = _two_parts(value, ("date", "time-of-day"))
     day_step = _step(IntegerBounds(shape.lo[0], shape.hi[0]), day)
-    assert isinstance(day, int)
     top = SECONDS_PER_DAY * shape.per - 1
-    return [day_step, _step(second_part(day, shape.lo, shape.hi, top), time)], value
+    bounds = second_part(as_type(day, int), shape.lo, shape.hi, top)
+    return [day_step, _step(bounds, time)], value
 
 
 def _zone_steps(value: object, part: str) -> tuple[list[Step], object]:
@@ -545,30 +571,32 @@ def _zone_steps(value: object, part: str) -> tuple[list[Step], object]:
     return steps, inner
 
 
-def _emit_zoned(generator: Any, value: object) -> Emitted:
+def _emit_zoned(generator: ZonedShape, value: object) -> Emitted:
     """Return the zone, the whole-range choice when it has one, then the instant."""
     steps, instant = _zone_steps(value, "instant")
     inner, _ = emit(generator.instant, instant)
     return [*steps, *inner], value
 
 
-def _emit_wall(generator: Any, value: object) -> Emitted:
+def _emit_wall(generator: WallShape, value: object) -> Emitted:
     """Return the zone, the whole-range choice when it has one, then the local value."""
     steps, local = _zone_steps(value, "local-date-time")
     inner, _ = emit(generator.local, local)
     return [*steps, *inner], value
 
 
-def _emit_ip(generator: Any, value: object) -> Emitted:
+def _emit_ip(generator: IpShape, value: object) -> Emitted:
     """Return the version's index, then the address's bytes."""
     versions: tuple[Bytes, Bytes] = generator.versions
     if not isinstance(value, bytes):
-        raise CannotInvert(f"prop: {value!r} is not an address")
+        msg = f"prop: {value!r} is not an address"
+        raise CannotInvert(msg)
     for index, version in enumerate(versions):
         if version.bounds.min_size == len(value):
             steps, _ = emit(version, value)
             return [Step(IntegerBounds(0, 1), index), *steps], value
-    raise CannotInvert(f"prop: {value!r} is neither 4 nor 16 bytes")
+    msg = f"prop: {value!r} is neither 4 nor 16 bytes"
+    raise CannotInvert(msg)
 
 
 def _class_offset(node: pattern.Class, char: str) -> int | None:
@@ -603,8 +631,7 @@ def _matches(node: object, text: str, at: int) -> Iterator[tuple[int, list[Step]
             for end, steps in _matches(branch, text, at):
                 yield end, [Step(bounds, index), *steps]
     else:
-        assert isinstance(node, pattern.Repeat)
-        yield from _repeat(node, text, at, 0)
+        yield from _repeat(as_type(node, pattern.Repeat), text, at, 0)
 
 
 def _sequence(
@@ -639,18 +666,20 @@ def _repeat(
         yield at, [Step(flag, 0)]
 
 
-def _emit_string_matching(generator: Any, value: object) -> Emitted:
+def _emit_string_matching(generator: StringMatching, value: object) -> Emitted:
     """Return the steps of the first match of the whole string.
 
     Raises:
         CannotInvert: value is not a string the pattern matches in full.
     """
     if not isinstance(value, str):
-        raise CannotInvert(f"prop: {value!r} is not a string")
+        msg = f"prop: {value!r} is not a string"
+        raise CannotInvert(msg)
     for end, steps in _matches(generator.node, value, 0):
         if end == len(value):
             return steps, value
-    raise CannotInvert(f"prop: the pattern does not match {value!r} in full")
+    msg = f"prop: the pattern does not match {value!r} in full"
+    raise CannotInvert(msg)
 
 
 #: The inverse of each kind of generator, by its class.

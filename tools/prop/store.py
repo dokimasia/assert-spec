@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """The store: the format of an entry, its name, and what a runner does with one.
 
 The store keeps the minimal failing case of each identity in a directory of
@@ -49,13 +52,16 @@ import datetime
 import enum
 import json
 import re
-from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Final, TypeGuard
+from typing import TYPE_CHECKING, Any, Final, TypeGuard
 
 from . import replay
-from .choice import Choice
 from .source import mix
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping, Sequence
+
+    from .choice import Choice
 
 #: The format of the entries this module writes and replays.
 FORMAT: Final = 1
@@ -216,18 +222,22 @@ def _parse(text: str) -> tuple[str, list[Choice]]:
     """
     document = json.loads(text, object_pairs_hook=_unique, parse_constant=_no_constant)
     if depth(document) > MAX_DEPTH:
-        raise ValueError(f"prop: the file nests past {MAX_DEPTH} levels")
+        msg = f"prop: the file nests past {MAX_DEPTH} levels"
+        raise ValueError(msg)
     version = document.get("store") if isinstance(document, dict) else None
     if not _is_int(version) or version < FORMAT:
-        raise ValueError(f"prop: store is {version!r}, which names no format")
+        msg = f"prop: store is {version!r}, which names no format"
+        raise ValueError(msg)
     if version > FORMAT:
         raise _Later
     if frozenset(document) != FIELDS or not _well_formed(document):
-        raise ValueError("prop: the entry's fields are not those of its format")
+        msg = "prop: the entry's fields are not those of its format"
+        raise ValueError(msg)
     token = document["choices"]
     stated = _TOKEN.match(token)
     if stated is None:
-        raise ValueError(f"prop: {token!r} states no token version")
+        msg = f"prop: {token!r} states no token version"
+        raise ValueError(msg)
     if int(stated.group(1)) > TOKEN_VERSION:
         raise _Later
     return document["property"], replay.decode(token)
@@ -241,7 +251,8 @@ def _unique(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     """
     names = [key for key, _ in pairs]
     if len(set(names)) != len(names):
-        raise ValueError("prop: an object repeats a name")
+        msg = "prop: an object repeats a name"
+        raise ValueError(msg)
     return dict(pairs)
 
 
@@ -251,7 +262,8 @@ def _no_constant(constant: str) -> object:
     Raises:
         ValueError: always.
     """
-    raise ValueError(f"prop: {constant} is no JSON number")
+    msg = f"prop: {constant} is no JSON number"
+    raise ValueError(msg)
 
 
 def _is_int(value: object) -> TypeGuard[int]:

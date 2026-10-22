@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """How a collection decides its length, one element at a time.
 
 Every collection, a list, a dict or a repetition in a pattern, decodes the
@@ -12,12 +15,14 @@ its flag. Deleting that span deletes the element whole.
 
 from __future__ import annotations
 
-from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Final
+from typing import TYPE_CHECKING, Final
 
 from . import draw
 from .case import Case, Rejected, Request
+
+if TYPE_CHECKING:
+    from collections.abc import Callable
 
 #: The span labels of one element of a collection and one entry of a dict.
 ELEMENT: Final = "element"
@@ -48,9 +53,8 @@ class Sizes:
         if self.min_size < 0 or (
             self.max_size is not None and self.max_size < self.min_size
         ):
-            raise ValueError(
-                f"prop: sizes [{self.min_size}, {self.max_size}] are empty"
-            )
+            msg = f"prop: sizes [{self.min_size}, {self.max_size}] are empty"
+            raise ValueError(msg)
 
     @property
     def average(self) -> int:

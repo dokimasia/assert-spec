@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """The three kinds of choice a case is made of.
 
 A choice is one typed decision within bounds: an integer, a float or a
@@ -194,7 +197,8 @@ def _simplest_positive(lo: float, hi: float, width: int) -> float:
         candidate = float(exact)
         if Fraction(candidate) == exact and representable(candidate, width):
             return candidate
-    raise ValueError(f"prop: [{lo}, {hi}] contains no float of width {width}")
+    msg = f"prop: [{lo}, {hi}] contains no float of width {width}"
+    raise ValueError(msg)
 
 
 @dataclass(frozen=True)
@@ -225,14 +229,16 @@ class IntegerBounds:
                 signed nor the unsigned 64-bit range.
         """
         if self.lo > self.hi:
-            raise ValueError(f"prop: integer bounds [{self.lo}, {self.hi}] are empty")
+            msg = f"prop: integer bounds [{self.lo}, {self.hi}] are empty"
+            raise ValueError(msg)
         signed = self.lo >= INT64_MIN and self.hi <= INT64_MAX
         unsigned = self.lo >= 0 and self.hi <= UINT64_MAX
         if not (signed or unsigned):
-            raise ValueError(
+            msg = (
                 f"prop: integer bounds [{self.lo}, {self.hi}] are inside neither "
                 "the signed nor the unsigned 64-bit range"
             )
+            raise ValueError(msg)
 
     @property
     def kind(self) -> Kind:
@@ -314,14 +320,15 @@ class FloatBounds:
                 lies between them.
         """
         if self.width not in MAX_FRACTION_BITS:
-            raise ValueError(f"prop: float width {self.width} is neither 32 nor 64")
+            msg = f"prop: float width {self.width} is neither 32 nor 64"
+            raise ValueError(msg)
         if math.isnan(self.lo) or math.isnan(self.hi) or self.lo > self.hi:
-            raise ValueError(f"prop: float bounds [{self.lo}, {self.hi}] are empty")
+            msg = f"prop: float bounds [{self.lo}, {self.hi}] are empty"
+            raise ValueError(msg)
         for bound in (self.lo, self.hi):
             if not representable(bound, self.width):
-                raise ValueError(
-                    f"prop: float bound {bound} is not a value of width {self.width}"
-                )
+                msg = f"prop: float bound {bound} is not a value of width {self.width}"
+                raise ValueError(msg)
         simplest_float(self.lo, self.hi, self.width)
 
     @property
@@ -374,13 +381,13 @@ class SequenceBounds:
                 below min_size.
         """
         if self.k < 1:
-            raise ValueError(f"prop: a sequence with k = {self.k} has no element")
+            msg = f"prop: a sequence with k = {self.k} has no element"
+            raise ValueError(msg)
         if self.min_size < 0 or (
             self.max_size is not None and self.max_size < self.min_size
         ):
-            raise ValueError(
-                f"prop: sequence sizes [{self.min_size}, {self.max_size}] are empty"
-            )
+            msg = f"prop: sequence sizes [{self.min_size}, {self.max_size}] are empty"
+            raise ValueError(msg)
 
     @property
     def kind(self) -> Kind:

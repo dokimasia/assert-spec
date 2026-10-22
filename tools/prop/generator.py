@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """The generator vocabulary, stated as data and decoded from a case.
 
 The corpus states a generator as a JSON object whose ``gen`` key names its
@@ -430,10 +433,12 @@ def build(spec: object, scope: Recursive | None = None) -> Generator:
             parameter, or states a parameter the generator cannot take.
     """
     if not isinstance(spec, Mapping):
-        raise SpecError(f"prop: {spec!r} is not a generator spec")
+        msg = f"prop: {spec!r} is not a generator spec"
+        raise SpecError(msg)
     kind = spec.get("gen")
     if not isinstance(kind, str):
-        raise SpecError(f"prop: {spec!r} names no generator")
+        msg = f"prop: {spec!r} names no generator"
+        raise SpecError(msg)
     try:
         if kind == Self.ID:
             return _self(scope)
@@ -444,10 +449,13 @@ def build(spec: object, scope: Recursive | None = None) -> Generator:
     except SpecError:
         raise
     except KeyError as missing:
-        raise SpecError(f"prop: {kind} needs {missing}") from None
+        msg = f"prop: {kind} needs {missing}"
+        raise SpecError(msg) from None
     except (TypeError, ValueError) as bad:
-        raise SpecError(f"prop: {kind}: {bad}") from bad
-    raise SpecError(f"prop: {kind!r} is not a generator")
+        msg = f"prop: {kind}: {bad}"
+        raise SpecError(msg) from bad
+    msg = f"prop: {kind!r} is not a generator"
+    raise SpecError(msg)
 
 
 def _self(scope: Recursive | None) -> Self:
@@ -457,7 +465,8 @@ def _self(scope: Recursive | None) -> Self:
         SpecError: the spec is outside every recursive extension.
     """
     if scope is None:
-        raise SpecError("prop: self appears outside a recursive generator's extension")
+        msg = "prop: self appears outside a recursive generator's extension"
+        raise SpecError(msg)
     return Self(scope)
 
 
@@ -481,7 +490,8 @@ def _bool(spec: Spec, key: str) -> bool:
     """
     value = spec.get(key, False)
     if not isinstance(value, bool):
-        raise SpecError(f"prop: {key} is {value!r}, not a boolean")
+        msg = f"prop: {key} is {value!r}, not a boolean"
+        raise SpecError(msg)
     return value
 
 
@@ -494,7 +504,8 @@ def _text(spec: Spec, key: str) -> str:
     """
     value = spec[key]
     if not isinstance(value, str):
-        raise SpecError(f"prop: {key} is {value!r}, not a string")
+        msg = f"prop: {key} is {value!r}, not a string"
+        raise SpecError(msg)
     return value
 
 
@@ -535,7 +546,8 @@ def _probability(spec: Spec) -> Fraction:
         or not 0 <= value[0] <= value[1]
         or not 1 <= value[1] <= UINT64_MAX + 1
     ):
-        raise SpecError(f"prop: p is {value!r}, want [numerator, denominator]")
+        msg = f"prop: p is {value!r}, want [numerator, denominator]"
+        raise SpecError(msg)
     return Fraction(value[0], value[1])
 
 
@@ -548,7 +560,8 @@ def _values(spec: Spec) -> tuple[object, ...]:
     """
     values = spec["values"]
     if not isinstance(values, list):
-        raise SpecError(f"prop: values is {values!r}, not a list")
+        msg = f"prop: values is {values!r}, not a list"
+        raise SpecError(msg)
     return tuple(literal.decode(v) for v in values)
 
 
@@ -556,7 +569,8 @@ def _sampled_from(spec: Spec) -> SampledFrom:
     """Build sampled-from, which needs at least one value."""
     values = _values(spec)
     if not values:
-        raise SpecError("prop: sampled-from needs at least one value")
+        msg = "prop: sampled-from needs at least one value"
+        raise SpecError(msg)
     return SampledFrom(values)
 
 
@@ -564,7 +578,8 @@ def _one_of(spec: Spec, scope: Recursive | None) -> OneOf:
     """Build one-of, which needs at least one generator."""
     of = spec["of"]
     if not isinstance(of, list) or not of:
-        raise SpecError(f"prop: one-of needs a list of generators, not {of!r}")
+        msg = f"prop: one-of needs a list of generators, not {of!r}"
+        raise SpecError(msg)
     return OneOf(tuple(build(g, scope) for g in of))
 
 
@@ -580,9 +595,11 @@ def _string(spec: Spec) -> String:
         bounds = SequenceBounds(alphabet.SIZE, sizes.min_size, sizes.max_size)
         return String(None, bounds)
     if not isinstance(characters, str) or not characters:
-        raise SpecError(f"prop: alphabet is {characters!r}, not a non-empty string")
+        msg = f"prop: alphabet is {characters!r}, not a non-empty string"
+        raise SpecError(msg)
     if len(set(characters)) != len(characters):
-        raise SpecError(f"prop: alphabet {characters!r} repeats a character")
+        msg = f"prop: alphabet {characters!r} repeats a character"
+        raise SpecError(msg)
     for char in characters:
         alphabet.index(char)
     bounds = SequenceBounds(len(characters), sizes.min_size, sizes.max_size)
@@ -599,7 +616,8 @@ def _map(spec: Spec, scope: Recursive | None) -> Map:
     """Build map, over the function of a subject kind that takes one input."""
     subject = _text(spec, "subject")
     if subject not in FUNCTIONS:
-        raise SpecError(f"prop: the subject {subject!r} is none of {sorted(FUNCTIONS)}")
+        msg = f"prop: the subject {subject!r} is none of {sorted(FUNCTIONS)}"
+        raise SpecError(msg)
     return Map(build(spec["of"], scope), subject)
 
 
@@ -612,7 +630,8 @@ def _recursive(spec: Spec) -> Recursive:
         _int(spec, "max_leaves") if "max_leaves" in spec else DEFAULT_MAX_LEAVES
     )
     if max_leaves < 1:
-        raise SpecError(f"prop: max_leaves is {max_leaves}, below 1")
+        msg = f"prop: max_leaves is {max_leaves}, below 1"
+        raise SpecError(msg)
     node = Recursive(build(spec["base"]), max_leaves)
     node.extend = build(spec["extend"], node)
     return node

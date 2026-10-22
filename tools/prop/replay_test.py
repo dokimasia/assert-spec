@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """The replay token: its bytes, its round trip, and the tokens it refuses."""
 
 from __future__ import annotations
@@ -7,6 +10,8 @@ import math
 import sys
 import unittest
 from typing import final
+
+import pytest
 
 from .choice import INT64_MIN, NAN_BITS, UINT64_MAX, Choice, bits_of, same_float
 from .replay import PREFIX, decode, encode
@@ -55,25 +60,28 @@ class EncodeTest(unittest.TestCase):
 
     def test_each_kind_encodes_to_its_tag_and_payload(self) -> None:
         """LEB128 integers and lengths, little-endian float bits."""
-        self.assertEqual(encode(CHOICES), _token(BYTES))
+        assert encode(CHOICES) == _token(BYTES)
 
     def test_no_choices_encode_to_the_prefix_alone(self) -> None:
         """A case of targets only."""
-        self.assertEqual(encode([]), PREFIX)
+        assert encode([]) == PREFIX
 
     def test_every_nan_encodes_with_the_canonical_bits(self) -> None:
         """A NaN with a sign or a payload has one token."""
         canonical = NAN_BITS.to_bytes(8, "little")
-        self.assertEqual(
-            encode([Choice("float", -math.nan)]), _token(bytes([0x02]) + canonical)
-        )
+        assert encode([Choice("float", -math.nan)]) == _token(bytes([0x02]) + canonical)
 
     def test_the_text_is_base64url_without_padding(self) -> None:
         """63 encodes as an underscore, and no token contains + / or =."""
         token = encode([LOWEST])
-        self.assertIn("_", token)
+        assert "_" in token
         for char in "+/=":
-            self.assertNotIn(char, token)
+            assert char not in token
+
+    def test_a_choice_whose_value_is_of_another_kind_raises(self) -> None:
+        """An integer choice has an int, and no float."""
+        with pytest.raises(ValueError, match=r"the integer choice has the value 1\.5"):
+            encode([Choice("integer", 1.5)])
 
 
 @final
@@ -82,7 +90,7 @@ class DecodeTest(unittest.TestCase):
 
     def test_a_token_decodes_to_its_choices(self) -> None:
         """The pinned bytes give the pinned choices."""
-        self.assertTrue(_same(decode(_token(BYTES)), CHOICES))
+        assert _same(decode(_token(BYTES)), CHOICES)
 
     def test_every_choice_round_trips(self) -> None:
         """The extremes of each kind, signed zero and NaN included."""
@@ -98,7 +106,7 @@ class DecodeTest(unittest.TestCase):
             Choice("sequence", (0, 1_112_063)),
         ]
         decoded = decode(encode(choices))
-        self.assertTrue(_same(decoded, choices), decoded)
+        assert _same(decoded, choices), decoded
 
     def test_a_token_that_encode_never_returns_raises(self) -> None:
         """Every malformed shape, each alone."""
@@ -121,21 +129,21 @@ class DecodeTest(unittest.TestCase):
             "an unknown tag": _token(bytes.fromhex("04")),
         }
         for name, token in malformed.items():
-            with self.assertRaises(ValueError, msg=name):
+            with self.subTest(name), pytest.raises(ValueError, match=r"^prop: "):
                 decode(token)
 
     def test_the_largest_number_is_2_to_the_64_minus_1(self) -> None:
         """UINT64_MAX decodes from ten LEB128 bytes."""
         token = _token(bytes.fromhex("00ffffffffffffffffff01"))
-        self.assertEqual(decode(token), [Choice("integer", UINT64_MAX)])
+        assert decode(token) == [Choice("integer", UINT64_MAX)]
 
     def test_the_largest_negative_magnitude_is_2_to_the_63(self) -> None:
         """INT64_MIN decodes."""
         token = _token(bytes.fromhex("0180808080808080808001"))
-        self.assertEqual(decode(token), [Choice("integer", INT64_MIN)])
+        assert decode(token) == [Choice("integer", INT64_MIN)]
 
     def test_negative_zero_keeps_its_sign(self) -> None:
         """The float payload is the bits, not the value."""
         value = decode(encode([Choice("float", -0.0)]))[0].value
         assert isinstance(value, float)
-        self.assertEqual(bits_of(value), bits_of(-0.0))
+        assert bits_of(value) == bits_of(-0.0)

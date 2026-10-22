@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """Decoded values, and the equality that uniqueness is decided by.
 
 Generators decode to Python values: None, bool, int, float, str, bytes, a
@@ -70,6 +73,21 @@ class Variant:
     payload: object = NO_PAYLOAD
 
 
+def as_type[T](value: object, kind: type[T]) -> T:
+    """Return value as an instance of kind.
+
+    A generator decodes to an object. The caller passes the type of the
+    decoded values, and the call checks it.
+
+    Raises:
+        TypeError: value is not an instance of kind.
+    """
+    if not isinstance(value, kind):
+        msg = f"prop: {value!r} is not of the type {kind.__name__}"
+        raise TypeError(msg)
+    return value
+
+
 def canonical(value: object) -> object:
     """Return a hashable form of a decoded value, equal exactly when the values are.
 
@@ -89,7 +107,8 @@ def canonical(value: object) -> object:
         return composite
     tag = _TAGS.get(type(value))
     if tag is None:
-        raise TypeError(f"prop: {value!r} is not a decoded value")
+        msg = f"prop: {value!r} is not a decoded value"
+        raise TypeError(msg)
     return (tag, value)
 
 

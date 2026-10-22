@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """The corpus vectors of the property engine, computed from their inputs.
 
 Each vector kind has a function that takes a case's inputs, as the corpus
@@ -21,7 +24,7 @@ import datetime
 import json
 from collections.abc import Callable, Mapping, Sequence
 from functools import partial
-from typing import Any, Final
+from typing import TYPE_CHECKING, Any, Final
 
 from . import coverage, literal, replay, store
 from .body import build_body
@@ -34,7 +37,6 @@ from .choice import (
     IntegerBounds,
     SequenceBounds,
 )
-from .execution import Divergence, Execution, Phase
 from .forms import FormError, run_form
 from .generator import build
 from .inverse import CannotInvert, invert
@@ -44,6 +46,10 @@ from .shape import read as read_shape
 from .shrink import DEFAULT_BUDGET, Explained
 from .source import case_source
 from .trace import entries
+from .value import as_type
+
+if TYPE_CHECKING:
+    from .execution import Divergence, Execution, Phase
 
 #: A case of the corpus, or the outputs computed for one: a JSON object.
 Vector = dict[str, Any]
@@ -62,8 +68,7 @@ def choice_literal(choice: Choice) -> object:
         return literal.plain(choice.value)
     if choice.kind == "float":
         return {"float": literal.plain(choice.value)}
-    assert isinstance(choice.value, tuple)
-    return {"sequence": list(choice.value)}
+    return {"sequence": list(as_type(choice.value, tuple))}
 
 
 def parse_choice(written: object) -> Choice:
@@ -77,12 +82,14 @@ def parse_choice(written: object) -> Choice:
     if isinstance(written, Mapping) and set(written) == {"sequence"}:
         elements = written["sequence"]
         if not isinstance(elements, list):
-            raise VectorError(f"prop: {written!r} is not a sequence")
+            msg = f"prop: {written!r} is not a sequence"
+            raise VectorError(msg)
         return Choice("sequence", tuple(literal.integer(e) for e in elements))
     try:
         return Choice("integer", literal.integer(written))
     except literal.LiteralError as bad:
-        raise VectorError(f"prop: {written!r} is not a choice") from bad
+        msg = f"prop: {written!r} is not a choice"
+        raise VectorError(msg) from bad
 
 
 def _choices(case: Case) -> list[object]:
@@ -93,7 +100,8 @@ def _choices(case: Case) -> list[object]:
 def _parse_choices(written: object) -> list[Choice]:
     """Return the choices a list of corpus forms states."""
     if not isinstance(written, list):
-        raise VectorError(f"prop: {written!r} is not a list of choices")
+        msg = f"prop: {written!r} is not a list of choices"
+        raise VectorError(msg)
     return [parse_choice(choice) for choice in written]
 
 
@@ -101,7 +109,8 @@ def _seed(case: Mapping[str, Any]) -> int:
     """Return a vector's seed, stated as a decimal string."""
     seed = case.get("seed")
     if not isinstance(seed, str) or not seed.isdigit():
-        raise VectorError(f"prop: seed {seed!r} is not a decimal string")
+        msg = f"prop: seed {seed!r} is not a decimal string"
+        raise VectorError(msg)
     return int(seed)
 
 
@@ -166,7 +175,8 @@ def inverse(case: Mapping[str, Any]) -> Vector:
             neither.
     """
     if ("shape" in case) == ("generator" in case):
-        raise VectorError("prop: an inverse vector states a shape or a generator")
+        msg = "prop: an inverse vector states a shape or a generator"
+        raise VectorError(msg)
     generator = _shape(case["shape"]) if "shape" in case else build(case["generator"])
     try:
         choices = invert(generator, literal.decode(case["value"]))
@@ -185,7 +195,8 @@ def fixture(case: Mapping[str, Any]) -> Vector:
     _shape(case["shape"])
     for key in ("fixture", "summary", "covers"):
         if not str(case.get(key, "")).strip():
-            raise VectorError(f"prop: a fixture vector states no {key}")
+            msg = f"prop: a fixture vector states no {key}"
+            raise VectorError(msg)
     return {}
 
 
@@ -310,11 +321,13 @@ def store_entry(case: Mapping[str, Any]) -> Vector:
     try:
         found = datetime.date.fromisoformat(str(case["found"]))
     except ValueError as bad:
-        raise VectorError(f"prop: found {case['found']!r} is no date") from bad
+        msg = f"prop: found {case['found']!r} is no date"
+        raise VectorError(msg) from bad
     written = store.entry(failure, str(case["definition"]), found)
     back = store.read(json.dumps(written), contract)
     if back.verdict is not store.Verdict.REPLAY or back.choices != choices:
-        raise VectorError(f"prop: the entry of {contract!r} does not read back")
+        msg = f"prop: the entry of {contract!r} does not read back"
+        raise VectorError(msg)
     return {"name": store.name(contract, choices), "entry": written}
 
 
@@ -376,15 +389,17 @@ def form_run(case: Mapping[str, Any]) -> Vector:
             run depends on what earlier cases leave in a subject.
     """
     if ("shape" in case) == ("generator" in case):
-        raise VectorError(f"prop: {case.get('id')!r} states one of shape and generator")
+        msg = f"prop: {case.get('id')!r} states one of shape and generator"
+        raise VectorError(msg)
     generator = _shape(case["shape"]) if "shape" in case else build(case["generator"])
     settings = Settings(_seed(case))
     kept = _form_detail(case, generator, settings, fresh=False)
     fresh = _form_detail(case, generator, settings, fresh=True)
     if kept != fresh:
-        raise VectorError(
+        msg = (
             f"prop: {case.get('id')!r} depends on what earlier cases leave in a subject"
         )
+        raise VectorError(msg)
     return {"detail": kept}
 
 
@@ -583,8 +598,10 @@ def compute(kind: str, case: Mapping[str, Any]) -> Vector:
     """
     function = KINDS.get(kind)
     if function is None:
-        raise VectorError(f"prop: {kind!r} is no vector kind")
+        msg = f"prop: {kind!r} is no vector kind"
+        raise VectorError(msg)
     try:
         return function(case)
     except KeyError as missing:
-        raise VectorError(f"prop: a {kind} vector lacks {missing}") from None
+        msg = f"prop: a {kind} vector lacks {missing}"
+        raise VectorError(msg) from None

@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """The draws: what each consumes from the stream, and what it can return."""
 
 from __future__ import annotations
@@ -65,8 +68,8 @@ class IntegerDrawTest(unittest.TestCase):
     def test_equal_bounds_return_their_value_and_consume_nothing(self) -> None:
         """A range of one value draws nothing from the stream."""
         source, twin = Source(1), Source(1)
-        self.assertEqual(integer(source, IntegerBounds(7, 7)), 7)
-        self.assertEqual(source.next(), twin.next())
+        assert integer(source, IntegerBounds(7, 7)) == 7
+        assert source.next() == twin.next()
 
     def test_every_draw_stays_inside_its_bounds(self) -> None:
         """Small, one-sided, negative and full 64-bit ranges."""
@@ -82,7 +85,7 @@ class IntegerDrawTest(unittest.TestCase):
             source = Source(lo & UINT64_MAX)
             for _ in range(DRAWS):
                 value = integer(source, bounds)
-                self.assertTrue(lo <= value <= hi, f"[{lo}, {hi}]: {value}")
+                assert lo <= value <= hi, f"[{lo}, {hi}]: {value}"
 
     def test_edges_are_target_lo_hi_and_the_target_neighbours_once_each(
         self,
@@ -95,7 +98,7 @@ class IntegerDrawTest(unittest.TestCase):
             (3, 3): [3],
         }
         for (lo, hi), edges in cases.items():
-            self.assertEqual(integer_edges(IntegerBounds(lo, hi)), edges)
+            assert integer_edges(IntegerBounds(lo, hi)) == edges
 
     def test_a_target_at_lo_moves_upward_without_the_direction_coin(self) -> None:
         """The draws are the edge coin, the cap and the offset, in that order."""
@@ -109,20 +112,20 @@ class IntegerDrawTest(unittest.TestCase):
             else:
                 cap = OFFSET_CAPS[twin.below(len(OFFSET_CAPS))]
                 want = twin.below(min(1000, cap - 1) + 1)
-            self.assertEqual(got, want, f"seed {seed}")
-            self.assertEqual(source.next(), twin.next(), f"seed {seed}")
+            assert got == want, f"seed {seed}"
+            assert source.next() == twin.next(), f"seed {seed}"
 
     def test_the_first_draws_from_seed_42_are_pinned(self) -> None:
         """Ten draws of integer(-100, 100)."""
         source = Source(PINNED_SEED)
         bounds = IntegerBounds(-100, 100)
-        self.assertEqual([integer(source, bounds) for _ in range(10)], PINNED_INTEGERS)
+        assert [integer(source, bounds) for _ in range(10)] == PINNED_INTEGERS
 
     def test_the_first_wide_draws_from_seed_42_are_pinned(self) -> None:
         """Ten draws over the whole signed 64-bit range."""
         source = Source(PINNED_SEED)
         bounds = IntegerBounds(INT64_MIN, INT64_MAX)
-        self.assertEqual([integer(source, bounds) for _ in range(10)], PINNED_WIDE)
+        assert [integer(source, bounds) for _ in range(10)] == PINNED_WIDE
 
 
 @final
@@ -141,31 +144,29 @@ class CollectionDrawTest(unittest.TestCase):
             (10, None): 20,
         }
         for (min_size, max_size), average in cases.items():
-            self.assertEqual(
-                average_length(min_size, max_size), average, (min_size, max_size)
-            )
+            assert average_length(min_size, max_size) == average, (min_size, max_size)
 
     def test_a_flag_below_the_minimum_continues_without_consuming(self) -> None:
         """Forced to 1 with bounds [1, 1]."""
         source, twin = Source(5), Source(5)
-        self.assertEqual(flag_bounds(1, 2, 9), IntegerBounds(1, 1))
-        self.assertEqual(flag(source, 1, 2, 9, 7), 1)
-        self.assertEqual(source.next(), twin.next())
+        assert flag_bounds(1, 2, 9) == IntegerBounds(1, 1)
+        assert flag(source, 1, 2, 9, 7) == 1
+        assert source.next() == twin.next()
 
     def test_a_flag_at_the_maximum_stops_without_consuming(self) -> None:
         """Forced to 0 with bounds [0, 0]."""
         source, twin = Source(5), Source(5)
-        self.assertEqual(flag_bounds(9, 2, 9), IntegerBounds(0, 0))
-        self.assertEqual(flag(source, 9, 2, 9, 7), 0)
-        self.assertEqual(source.next(), twin.next())
+        assert flag_bounds(9, 2, 9) == IntegerBounds(0, 0)
+        assert flag(source, 9, 2, 9, 7) == 0
+        assert source.next() == twin.next()
 
     def test_a_free_flag_continues_by_its_coin(self) -> None:
         """Bounds [0, 1], continuing on a coin of 5 in 6 for an average of 5."""
-        self.assertEqual(flag_bounds(3, 0, None), IntegerBounds(0, 1))
-        self.assertEqual(flag_bounds(2, 2, 3), IntegerBounds(0, 1))
+        assert flag_bounds(3, 0, None) == IntegerBounds(0, 1)
+        assert flag_bounds(2, 2, 3) == IntegerBounds(0, 1)
         source, twin = Source(5), Source(5)
         for _ in range(100):
-            self.assertEqual(flag(source, 3, 0, None, 5), 1 if twin.coin(5, 6) else 0)
+            assert flag(source, 3, 0, None, 5) == (1 if twin.coin(5, 6) else 0)
 
     def test_a_sequence_draws_as_a_list_of_integers_does(self) -> None:
         """Flag, element, flag, element: a byte string equals the list draw."""
@@ -177,14 +178,14 @@ class CollectionDrawTest(unittest.TestCase):
             want: list[int] = []
             while flag(twin, len(want), 0, 16, average):
                 want.append(integer(twin, element))
-            self.assertEqual(sequence(source, bounds), tuple(want), f"seed {seed}")
+            assert sequence(source, bounds) == tuple(want), f"seed {seed}"
 
     def test_every_sequence_stays_inside_its_bounds(self) -> None:
         """Length inside [min, max] and every element inside [0, k)."""
         bounds = SequenceBounds(3, 2, 6)
         source = Source(11)
         for _ in range(DRAWS):
-            self.assertTrue(bounds.admits(sequence(source, bounds)))
+            assert bounds.admits(sequence(source, bounds))
 
 
 @final
@@ -195,16 +196,14 @@ class BooleanDrawTest(unittest.TestCase):
         """Never 1 at 0, always 1 at 1."""
         source = Source(2)
         for _ in range(100):
-            self.assertEqual(boolean(source, Fraction(0)), 0)
-            self.assertEqual(boolean(source, Fraction(1)), 1)
+            assert boolean(source, Fraction(0)) == 0
+            assert boolean(source, Fraction(1)) == 1
 
     def test_a_draw_is_one_coin(self) -> None:
         """1 exactly when coin(num, den) is true."""
         source, twin = Source(3), Source(3)
         for _ in range(100):
-            self.assertEqual(
-                boolean(source, Fraction(1, 3)), 1 if twin.coin(1, 3) else 0
-            )
+            assert boolean(source, Fraction(1, 3)) == (1 if twin.coin(1, 3) else 0)
 
 
 @final
@@ -214,15 +213,15 @@ class WeightedDrawTest(unittest.TestCase):
     def test_one_weight_returns_0_and_consumes_nothing(self) -> None:
         """A list of one action draws nothing, whatever its weight."""
         source, twin = Source(4), Source(4)
-        self.assertEqual(weighted(source, [3]), 0)
-        self.assertEqual(source.next(), twin.next())
+        assert weighted(source, [3]) == 0
+        assert source.next() == twin.next()
 
     def test_the_index_is_the_first_whose_running_sum_exceeds_the_draw(self) -> None:
         """Weights 1, 2 and 1 split below(4) into [0], [1, 2] and [3]."""
         source, twin = Source(6), Source(6)
         for _ in range(DRAWS):
             point = twin.below(4)
-            self.assertEqual(weighted(source, [1, 2, 1]), [0, 1, 1, 2][point])
+            assert weighted(source, [1, 2, 1]) == [0, 1, 1, 2][point]
 
 
 @final
@@ -235,15 +234,13 @@ class KeepDrawTest(unittest.TestCase):
         half = Fraction(1, 2)
         for remaining in (1, 3):
             for _ in range(50):
-                self.assertEqual(
-                    keep(source, half, True, remaining), boolean(twin, half)
-                )
+                assert keep(source, half, remaining, kept=True) == boolean(twin, half)
 
     def test_the_last_action_after_none_kept_is_kept_without_a_draw(self) -> None:
         """Nothing is consumed."""
         source, twin = Source(8), Source(8)
-        self.assertEqual(keep(source, Fraction(1, 2), False, 1), 1)
-        self.assertEqual(source.next(), twin.next())
+        assert keep(source, Fraction(1, 2), 1, kept=False) == 1
+        assert source.next() == twin.next()
 
     def test_before_a_kept_action_coins_repeat_until_one_comes_up(self) -> None:
         """One coin per remaining action, and the draw is the first coin."""
@@ -252,8 +249,8 @@ class KeepDrawTest(unittest.TestCase):
             source, twin = Source(seed), Source(seed)
             while not any(coins := [boolean(twin, half) for _ in range(3)]):
                 pass
-            self.assertEqual(keep(source, half, False, 3), coins[0], seed)
-            self.assertEqual(source.next(), twin.next(), seed)
+            assert keep(source, half, 3, kept=False) == coins[0], seed
+            assert source.next() == twin.next(), seed
 
     def test_every_non_empty_set_of_two_actions_is_as_likely(self) -> None:
         """Each of first, second and both is kept about a third of the time."""
@@ -261,11 +258,11 @@ class KeepDrawTest(unittest.TestCase):
         half = Fraction(1, 2)
         counts = {(1, 0): 0, (0, 1): 0, (1, 1): 0}
         for _ in range(DRAWS * 3):
-            first = keep(source, half, False, 2)
-            second = keep(source, half, first == 1, 1)
+            first = keep(source, half, 2, kept=False)
+            second = keep(source, half, 1, kept=first == 1)
             counts[first, second] += 1
         for kept, count in counts.items():
-            self.assertAlmostEqual(count / (DRAWS * 3), 1 / 3, delta=0.03, msg=kept)
+            assert abs(count / (DRAWS * 3) - 1 / 3) < 0.03, kept
 
 
 @final
@@ -287,25 +284,21 @@ class FloatDrawTest(unittest.TestCase):
             source = Source(17)
             for _ in range(DRAWS):
                 value = float_value(source, bounds)
-                self.assertTrue(bounds.admits(value), f"{bounds}: {value}")
-                self.assertTrue(representable(value, bounds.width))
+                assert bounds.admits(value), f"{bounds}: {value}"
+                assert representable(value, bounds.width)
 
     def test_nan_appears_only_when_allowed(self) -> None:
         """Allowed bounds produce NaN within the draws; others never do."""
         allowed = FloatBounds(-math.inf, math.inf, allow_nan=True)
         refused = FloatBounds(-math.inf, math.inf)
         source = Source(23)
-        self.assertTrue(
-            any(math.isnan(float_value(source, allowed)) for _ in range(DRAWS))
-        )
-        self.assertFalse(
-            any(math.isnan(float_value(source, refused)) for _ in range(DRAWS))
-        )
+        assert any(math.isnan(float_value(source, allowed)) for _ in range(DRAWS))
+        assert not any(math.isnan(float_value(source, refused)) for _ in range(DRAWS))
 
     def test_edges_are_target_lo_hi_and_the_target_neighbours(self) -> None:
         """Each once, inside the bounds, then NaN when allowed."""
         edges = float_edges(FloatBounds(-1.0, 1.0, allow_nan=True))
         want = [0.0, -1.0, 1.0, 5e-324, -5e-324, math.nan]
-        self.assertEqual(len(edges), len(want))
+        assert len(edges) == len(want)
         for got, expected in zip(edges, want, strict=True):
-            self.assertTrue(same_float(got, expected), f"{got} != {expected}")
+            assert same_float(got, expected), f"{got} != {expected}"

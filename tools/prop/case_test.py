@@ -1,9 +1,14 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """The case: where its values come from, what it records, and its cap."""
 
 from __future__ import annotations
 
 import unittest
 from typing import final
+
+import pytest
 
 from . import draw
 from .case import (
@@ -131,15 +136,15 @@ class GeneratingTest(unittest.TestCase):
         """The case consumes the source as the draws alone would."""
         case, twin = Case(Generating(Source(3))), Source(3)
         got = [case.choose(_digit()) for _ in range(20)]
-        self.assertEqual(got, [draw.integer(twin, DIGIT) for _ in range(20)])
+        assert got == [draw.integer(twin, DIGIT) for _ in range(20)]
 
     def test_the_case_records_each_choice_and_its_request(self) -> None:
         """Kind and value, in request order, beside the request itself."""
         case = Case(Generating(Source(3)))
         request = _digit()
         value = case.choose(request)
-        self.assertEqual(case.choices, [Choice("integer", value)])
-        self.assertEqual(case.requests, [request])
+        assert case.choices == [Choice("integer", value)]
+        assert case.requests == [request]
 
     def test_a_reuse_request_draws_a_coin_then_an_earlier_value(self) -> None:
         """The first draws as usual; later ones take the coin, then reuse or draw."""
@@ -147,14 +152,14 @@ class GeneratingTest(unittest.TestCase):
         case = Case(Generating(Source(5)))
         wide = IntegerBounds(0, 10**9)
         first = case.integer(wide, reuse=True)
-        self.assertEqual(first, draw.integer(twin, wide))
+        assert first == draw.integer(twin, wide)
         earlier = [first]
         for _ in range(40):
             got = case.integer(wide, reuse=True)
             if twin.coin(1, draw.REUSE_ODDS):
-                self.assertEqual(got, earlier[twin.below(len(earlier))])
+                assert got == earlier[twin.below(len(earlier))]
             else:
-                self.assertEqual(got, draw.integer(twin, wide))
+                assert got == draw.integer(twin, wide)
             earlier.append(got)
 
     def test_the_first_reuse_requests_from_seed_42_are_pinned(self) -> None:
@@ -162,18 +167,17 @@ class GeneratingTest(unittest.TestCase):
         case = Case(Generating(Source(42)))
         wide = IntegerBounds(INT64_MIN, INT64_MAX)
         got = [case.integer(wide, reuse=True) for _ in range(12)]
-        self.assertEqual(got, PINNED_REUSE)
+        assert got == PINNED_REUSE
 
     def test_a_reuse_request_with_equal_bounds_consumes_nothing(self) -> None:
         """Equal bounds take no coin, so later draws match a fresh source's."""
         case, twin = Case(Generating(Source(7))), Source(7)
         seven = IntegerBounds(7, 7)
-        self.assertEqual([case.integer(seven, reuse=True) for _ in range(3)], [7, 7, 7])
+        assert [case.integer(seven, reuse=True) for _ in range(3)] == [7, 7, 7]
         wide = IntegerBounds(0, 10**9)
-        self.assertEqual(
-            [case.integer(wide) for _ in range(5)],
-            [draw.integer(twin, wide) for _ in range(5)],
-        )
+        assert [case.integer(wide) for _ in range(5)] == [
+            draw.integer(twin, wide) for _ in range(5)
+        ]
 
     def test_reuse_keeps_to_the_bounds_of_the_request(self) -> None:
         """A request takes no value drawn under other bounds."""
@@ -181,14 +185,14 @@ class GeneratingTest(unittest.TestCase):
         for _ in range(30):
             case.integer(IntegerBounds(500, 600), reuse=True)
         values = [case.integer(DIGIT, reuse=True) for _ in range(30)]
-        self.assertTrue(all(DIGIT.lo <= v <= DIGIT.hi for v in values))
+        assert all(DIGIT.lo <= v <= DIGIT.hi for v in values)
 
     def test_a_request_without_reuse_takes_no_coin(self) -> None:
         """After a reuse request, a plain request with its bounds draws as usual."""
         case, twin = Case(Generating(Source(9))), Source(9)
         case.integer(DIGIT, reuse=True)
         draw.integer(twin, DIGIT)
-        self.assertEqual(case.integer(DIGIT, edge=0), draw.integer(twin, DIGIT))
+        assert case.integer(DIGIT, edge=0) == draw.integer(twin, DIGIT)
 
     def test_a_reuse_request_takes_no_value_of_a_removed_choice(self) -> None:
         """After a rewind to the start, no earlier value remains, so no coin."""
@@ -200,7 +204,7 @@ class GeneratingTest(unittest.TestCase):
             case.rewind(start)
             draw.integer(twin, wide)
             got = case.integer(wide, reuse=True)
-            self.assertEqual(got, draw.integer(twin, wide), seed)
+            assert got == draw.integer(twin, wide), seed
 
     def test_a_reuse_request_takes_no_removed_value_of_other_bounds(self) -> None:
         """A request after a rewind forgets the removed values of every bounds.
@@ -219,7 +223,7 @@ class GeneratingTest(unittest.TestCase):
             case.integer(narrow, reuse=True)
             draw.integer(twin, narrow)
             got = case.integer(wide, reuse=True)
-            self.assertEqual(got, draw.integer(twin, wide), seed)
+            assert got == draw.integer(twin, wide), seed
 
 
 @final
@@ -229,30 +233,30 @@ class ReplayingTest(unittest.TestCase):
     def test_a_value_that_fits_comes_back(self) -> None:
         """Recorded digits replay in order."""
         case = Case(Replaying([Choice("integer", 7), Choice("integer", 3)]))
-        self.assertEqual([case.choose(_digit()), case.choose(_digit())], [7, 3])
+        assert [case.choose(_digit()), case.choose(_digit())] == [7, 3]
 
     def test_a_value_outside_the_bounds_takes_the_target(self) -> None:
         """12 is no digit, so the request gets 0."""
         case = Case(Replaying([Choice("integer", 12)]))
-        self.assertEqual(case.choose(_digit()), 0)
+        assert case.choose(_digit()) == 0
 
     def test_a_value_of_another_kind_takes_the_target(self) -> None:
         """A recorded sequence where a digit is requested replays as 0."""
         case = Case(Replaying([Choice("sequence", (5,))]))
-        self.assertEqual(case.choose(_digit()), 0)
+        assert case.choose(_digit()) == 0
 
     def test_a_request_past_the_recorded_choices_takes_the_target(self) -> None:
         """Every request after the last recorded choice gets its target."""
         bounds = IntegerBounds(3, 9)
         case = Case(Replaying([Choice("integer", 5)]))
         request = Request(bounds, lambda source: draw.integer(source, bounds))
-        self.assertEqual([case.choose(request) for _ in range(3)], [5, 3, 3])
+        assert [case.choose(request) for _ in range(3)] == [5, 3, 3]
 
     def test_the_case_records_the_fitted_value(self) -> None:
         """The record contains what the body received, not what was replayed."""
         case = Case(Replaying([Choice("integer", 12)]))
         case.choose(_digit())
-        self.assertEqual(case.choices, [Choice("integer", 0)])
+        assert case.choices == [Choice("integer", 0)]
 
 
 @final
@@ -263,22 +267,22 @@ class ValuingTest(unittest.TestCase):
         """A value outside the generator's domain too, and no span opens."""
         case = Case(Valuing([5, "x"]))
         drawn = [case.draw(_Digit(), label) for label in ("a", "b")]
-        self.assertEqual(drawn, [5, "x"])
-        self.assertEqual((case.choices, case.spans), ([], []))
+        assert drawn == [5, "x"]
+        assert (case.choices, case.spans) == ([], [])
         recorded = [(d.label, d.value) for d in case.draws]
-        self.assertEqual(recorded, [("a", 5), ("b", "x")])
+        assert recorded == [("a", 5), ("b", "x")]
 
     def test_a_draw_past_the_last_value_decodes_the_targets(self) -> None:
         """The second draw decodes, and its request takes the target."""
         case = Case(Valuing([5]))
         case.draw(_Digit(), "a")
-        self.assertEqual(case.draw(_Digit(), "b"), 0)
-        self.assertEqual(case.choices, [Choice("integer", 0)])
+        assert case.draw(_Digit(), "b") == 0
+        assert case.choices == [Choice("integer", 0)]
 
     def test_a_provider_that_states_values_is_the_valuer(self) -> None:
         """A replay states no value."""
-        self.assertIsNotNone(Case(Valuing([])).valuer)
-        self.assertIsNone(Case(Replaying([])).valuer)
+        assert Case(Valuing([])).valuer is not None
+        assert Case(Replaying([])).valuer is None
 
 
 @final
@@ -287,39 +291,39 @@ class CapTest(unittest.TestCase):
 
     def test_the_default_cap_is_8192(self) -> None:
         """The fixed limit."""
-        self.assertEqual(MAX_CHOICES, 8192)
+        assert MAX_CHOICES == 8192
 
     def test_a_case_at_its_cap_continues(self) -> None:
         """Exactly max_choices choices are allowed."""
         case = Case(Replaying([]), max_choices=3)
         for _ in range(3):
             case.choose(_digit())
-        self.assertEqual(len(case.choices), 3)
+        assert len(case.choices) == 3
 
     def test_a_choice_past_the_cap_rejects_the_case_as_an_overrun(self) -> None:
         """One more than max_choices raises Overrun, which is a rejection."""
         case = Case(Replaying([]), max_choices=3)
         for _ in range(3):
             case.choose(_digit())
-        with self.assertRaises(Rejected) as caught:
+        with pytest.raises(Rejected) as caught:
             case.choose(_digit())
-        self.assertIsInstance(caught.exception, Overrun)
+        assert isinstance(caught.value, Overrun)
 
     def test_a_sequence_counts_one_plus_each_element(self) -> None:
         """A sequence of three costs four, so a cap of 4 holds it and 3 does not."""
         bounds = SequenceBounds(10, 3, 3)
         recorded = [Choice("sequence", (1, 2, 3))]
         Case(Replaying(recorded), max_choices=4).choose(_sequence(bounds))
-        with self.assertRaises(Overrun):
+        with pytest.raises(Overrun):
             Case(Replaying(recorded), max_choices=3).choose(_sequence(bounds))
 
     def test_a_sequence_whose_minimum_passes_the_cap_draws_nothing(self) -> None:
         """The overrun comes before the draw, so the source stays where it was."""
         source, twin = Source(7), Source(7)
         case = Case(Generating(source), max_choices=3)
-        with self.assertRaises(Overrun):
+        with pytest.raises(Overrun):
             case.choose(_sequence(SequenceBounds(10, 3)))
-        self.assertEqual(source.next(), twin.next())
+        assert source.next() == twin.next()
 
 
 @final
@@ -333,7 +337,7 @@ class SpanTest(unittest.TestCase):
         with case.span("pair"):
             case.choose(_digit())
             case.choose(_digit())
-        self.assertEqual(case.spans, [Span("pair", 1, 3, 0, None)])
+        assert case.spans == [Span("pair", 1, 3, 0, None)]
 
     def test_nested_spans_record_their_depth_and_parent(self) -> None:
         """The parent is the index of the enclosing span in the list."""
@@ -343,14 +347,11 @@ class SpanTest(unittest.TestCase):
                 case.choose(_digit())
             with case.span("second"):
                 case.choose(_digit())
-        self.assertEqual(
-            case.spans,
-            [
-                Span("outer", 0, 2, 0, None),
-                Span("first", 0, 1, 1, 0),
-                Span("second", 1, 2, 1, 0),
-            ],
-        )
+        assert case.spans == [
+            Span("outer", 0, 2, 0, None),
+            Span("first", 0, 1, 1, 0),
+            Span("second", 1, 2, 1, 0),
+        ]
 
     def test_a_span_can_start_at_an_earlier_choice(self) -> None:
         """The start argument moves the first choice back to an element's flag."""
@@ -358,15 +359,14 @@ class SpanTest(unittest.TestCase):
         case.choose(_digit())
         with case.span("element", 0):
             case.choose(_digit())
-        self.assertEqual(case.spans, [Span("element", 0, 2, 0, None)])
+        assert case.spans == [Span("element", 0, 2, 0, None)]
 
     def test_a_span_ends_where_its_block_raised(self) -> None:
         """A rejected decode still closes the spans it opened."""
         case = Case(Replaying([]))
-        with self.assertRaises(Rejected), case.span("list"):
-            case.choose(_digit())
-            raise Rejected
-        self.assertEqual(case.spans, [Span("list", 0, 1, 0, None)])
+        with pytest.raises(Rejected), case.span("list"):
+            _Refusing().decode(case)
+        assert case.spans == [Span("list", 0, 1, 0, None)]
 
 
 @final
@@ -381,10 +381,10 @@ class RewindTest(unittest.TestCase):
         with case.span("attempt"):
             case.draw(_Digit(), "removed")
         case.rewind(mark)
-        self.assertEqual(case.choices, [Choice("integer", 1)])
-        self.assertEqual(len(case.requests), 1)
-        self.assertEqual(case.spans, [])
-        self.assertEqual([d.label for d in case.draws], ["kept"])
+        assert case.choices == [Choice("integer", 1)]
+        assert len(case.requests) == 1
+        assert case.spans == []
+        assert [d.label for d in case.draws] == ["kept"]
 
     def test_the_next_choice_takes_the_index_of_the_first_removed_one(self) -> None:
         """A replay reads the recorded choice at the mark again."""
@@ -393,7 +393,7 @@ class RewindTest(unittest.TestCase):
         mark = case.mark()
         case.choose(_digit())
         case.rewind(mark)
-        self.assertEqual(case.choose(_digit()), 2)
+        assert case.choose(_digit()) == 2
 
     def test_removed_choices_still_count_towards_the_cap(self) -> None:
         """A cap of 2 admits no third choice while the record contains one."""
@@ -402,7 +402,7 @@ class RewindTest(unittest.TestCase):
         case.choose(_digit())
         case.rewind(start)
         case.choose(_digit())
-        with self.assertRaises(Overrun):
+        with pytest.raises(Overrun):
             case.choose(_digit())
 
     def test_an_observer_keeps_the_steps_of_removed_choices(self) -> None:
@@ -415,8 +415,8 @@ class RewindTest(unittest.TestCase):
         case.choose(_digit())
         case.rewind(mark)
         case.choose(_digit())
-        self.assertEqual(steps.values, [1, 2, 2])
-        self.assertEqual(len(case.choices), 2)
+        assert steps.values == [1, 2, 2]
+        assert len(case.choices) == 2
 
 
 @final
@@ -427,8 +427,8 @@ class RecordTest(unittest.TestCase):
         """A call recorded in one case is not in another."""
         first, second = Case(Replaying([])), Case(Replaying([]))
         first.history.invoke(0, "put", [1], []).ok(None)
-        self.assertEqual(len(first.history.events()), 2)
-        self.assertEqual(second.history.events(), [])
+        assert len(first.history.events()) == 2
+        assert second.history.events() == []
 
     def test_a_step_is_recorded_after_the_draws_before_it(self) -> None:
         """The number beside each step counts the draws the case recorded first."""
@@ -436,19 +436,19 @@ class RecordTest(unittest.TestCase):
         case.step(Step("put"))
         case.draw(_Digit(), "v")
         case.step(Step("get", client=1))
-        self.assertEqual(case.steps, [(0, Step("put")), (1, Step("get", client=1))])
+        assert case.steps == [(0, Step("put")), (1, Step("get", client=1))]
 
     def test_a_provider_that_hears_of_draws_is_the_tracer(self) -> None:
         """Each draw tells the tracer its label before it decodes."""
         provider = _Announced()
         case = Case(provider)
-        self.assertIs(case.tracer, provider)
-        self.assertEqual([case.draw(_Digit(), label) for label in "ab"], [4, 5])
-        self.assertEqual(provider.heard, [("a", 0), ("b", 1)])
+        assert case.tracer is provider
+        assert [case.draw(_Digit(), label) for label in "ab"] == [4, 5]
+        assert provider.heard == [("a", 0), ("b", 1)]
 
     def test_a_provider_that_hears_of_no_draw_is_no_tracer(self) -> None:
         """A replaying case has no tracer."""
-        self.assertIsNone(Case(Replaying([])).tracer)
+        assert Case(Replaying([])).tracer is None
 
 
 @final
@@ -460,20 +460,20 @@ class WhereTest(unittest.TestCase):
         case = Case(Replaying([]))
         case.draw(_Digit(), "v")
         case.choose(_digit())
-        self.assertEqual(case.wheres, [Where("v"), Where()])
+        assert case.wheres == [Where("v"), Where()]
 
     def test_a_request_of_a_nested_draw_states_the_innermost_label(self) -> None:
         """The outer draw's own request takes outer, and the inner draw's inner."""
         case = Case(Replaying([]))
         case.draw(_Outer(), "outer")
-        self.assertEqual(case.wheres, [Where("outer"), Where("inner")])
+        assert case.wheres == [Where("outer"), Where("inner")]
 
     def test_a_request_states_the_place_that_the_case_states(self) -> None:
         """A machine's steps set the place, and each request records it."""
         case = Case(Replaying([]))
         case.place = Place("sequential", 2, "put")
         case.draw(_Digit(), "v")
-        self.assertEqual(case.wheres, [Where("v", Place("sequential", 2, "put"))])
+        assert case.wheres == [Where("v", Place("sequential", 2, "put"))]
 
     def test_rewind_removes_the_wheres_of_the_removed_choices(self) -> None:
         """A request after the mark leaves its where with it."""
@@ -482,7 +482,7 @@ class WhereTest(unittest.TestCase):
         mark = case.mark()
         case.draw(_Digit(), "v")
         case.rewind(mark)
-        self.assertEqual(case.wheres, [Where()])
+        assert case.wheres == [Where()]
 
     def test_each_fingerprint_states_where_the_case_observed_it(self) -> None:
         """A fingerprint takes the place of the step that observed it."""
@@ -490,13 +490,11 @@ class WhereTest(unittest.TestCase):
         case.observe(1)
         case.place = Place("drain", 0, "flush")
         case.observe(2)
-        self.assertEqual(
-            case.observed, [Where(), Where(None, Place("drain", 0, "flush"))]
-        )
+        assert case.observed == [Where(), Where(None, Place("drain", 0, "flush"))]
 
     def test_a_draw_that_raises_closes_its_label(self) -> None:
         """After a rejected draw, the case is outside every draw."""
         case = Case(Replaying([]))
-        with self.assertRaises(Rejected):
+        with pytest.raises(Rejected):
             case.draw(_Refusing(), "v")
-        self.assertEqual((case.wheres, case.where()), ([Where("v")], Where()))
+        assert (case.wheres, case.where()) == ([Where("v")], Where())

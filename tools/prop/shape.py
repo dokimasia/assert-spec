@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """Shapes: a language-neutral description of a type's values, read into a generator.
 
 A shape is a JSON object whose ``shape`` key names its id. A shape file is
@@ -45,7 +48,6 @@ such a container has no finite value, and fails the read.
 from __future__ import annotations
 
 import calendar
-import collections.abc
 import math
 import re
 import sys
@@ -53,7 +55,7 @@ from collections.abc import Callable, Iterator, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from fractions import Fraction
-from typing import Any, ClassVar, Final
+from typing import TYPE_CHECKING, Any, ClassVar, Final
 
 from . import alphabet, draw, literal, pattern
 from .case import Case, Generator, Request
@@ -78,6 +80,9 @@ from .generator import (
 from .generator import Bytes as BytesGenerator
 from .value import Pairs, Record, Variant, canonical
 from .zone import Zone, zones
+
+if TYPE_CHECKING:
+    import collections.abc
 
 #: The nodes one value of a recursive shape may use.
 BUDGET: Final = 100
@@ -564,7 +569,8 @@ def read(document: object) -> Generator:
             no definition, or a definition with no finite value.
     """
     if not isinstance(document, Mapping):
-        raise ShapeError(f"prop: {document!r} is not a shape")
+        msg = f"prop: {document!r} is not a shape"
+        raise ShapeError(msg)
     return _Reader(document).root()
 
 
@@ -577,9 +583,8 @@ def _int(node: Node, key: str, where: str) -> int:
     try:
         return literal.integer(node[key])
     except literal.LiteralError as bad:
-        raise ShapeError(
-            f"prop: {where}.{key} is {node[key]!r}, not an integer"
-        ) from bad
+        msg = f"prop: {where}.{key} is {node[key]!r}, not an integer"
+        raise ShapeError(msg) from bad
 
 
 def _count(node: Node, key: str, where: str) -> int | None:
@@ -592,7 +597,8 @@ def _count(node: Node, key: str, where: str) -> int | None:
         return None
     value = _int(node, key, where)
     if value < 0:
-        raise ShapeError(f"prop: {where}.{key} is {value}, below 0")
+        msg = f"prop: {where}.{key} is {value}, below 0"
+        raise ShapeError(msg)
     return value
 
 
@@ -610,7 +616,8 @@ def _sizes(node: Node, where: str) -> Sizes:
     except ShapeError:
         raise
     except ValueError as bad:
-        raise ShapeError(f"prop: {where}: {bad}") from bad
+        msg = f"prop: {where}: {bad}"
+        raise ShapeError(msg) from bad
 
 
 def _unit(node: Node, where: str) -> int:
@@ -621,7 +628,8 @@ def _unit(node: Node, where: str) -> int:
     """
     unit = node["unit"]
     if unit not in UNITS:
-        raise ShapeError(f"prop: {where}.unit is {unit!r}, not one of {sorted(UNITS)}")
+        msg = f"prop: {where}.unit is {unit!r}, not one of {sorted(UNITS)}"
+        raise ShapeError(msg)
     return UNITS[unit]
 
 
@@ -635,7 +643,8 @@ def _fraction_units(digits: str | None, per: int, where: str) -> int:
         return 0
     scaled = Fraction(int(digits), 10 ** len(digits)) * per
     if scaled.denominator != 1:
-        raise ShapeError(f"prop: {where} states a fraction finer than its unit")
+        msg = f"prop: {where} states a fraction finer than its unit"
+        raise ShapeError(msg)
     return int(scaled)
 
 
@@ -652,7 +661,8 @@ def _day(year: str, month: str, day: str, where: str) -> int:
         and 1 <= d <= calendar.monthrange(y, m)[1]
     )
     if not exists:
-        raise ShapeError(f"prop: {where} states {year}-{month}-{day}, which is no date")
+        msg = f"prop: {where} states {year}-{month}-{day}, which is no date"
+        raise ShapeError(msg)
     return calendar.timegm((y, m, d, 0, 0, 0)) // SECONDS_PER_DAY
 
 
@@ -664,9 +674,8 @@ def _time(hour: str, minute: str, second: str, where: str) -> int:
     """
     h, m, s = int(hour), int(minute), int(second)
     if h > LAST_HOUR or m > LAST_MINUTE or s > LAST_SECOND_OF_MINUTE:
-        raise ShapeError(
-            f"prop: {where} states {hour}:{minute}:{second}, which is no time"
-        )
+        msg = f"prop: {where} states {hour}:{minute}:{second}, which is no time"
+        raise ShapeError(msg)
     return h * 3600 + m * 60 + s
 
 
@@ -681,10 +690,11 @@ def _range(
     lo = parse(node["min"]) if node.get("min") is not None else default[0]
     hi = parse(node["max"]) if node.get("max") is not None else default[1]
     if not default[0] <= lo <= hi <= default[1]:
-        raise ShapeError(
+        msg = (
             f"prop: {where} bounds [{lo}, {hi}] are empty or outside "
             f"[{default[0]}, {default[1]}]"
         )
+        raise ShapeError(msg)
     return lo, hi
 
 
@@ -710,7 +720,8 @@ def _pair_bounds(
     lo = parse(node["min"]) if node.get("min") is not None else default[0]
     hi = parse(node["max"]) if node.get("max") is not None else default[1]
     if not default[0] <= lo <= hi <= default[1]:
-        raise ShapeError(f"prop: {where} bounds {lo} to {hi} are empty or out of range")
+        msg = f"prop: {where} bounds {lo} to {hi} are empty or out of range"
+        raise ShapeError(msg)
     return lo, hi
 
 
@@ -735,17 +746,20 @@ class _Reader:
         """
         definitions: object = self.document.get("definitions", {})
         if not isinstance(definitions, Mapping):
-            raise ShapeError("prop: definitions is not a map of names to shapes")
+            msg = "prop: definitions is not a map of names to shapes"
+            raise ShapeError(msg)
         for name, node in definitions.items():
             if not isinstance(name, str) or not isinstance(node, Mapping):
-                raise ShapeError(f"prop: definitions.{name} is {node!r}, not a shape")
+                msg = f"prop: definitions.{name} is {node!r}, not a shape"
+                raise ShapeError(msg)
             self.sources[name] = node
         source = self.document.get("source")
         if source is not None and not (
             isinstance(source, Mapping)
             and all(isinstance(source.get(k), str) for k in ("language", "type"))
         ):
-            raise ShapeError(f"prop: source is {source!r}, not a language and a type")
+            msg = f"prop: source is {source!r}, not a language and a type"
+            raise ShapeError(msg)
         self.cyclic = self._cyclic()
         self._finite()
         for name, node in self.sources.items():
@@ -783,9 +797,8 @@ class _Reader:
         reach = {name: set(self.refs(node)) for name, node in self.sources.items()}
         for target in set(self.refs(self.document)).union(*reach.values()):
             if target not in self.sources:
-                raise ShapeError(
-                    f"prop: a ref names {target!r}, which is no definition"
-                )
+                msg = f"prop: a ref names {target!r}, which is no definition"
+                raise ShapeError(msg)
         changed = True
         while changed:
             changed = False
@@ -844,11 +857,12 @@ class _Reader:
             frontier = set(must[start])
             while frontier:
                 if start in frontier:
-                    raise ShapeError(
+                    msg = (
                         f"prop: definitions.{start} has no finite value, because it "
                         "refers back without an optional, a list, a set, a map or "
                         "an enum that can exit"
                     )
+                    raise ShapeError(msg)
                 seen |= frontier
                 frontier = set().union(*(must[n] for n in frontier)) - seen
 
@@ -861,25 +875,25 @@ class _Reader:
         """
         kind = node.get("shape")
         if not isinstance(kind, str) or kind not in KEYS:
-            raise ShapeError(f"prop: {where} is {kind!r}, which is no shape")
+            msg = f"prop: {where} is {kind!r}, which is no shape"
+            raise ShapeError(msg)
         required, optional = KEYS[kind]
         stated = set(node) - {"shape"} - (ROOT_KEYS if root else set())
         missing = sorted(required - stated)
         if missing:
-            raise ShapeError(
-                f"prop: {where} states no {missing[0]}, which the {kind} shape needs"
-            )
+            msg = f"prop: {where} states no {missing[0]}, which the {kind} shape needs"
+            raise ShapeError(msg)
         extra = sorted(stated - required - optional)
         if extra:
-            raise ShapeError(
-                f"prop: {where}.{extra[0]} does not apply to the {kind} shape"
-            )
+            msg = f"prop: {where}.{extra[0]} does not apply to the {kind} shape"
+            raise ShapeError(msg)
         try:
             return _BUILDERS[kind](self, node, where)
         except ShapeError:
             raise
         except (ValueError, TypeError) as bad:
-            raise ShapeError(f"prop: {where}: {bad}") from bad
+            msg = f"prop: {where}: {bad}"
+            raise ShapeError(msg) from bad
 
     def child(self, node: object, where: str) -> Generator:
         """Return the generator of a shape nested in another.
@@ -888,7 +902,8 @@ class _Reader:
             ShapeError: node is not a shape, or does not read.
         """
         if not isinstance(node, Mapping):
-            raise ShapeError(f"prop: {where} is {node!r}, not a shape")
+            msg = f"prop: {where} is {node!r}, not a shape"
+            raise ShapeError(msg)
         return self.build(node, where)
 
 
@@ -898,7 +913,8 @@ def _int_shape(reader: _Reader, node: Node, where: str) -> Generator:
     width = _int(node, "width", where)
     signed = node["signed"]
     if width not in INT_WIDTHS or not isinstance(signed, bool):
-        raise ShapeError(f"prop: {where} states width {width!r} and signed {signed!r}")
+        msg = f"prop: {where} states width {width!r} and signed {signed!r}"
+        raise ShapeError(msg)
     if signed:
         widest = (-(1 << (width - 1)), (1 << (width - 1)) - 1)
     else:
@@ -914,18 +930,19 @@ def _float_shape(reader: _Reader, node: Node, where: str) -> Generator:
     del reader
     width = _int(node, "width", where)
     if width not in FLOAT_MAX:
-        raise ShapeError(f"prop: {where}.width is {width}, not 32 or 64")
+        msg = f"prop: {where}.width is {width}, not 32 or 64"
+        raise ShapeError(msg)
     allow_nan = node.get("allow_nan", False)
     infinite = node.get("allow_infinity", False)
     if not isinstance(allow_nan, bool) or not isinstance(infinite, bool):
-        raise ShapeError(
-            f"prop: {where} states allow_nan or allow_infinity as no boolean"
-        )
+        msg = f"prop: {where} states allow_nan or allow_infinity as no boolean"
+        raise ShapeError(msg)
     edge = math.inf if infinite else FLOAT_MAX[width]
     lo = literal.number(node["min"]) if node.get("min") is not None else -edge
     hi = literal.number(node["max"]) if node.get("max") is not None else edge
     if infinite and not (math.isinf(lo) or math.isinf(hi)):
-        raise ShapeError(f"prop: {where} allows the infinities and bounds out both")
+        msg = f"prop: {where} allows the infinities and bounds out both"
+        raise ShapeError(msg)
     return Float(FloatBounds(lo, hi, allow_nan, width))
 
 
@@ -940,9 +957,11 @@ def _alphabet(node: Node, where: str) -> tuple[str | None, int]:
     if characters is None:
         return None, alphabet.SIZE
     if not isinstance(characters, str) or not characters:
-        raise ShapeError(f"prop: {where}.alphabet is {characters!r}, not characters")
+        msg = f"prop: {where}.alphabet is {characters!r}, not characters"
+        raise ShapeError(msg)
     if len(set(characters)) != len(characters):
-        raise ShapeError(f"prop: {where}.alphabet repeats a character")
+        msg = f"prop: {where}.alphabet repeats a character"
+        raise ShapeError(msg)
     for char in characters:
         alphabet.index(char)
     return characters, len(characters)
@@ -960,12 +979,12 @@ def _string_shape(reader: _Reader, node: Node, where: str) -> Generator:
     del reader
     if "pattern" in node:
         if set(node) & {"alphabet", "min_size", "max_size"}:
-            raise ShapeError(
-                f"prop: {where} states a pattern and an alphabet or a size"
-            )
+            msg = f"prop: {where} states a pattern and an alphabet or a size"
+            raise ShapeError(msg)
         text = node["pattern"]
         if not isinstance(text, str):
-            raise ShapeError(f"prop: {where}.pattern is {text!r}, not a pattern")
+            msg = f"prop: {where}.pattern is {text!r}, not a pattern"
+            raise ShapeError(msg)
         return StringMatching(pattern.parse(text))
     characters, size = _alphabet(node, where)
     sizes = _sizes(node, where)
@@ -986,7 +1005,8 @@ def _list_shape(reader: _Reader, node: Node, where: str) -> Generator:
     if kind == "fixed-list":
         size = _count(node, "size", where)
         if size is None:
-            raise ShapeError(f"prop: {where} is a fixed-list and states no size")
+            msg = f"prop: {where} is a fixed-list and states no size"
+            raise ShapeError(msg)
         sizes = Sizes(size, size)
     else:
         sizes = _sizes(node, where)
@@ -1017,19 +1037,18 @@ def _pairs(node: Node, key: str, where: str) -> list[tuple[str, object]]:
     """
     items = node[key]
     if not isinstance(items, list) or not items:
-        raise ShapeError(f"prop: {where}.{key} is {items!r}, not a list of pairs")
+        msg = f"prop: {where}.{key} is {items!r}, not a list of pairs"
+        raise ShapeError(msg)
     pairs: list[tuple[str, object]] = []
     for item in items:
         if not (
             isinstance(item, list) and len(item) == PAIR and isinstance(item[0], str)
         ):
-            raise ShapeError(
-                f"prop: {where}.{key} has {item!r}, not a name and a shape"
-            )
+            msg = f"prop: {where}.{key} has {item!r}, not a name and a shape"
+            raise ShapeError(msg)
         if not item[0] or item[0] in (name for name, _ in pairs):
-            raise ShapeError(
-                f"prop: {where}.{key} names {item[0]!r} twice or not at all"
-            )
+            msg = f"prop: {where}.{key} names {item[0]!r} twice or not at all"
+            raise ShapeError(msg)
         pairs.append((item[0], item[1]))
     return pairs
 
@@ -1059,7 +1078,8 @@ def _literal_shape(reader: _Reader, node: Node, where: str) -> Generator:
     del reader
     values = node["values"]
     if not isinstance(values, list) or not values:
-        raise ShapeError(f"prop: {where}.values is {values!r}, not a list of literals")
+        msg = f"prop: {where}.values is {values!r}, not a list of literals"
+        raise ShapeError(msg)
     return SampledFrom(tuple(literal.decode(v) for v in values))
 
 
@@ -1081,7 +1101,8 @@ def _ip_shape(reader: _Reader, node: Node, where: str) -> Generator:
     if version is None:
         return IpShape((fixed_bytes(ADDRESS_BYTES[4]), fixed_bytes(ADDRESS_BYTES[6])))
     if version not in ADDRESS_BYTES:
-        raise ShapeError(f"prop: {where}.version is {version!r}, not 4 or 6")
+        msg = f"prop: {where}.version is {version!r}, not 4 or 6"
+        raise ShapeError(msg)
     return fixed_bytes(ADDRESS_BYTES[version])
 
 
@@ -1093,7 +1114,8 @@ def _decimal_shape(reader: _Reader, node: Node, where: str) -> Generator:
     del reader
     scale = _count(node, "scale", where)
     if scale is None:
-        raise ShapeError(f"prop: {where} is a decimal and states no scale")
+        msg = f"prop: {where} is a decimal and states no scale"
+        raise ShapeError(msg)
     factor = 10**scale
 
     def bound(key: str, rounding: Callable[[Fraction], int]) -> int | None:
@@ -1101,7 +1123,8 @@ def _decimal_shape(reader: _Reader, node: Node, where: str) -> Generator:
         if text is None:
             return None
         if not isinstance(text, str) or not DECIMAL.match(text):
-            raise ShapeError(f"prop: {where}.{key} is {text!r}, not a decimal")
+            msg = f"prop: {where}.{key} is {text!r}, not a decimal"
+            raise ShapeError(msg)
         return rounding(Fraction(text) * factor)
 
     unscaled = {"min": bound("min", math.ceil), "max": bound("max", math.floor)}
@@ -1116,7 +1139,8 @@ def _instant(reader: _Reader, node: Node, where: str) -> InstantShape:
     def parse(text: object) -> tuple[int, int]:
         match = DATE_TIME.match(text) if isinstance(text, str) else None
         if match is None or match[8] != "Z":
-            raise ShapeError(f"prop: {where} bound {text!r} is no instant in UTC")
+            msg = f"prop: {where} bound {text!r} is no instant in UTC"
+            raise ShapeError(msg)
         day = _day(match[1], match[2], match[3], where)
         seconds = day * SECONDS_PER_DAY + _time(match[4], match[5], match[6], where)
         return seconds, _fraction_units(match[7], per, where)
@@ -1133,7 +1157,8 @@ def _date_shape(reader: _Reader, node: Node, where: str) -> Generator:
     def parse(text: object) -> int:
         match = DATE.match(text) if isinstance(text, str) else None
         if match is None:
-            raise ShapeError(f"prop: {where} bound {text!r} is no date")
+            msg = f"prop: {where} bound {text!r} is no date"
+            raise ShapeError(msg)
         return _day(match[1], match[2], match[3], where)
 
     return Integer(_bounded(node, where, (FIRST_DAY, LAST_DAY), parse))
@@ -1147,7 +1172,8 @@ def _time_of_day_shape(reader: _Reader, node: Node, where: str) -> Generator:
     def parse(text: object) -> int:
         match = TIME.match(text) if isinstance(text, str) else None
         if match is None:
-            raise ShapeError(f"prop: {where} bound {text!r} is no time of day")
+            msg = f"prop: {where} bound {text!r} is no time of day"
+            raise ShapeError(msg)
         seconds = _time(match[1], match[2], match[3], where)
         return seconds * per + _fraction_units(match[4], per, where)
 
@@ -1162,7 +1188,8 @@ def _local_date_time(reader: _Reader, node: Node, where: str) -> LocalDateTimeSh
     def parse(text: object) -> tuple[int, int]:
         match = DATE_TIME.match(text) if isinstance(text, str) else None
         if match is None or match[8]:
-            raise ShapeError(f"prop: {where} bound {text!r} is no local date and time")
+            msg = f"prop: {where} bound {text!r} is no local date and time"
+            raise ShapeError(msg)
         day = _day(match[1], match[2], match[3], where)
         seconds = _time(match[4], match[5], match[6], where)
         return day, seconds * per + _fraction_units(match[7], per, where)

@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """Shrinking: the search for the smallest case that fails the same way.
 
 A case is smaller than another when its choice sequence is shorter, or
@@ -31,12 +34,11 @@ value.
 from __future__ import annotations
 
 import math
-from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass
 from fractions import Fraction
 from functools import partial
 from itertools import pairwise
-from typing import Final, final
+from typing import TYPE_CHECKING, Final, final
 
 from .case import (
     Case,
@@ -72,6 +74,10 @@ from .function import FUNCTIONS
 from .generator import Integer, Map
 from .replay import encode
 from .source import MASK, Source
+from .value import as_type
+
+if TYPE_CHECKING:
+    from collections.abc import Callable, Iterator, Sequence
 
 #: The runs of the body that shrinking every failure of a run may spend.
 DEFAULT_BUDGET: Final = 2000
@@ -141,16 +147,20 @@ def nodes_of(case: Case) -> Nodes:
 
 
 def choice_key(node: Node) -> tuple[int, ...]:
-    """Return a choice's key: its kind's rank, then its sort key."""
+    """Return a choice's key: its kind's rank, then its sort key.
+
+    Raises:
+        ValueError: the value of the choice is of another kind than its bounds.
+    """
     bounds, value = node.request.bounds, node.choice.value
-    if isinstance(bounds, IntegerBounds):
-        assert isinstance(value, int)
+    if isinstance(bounds, IntegerBounds) and isinstance(value, int):
         return (KIND_RANKS["integer"], *bounds.key(value))
-    if isinstance(bounds, FloatBounds):
-        assert isinstance(value, float)
+    if isinstance(bounds, FloatBounds) and isinstance(value, float):
         return (KIND_RANKS["float"], *float_key(value))
-    assert isinstance(value, tuple)
-    return (KIND_RANKS["sequence"], len(value), *value)
+    if isinstance(bounds, SequenceBounds) and isinstance(value, tuple):
+        return (KIND_RANKS["sequence"], len(value), *value)
+    msg = f"prop: the value {value!r} is of another kind than {bounds!r}"
+    raise ValueError(msg)
 
 
 def key(nodes: Sequence[Node]) -> Key:
@@ -323,8 +333,12 @@ class Shrinker:
         budget: int,
         observer: Observer = unobserved,
     ) -> None:
-        """Start from the first failing case; observer sees every run."""
-        assert first.identity is not None
+        """Start from the first failing case. observer sees every run.
+
+        Raises:
+            ValueError: the first case did not fail.
+        """
+        self._target = first.failed_identity()
         self._body = body
         self._max_choices = max_choices
         self._observer = observer
@@ -336,7 +350,6 @@ class Shrinker:
         self._sizes: dict[str, int] = {
             encode(first.case.choices): len(first.case.choices)
         }
-        self._target = first.identity
         self._record(first)
 
     @property
@@ -356,8 +369,7 @@ class Shrinker:
 
     def _record(self, execution: Execution) -> None:
         """Keep a failing run when it is its identity's first or smallest."""
-        identity = execution.identity
-        assert identity is not None
+        identity = execution.failed_identity()
         nodes = nodes_of(execution.case)
         known = self.failures.get(identity)
         if known is None or key(nodes) < key(known.nodes):
@@ -550,10 +562,10 @@ class Shrinker:
         def candidates() -> Iterator[Nodes]:
             nodes = self.nodes
             for index, node in enumerate(nodes):
-                bounds, elements = node.request.bounds, node.choice.value
+                bounds = node.request.bounds
                 if not isinstance(bounds, SequenceBounds):
                     continue
-                assert isinstance(elements, tuple)
+                elements = as_type(node.choice.value, tuple)
                 count = len(elements)
                 size = 1 << (count.bit_length() - 1) if count else 0
                 while size >= 1:
@@ -602,9 +614,8 @@ class Shrinker:
         """
         nodes = self.nodes
         node = nodes[indices[0]]
-        bounds, value = node.request.bounds, node.choice.value
-        assert isinstance(bounds, IntegerBounds)
-        assert isinstance(value, int)
+        bounds = as_type(node.request.bounds, IntegerBounds)
+        value = as_type(node.choice.value, int)
 
         def at(rank: int) -> bool:
             moved = nodes
@@ -654,8 +665,7 @@ class Shrinker:
     def _lower_element(self, index: int, position: int) -> bool:
         """Move one element of a sequence towards 0."""
         nodes = self.nodes
-        elements = nodes[index].choice.value
-        assert isinstance(elements, tuple)
+        elements = as_type(nodes[index].choice.value, tuple)
         value = elements[position]
 
         def at(element: int) -> bool:
@@ -746,10 +756,10 @@ class Shrinker:
                     yield (*stepped[: span.start], *stepped[span.end :])
                 for at in range(index - 1, -1, -1):
                     before = stepped[at]
-                    sequence, elements = before.request.bounds, before.choice.value
+                    sequence = before.request.bounds
                     if not isinstance(sequence, SequenceBounds):
                         continue
-                    assert isinstance(elements, tuple)
+                    elements = as_type(before.choice.value, tuple)
                     if len(elements) <= sequence.min_size:
                         continue
                     for position in range(len(elements) - 1, -1, -1):
@@ -812,8 +822,7 @@ class Shrinker:
         target = bounds.target
         if later is None or value == target:
             return False
-        other = nodes[later].choice.value
-        assert isinstance(other, int)
+        other = as_type(nodes[later].choice.value, int)
         sign = 1 if value > target else -1
 
         def moved(amount: int) -> bool:
@@ -865,8 +874,7 @@ class Shrinker:
         )
         if later is None:
             return False
-        other = nodes[later].choice.value
-        assert isinstance(other, int)
+        other = as_type(nodes[later].choice.value, int)
         target = bounds.target
         if (value > target) != (other > target) or target in (value, other):
             return False
@@ -937,9 +945,8 @@ class Shrinker:
         cannot state.
         """
         nodes = self.nodes
-        bounds, value = nodes[index].request.bounds, nodes[index].choice.value
-        assert isinstance(bounds, FloatBounds)
-        assert isinstance(value, float)
+        bounds = as_type(nodes[index].request.bounds, FloatBounds)
+        value = as_type(nodes[index].choice.value, float)
         target = bounds.target
         integral = (
             value.is_integer()

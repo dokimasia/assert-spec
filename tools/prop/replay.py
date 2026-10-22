@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """The replay token: the choice values of one case as one printable string.
 
 A token is PREFIX followed by the unpadded base64url encoding of the
@@ -19,10 +22,12 @@ from __future__ import annotations
 
 import base64
 import math
-from collections.abc import Sequence
-from typing import Final, final
+from typing import TYPE_CHECKING, Final, final
 
 from .choice import NAN_BITS, Choice, bits_of, from_bits
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 #: The text every token of this version starts with.
 PREFIX: Final = "prop1:"
@@ -52,25 +57,30 @@ _BASE64_QUANTUM: Final = 4
 
 
 def encode(choices: Sequence[Choice]) -> str:
-    """Return the token of a choice sequence."""
+    """Return the token of a choice sequence.
+
+    Raises:
+        ValueError: a choice has a value of another kind than its own.
+    """
     data = bytearray()
     for choice in choices:
         value = choice.value
-        if choice.kind == "integer":
-            assert isinstance(value, int)
+        if choice.kind == "integer" and isinstance(value, int):
             data.append(TAG_NEGATIVE if value < 0 else TAG_NON_NEGATIVE)
             _append_number(data, abs(value))
-        elif choice.kind == "float":
-            assert isinstance(value, float)
+        elif choice.kind == "float" and isinstance(value, float):
             bits = NAN_BITS if math.isnan(value) else bits_of(value)
             data.append(TAG_FLOAT)
             data += bits.to_bytes(FLOAT_BYTES, "little")
-        else:
-            assert isinstance(value, tuple)
+        elif choice.kind == "sequence" and isinstance(value, tuple):
             data.append(TAG_SEQUENCE)
             _append_number(data, len(value))
             for element in value:
                 _append_number(data, element)
+        else:
+            kind = choice.kind
+            msg = f"prop: the {kind} choice has the value {value!r} of another kind"
+            raise ValueError(msg)
     text = base64.urlsafe_b64encode(bytes(data)).rstrip(b"=").decode("ascii")
     return PREFIX + text
 
@@ -89,18 +99,21 @@ def decode(token: str) -> list[Choice]:
             number of 2^64 or more, or a negative integer below -2^63.
     """
     if not token.startswith(PREFIX):
-        raise ValueError(f"prop: token {token!r} does not start with {PREFIX}")
+        msg = f"prop: token {token!r} does not start with {PREFIX}"
+        raise ValueError(msg)
     text = token.removeprefix(PREFIX)
     try:
         data = base64.urlsafe_b64decode(text + "=" * (-len(text) % _BASE64_QUANTUM))
     except ValueError as bad:
-        raise ValueError(f"prop: token {token!r} is not base64url: {bad}") from bad
+        msg = f"prop: token {token!r} is not base64url: {bad}"
+        raise ValueError(msg) from bad
     reader = _Reader(data)
     choices: list[Choice] = []
     while not reader.done():
         choices.append(reader.choice())
     if encode(choices) != token:
-        raise ValueError(f"prop: token {token!r} is not in canonical form")
+        msg = f"prop: token {token!r} is not in canonical form"
+        raise ValueError(msg)
     return choices
 
 
@@ -132,7 +145,8 @@ class _Reader:
             ValueError: fewer than count bytes remain.
         """
         if count > len(self._data) - self._at:
-            raise ValueError("prop: a token ends inside a choice")
+            msg = "prop: a token ends inside a choice"
+            raise ValueError(msg)
         taken = self._data[self._at : self._at + count]
         self._at += count
         return taken
@@ -150,7 +164,8 @@ class _Reader:
             byte = self.take(1)[0]
             number |= (byte & LEB128_PAYLOAD) << shift
             if number >= NUMBER_LIMIT:
-                raise ValueError("prop: a token states a number of 2^64 or more")
+                msg = "prop: a token states a number of 2^64 or more"
+                raise ValueError(msg)
             if byte < LEB128_MORE:
                 return number
             shift += LEB128_BITS
@@ -167,7 +182,8 @@ class _Reader:
         if tag == TAG_NEGATIVE:
             magnitude = self.number()
             if magnitude > NEGATIVE_LIMIT:
-                raise ValueError(f"prop: a token states the negative of {magnitude}")
+                msg = f"prop: a token states the negative of {magnitude}"
+                raise ValueError(msg)
             return Choice("integer", -magnitude)
         if tag == TAG_FLOAT:
             bits = int.from_bytes(self.take(FLOAT_BYTES), "little")
@@ -175,4 +191,5 @@ class _Reader:
         if tag == TAG_SEQUENCE:
             length = self.number()
             return Choice("sequence", tuple(self.number() for _ in range(length)))
-        raise ValueError(f"prop: a token states tag {tag}")
+        msg = f"prop: a token states tag {tag}"
+        raise ValueError(msg)

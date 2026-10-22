@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """The case tree: the choice sequences a run generated, as a trie.
 
 A node is one choice request, recorded with its bounds, and an edge is the
@@ -24,10 +27,12 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass, field
 from enum import StrEnum
-from typing import Final, final
+from typing import TYPE_CHECKING, Final, final
 
-from .case import Request
 from .choice import NAN_BITS, Bounds, IntegerBounds, SequenceBounds, Value, bits_of
+
+if TYPE_CHECKING:
+    from .case import Request
 
 #: The most nodes a tree holds.
 NODE_LIMIT: Final = 1 << 20
