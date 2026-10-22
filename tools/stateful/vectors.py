@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """The corpus vectors of machines, computed from their inputs.
 
 The machines kind has a function that takes a case's inputs, as the
@@ -43,7 +46,8 @@ def machines(case: Mapping[str, Any]) -> Vector:
     """
     name = str(case["subject"])
     if name not in subjects.SUBJECTS:
-        raise VectorError(f"stateful: {name!r} names no machine subject")
+        msg = f"stateful: {name!r} names no machine subject"
+        raise VectorError(msg)
     settings = run_settings(case.get("settings", {}))
     if "trace" in case:
         settings = replace(settings, traces=(_trace(case["trace"]),))
@@ -83,7 +87,8 @@ def _strategy(written: object) -> Strategy:
         return Uniform()
     if isinstance(written, Mapping) and set(written) == {"pct"}:
         return Pct(literal.integer(written["pct"]))
-    raise VectorError(f"stateful: {written!r} is no strategy")
+    msg = f"stateful: {written!r} is no strategy"
+    raise VectorError(msg)
 
 
 def _trace(written: object) -> tuple[Entry, ...]:
@@ -93,7 +98,8 @@ def _trace(written: object) -> tuple[Entry, ...]:
         VectorError: the trace is no list of draw and step entries.
     """
     if not isinstance(written, list):
-        raise VectorError(f"stateful: a trace is {written!r}, not a list")
+        msg = f"stateful: a trace is {written!r}, not a list"
+        raise VectorError(msg)
     trace: list[Entry] = []
     for entry in written:
         if isinstance(entry, Mapping) and set(entry) == {"label", "value"}:
@@ -108,7 +114,8 @@ def _trace(written: object) -> tuple[Entry, ...]:
                 )
             )
         else:
-            raise VectorError(f"stateful: {entry!r} is no trace entry")
+            msg = f"stateful: {entry!r} is no trace entry"
+            raise VectorError(msg)
     return tuple(trace)
 
 
@@ -126,8 +133,10 @@ def compute(kind: str, case: Mapping[str, Any]) -> Vector:
     """
     function = KINDS.get(kind)
     if function is None:
-        raise VectorError(f"stateful: {kind!r} is no vector kind")
+        msg = f"stateful: {kind!r} is no vector kind"
+        raise VectorError(msg)
     try:
         return function(case)
     except KeyError as missing:
-        raise VectorError(f"stateful: a {kind} vector lacks {missing}") from None
+        msg = f"stateful: a {kind} vector lacks {missing}"
+        raise VectorError(msg) from None

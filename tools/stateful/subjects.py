@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """The machine subjects the corpus names, each a body that runs one machine.
 
 Every subject records each call of a client in the case's history, with
@@ -57,6 +60,7 @@ from history.model import Model, Op
 from prop.case import Case
 from prop.choice import IntegerBounds
 from prop.generator import Integer
+from prop.value import as_type
 
 from .machine import Action, Machine, Options, steps
 from .scheduler import Scheduler, Strategy, Uniform
@@ -161,11 +165,10 @@ class Ring:
         return value
 
 
-def bounded_queue(capacity: int) -> Model:
+def bounded_queue(capacity: int) -> Model[list[object]]:
     """Return the model of a queue of at most capacity values."""
 
-    def step(state: object, op: Op) -> list[object]:
-        assert isinstance(state, list)
+    def step(state: list[object], op: Op) -> list[list[object]]:
         if op.operation == "put":
             full = len(state) == capacity
             if op.known and op.output != (not full):
@@ -180,11 +183,10 @@ def bounded_queue(capacity: int) -> Model:
     return Model(list, step)
 
 
-def counter() -> Model:
+def counter() -> Model[int]:
     """Return the model of a counter: increment returns the new count."""
 
-    def step(state: object, op: Op) -> list[object]:
-        assert isinstance(state, int)
+    def step(state: int, op: Op) -> list[int]:
         if op.operation == "reset":
             return [0]
         if op.known and not equality.equal(op.output, state + 1):
@@ -194,14 +196,13 @@ def counter() -> Model:
     return Model(lambda: 0, step)
 
 
-def reading_counter() -> Model:
+def reading_counter() -> Model[int]:
     """Return the model of a counter that reads.
 
     increment returns the new count, and read returns the count.
     """
 
-    def step(state: object, op: Op) -> list[object]:
-        assert isinstance(state, int)
+    def step(state: int, op: Op) -> list[int]:
         if op.operation == "read":
             if op.known and not equality.equal(op.output, state):
                 return []
@@ -215,14 +216,13 @@ def reading_counter() -> Model:
 
 def _queue(case: Case, setup: Setup, *, loses_on_wrap: bool) -> None:
     """Run the queue machine over a queue of a drawn capacity."""
-    capacity = case.draw(CAPACITIES, "capacity")
-    assert isinstance(capacity, int)
+    capacity = as_type(case.draw(CAPACITIES, "capacity"), int)
     ring = Ring(capacity, loses_on_wrap)
 
     def put(case: Case, client: int, value: object) -> None:
-        assert isinstance(value, int)
-        call = case.history.invoke(client, "put", (value,), ())
-        call.ok(ring.put(value))
+        stored = as_type(value, int)
+        call = case.history.invoke(client, "put", (stored,), ())
+        call.ok(ring.put(stored))
 
     def get(case: Case, client: int, value: object) -> None:
         del value
@@ -231,7 +231,7 @@ def _queue(case: Case, setup: Setup, *, loses_on_wrap: bool) -> None:
 
     machine = Machine(
         (
-            Action("put", put, input=lambda case, state: case.draw(VALUES, "v")),
+            Action("put", put, input=lambda case, _: case.draw(VALUES, "v")),
             Action("get", get),
         ),
         bounded_queue(capacity),
@@ -269,8 +269,7 @@ def _store_loses_on_crash(case: Case, setup: Setup) -> None:
     written = itertools.count(1)
 
     def put(case: Case, client: int, value: object) -> None:
-        assert isinstance(value, tuple)
-        key, stored = value
+        key, stored = as_type(value, tuple)
         call = case.history.invoke(client, "put", (key, stored), ())
         buffer[key] = stored
         call.ok(None)
@@ -296,9 +295,9 @@ def _store_loses_on_crash(case: Case, setup: Setup) -> None:
             Action(
                 "put",
                 put,
-                input=lambda case, state: (case.draw(KEYS, "key"), next(written)),
+                input=lambda case, _: (case.draw(KEYS, "key"), next(written)),
             ),
-            Action("flush", flush, enabled=lambda state: bool(buffer), drain=True),
+            Action("flush", flush, enabled=lambda _: bool(buffer), drain=True),
             Action("crash", crash),
         ),
         settle=settle,
@@ -348,8 +347,7 @@ def _refusing_counter() -> Subject:
             case.history.invoke(client, "read", (), ()).ok(count[0])
 
         def below_limit(state: object) -> bool:
-            assert isinstance(state, int)
-            return state < LIMIT
+            return as_type(state, int) < LIMIT
 
         machine = Machine(
             (

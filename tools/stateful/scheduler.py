@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """The task scheduler: which ready task runs next, decided by choices of the case.
 
 A task is a generator. A released task runs until it yields or returns,
@@ -27,12 +30,15 @@ and equal priorities. Both are the order in which the tasks became ready.
 
 from __future__ import annotations
 
-from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Final, final
+from typing import TYPE_CHECKING, Final, final
 
 from prop.case import Case, Request
 from prop.choice import UINT64_MAX, IntegerBounds
+from prop.value import as_type
+
+if TYPE_CHECKING:
+    from collections.abc import Iterator
 
 #: The bounds of a task's priority under Pct, and of a change point's count.
 PRIORITIES: Final = IntegerBounds(0, UINT64_MAX)
@@ -60,7 +66,8 @@ class Pct:
             ValueError: depth is below 1.
         """
         if self.depth < 1:
-            raise ValueError(f"stateful: a PCT depth of {self.depth} is below 1")
+            msg = f"stateful: a PCT depth of {self.depth} is below 1"
+            raise ValueError(msg)
 
 
 Strategy = Uniform | Pct
@@ -106,7 +113,8 @@ class Scheduler:
             ValueError: a task called run() while the scheduler releases it.
         """
         if self._running:
-            raise ValueError("stateful: a task called run() of its own scheduler")
+            msg = "stateful: a task called run() of its own scheduler"
+            raise ValueError(msg)
         self._running = True
         try:
             self._release_all()
@@ -139,11 +147,11 @@ class Scheduler:
         """Return the counts of the run's change points, which only Pct makes."""
         if not isinstance(self._strategy, Pct):
             return []
-        points: list[int] = []
-        for _ in range(self._strategy.depth - 1):
-            if self._case.integer(PRESENCE, edge=1):
-                points.append(self._case.integer(COUNTS))
-        return points
+        return [
+            self._case.integer(COUNTS)
+            for _ in range(self._strategy.depth - 1)
+            if self._case.integer(PRESENCE, edge=1)
+        ]
 
     def _next(self) -> int:
         """Return the index of the ready task to release."""
@@ -161,5 +169,4 @@ class Scheduler:
                 edge=0,
             )
         )
-        assert isinstance(index, int)
-        return index
+        return as_type(index, int)

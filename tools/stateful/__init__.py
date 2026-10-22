@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """The steps of a machine and the task scheduler, in a form that runs.
 
 This package is the definition of ``steps`` and of the task scheduler

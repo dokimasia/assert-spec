@@ -1,3 +1,6 @@
+# Copyright Dokimasia B.V. 2026
+# SPDX-License-Identifier: MIT
+
 """Machines: a model of a subject, actions over it, and the steps a case takes.
 
 A machine has actions in a fixed order, and optionally a model, an
@@ -72,17 +75,20 @@ import json
 from collections.abc import Callable, Iterable, Iterator, Sequence
 from dataclasses import dataclass
 from fractions import Fraction
-from typing import Final, final
+from typing import TYPE_CHECKING, Any, Final, final
 
 from history.linearizable import Outcome, whole
-from history.model import Model
 from prop import draw
 from prop.case import Case, Place, Request, Step
 from prop.choice import IntegerBounds
 from prop.collection import Sizes, more
 from prop.trace import Tracing
+from prop.value import as_type
 
-from .scheduler import Scheduler
+if TYPE_CHECKING:
+    from history.model import Model
+
+    from .scheduler import Scheduler
 
 #: The identity of a failure of the check after a step.
 CHECK: Final = "linearizable"
@@ -119,7 +125,8 @@ class Action:
             ValueError: the weight is below 1.
         """
         if self.weight < 1:
-            raise ValueError(f"stateful: action {self.name!r} has weight {self.weight}")
+            msg = f"stateful: action {self.name!r} has weight {self.weight}"
+            raise ValueError(msg)
 
 
 @dataclass(frozen=True)
@@ -132,7 +139,7 @@ class Machine:
     """
 
     actions: tuple[Action, ...]
-    model: Model | None = None
+    model: Model[Any] | None = None
     invariant: Callable[[Case, object], None] | None = None
     settle: Callable[[Case, object], None] | None = None
 
@@ -144,7 +151,8 @@ class Machine:
         """
         names = [action.name for action in self.actions]
         if len(set(names)) != len(names):
-            raise ValueError(f"stateful: the actions {names} repeat a name")
+            msg = f"stateful: the actions {names} repeat a name"
+            raise ValueError(msg)
 
 
 @dataclass(frozen=True)
@@ -171,9 +179,11 @@ class Options:
                 concurrent section has no scheduler.
         """
         if min(self.mean, self.max, self.concurrent) < 0 or self.clients < 1:
-            raise ValueError(f"stateful: {self} states a count below its minimum")
+            msg = f"stateful: {self} states a count below its minimum"
+            raise ValueError(msg)
         if self.clients > 1 and self.scheduler is None:
-            raise ValueError("stateful: a concurrent section needs a scheduler")
+            msg = "stateful: a concurrent section needs a scheduler"
+            raise ValueError(msg)
 
 
 def steps(case: Case, machine: Machine, options: Options | None = None) -> None:
@@ -193,11 +203,11 @@ def _finish(task: Task | None) -> None:
             pass
 
 
-def _keep(kept: bool, remaining: int) -> Request:
+def _keep(remaining: int, *, kept: bool) -> Request:
     """Return the swarm choice of an action, given the choices before it."""
     bounds = IntegerBounds(1, 1) if not kept and remaining == 1 else IntegerBounds(0, 1)
     return Request(
-        bounds, lambda source: draw.keep(source, SWARM, kept, remaining), edge=1
+        bounds, lambda source: draw.keep(source, SWARM, remaining, kept=kept), edge=1
     )
 
 
@@ -244,7 +254,7 @@ class _Run:
             self._case.place = Place("swarm", position, action.name)
             if trace is not None:
                 trace.prepare(1 if action.name in named else 0)
-            if self._case.choose(_keep(bool(kept), len(actions) - position)):
+            if self._case.choose(_keep(len(actions) - position, kept=bool(kept))):
                 kept.append(action)
         return kept
 
@@ -274,7 +284,8 @@ class _Run:
     def _concurrent(self, kept: list[Action]) -> None:
         """List the concurrent section's steps, run them, and check the history."""
         case, options = self._case, self._options
-        if options.clients == 1:
+        scheduler = options.scheduler
+        if options.clients == 1 or scheduler is None:
             if self._trace is not None:
                 self._refuse_concurrent(self._trace)
             return
@@ -300,8 +311,6 @@ class _Run:
         case.place = Place("concurrent")
         for action, value in planned[0]:
             _finish(action.run(case, 0, value))
-        scheduler = options.scheduler
-        assert scheduler is not None
         for client in range(1, options.clients + 1):
             if planned[client]:
                 scheduler.spawn(self._task(client, planned[client]))
@@ -342,7 +351,8 @@ class _Run:
         available: list[Action] = []
         for action in actions:
             enabled = action.enabled
-            if enabled is None or all([enabled(state) for state in self._states]):
+            verdicts = [] if enabled is None else [enabled(s) for s in self._states]
+            if all(verdicts):
                 available.append(action)
         return available
 
@@ -356,8 +366,7 @@ class _Run:
                 edge=0,
             )
         )
-        assert isinstance(index, int)
-        return index
+        return as_type(index, int)
 
     def _client(self) -> int:
         """Return the case's choice of a concurrent step's client."""
@@ -369,8 +378,7 @@ class _Run:
                 edge=0,
             )
         )
-        assert isinstance(client, int)
-        return client
+        return as_type(client, int)
 
     def _input(self, action: Action) -> object:
         """Return the input that action requests from the state, or None."""
