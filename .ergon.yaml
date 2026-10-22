@@ -221,6 +221,14 @@ python:
     # commit and release, and each input is a string. run is the list of the lines of a command of
     # bash.
     steps:
+      - name: Set up Go
+        uses:
+          uses: actions/setup-go
+          commit: b7ad1dad31e06c5925ef5d2fc7ad053ef454303e
+          release: v7.0.0
+        with:
+          cache: "false"
+          go-version: stable
       - name: Install spec
         uses:
           uses: stealth-scale/spec/.github/actions/setup-spec
