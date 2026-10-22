@@ -211,7 +211,7 @@ def _load(path: Path, problems: Problems) -> dict[str, Any] | None:
     document is reported here rather than raised by the first check that
     reads a key.
     """
-    where = str(path.relative_to(ROOT))
+    where = path.relative_to(ROOT).as_posix()
     try:
         document = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as err:
@@ -781,7 +781,7 @@ def check_corpus(
     problems.unless(bool(files), "corpus/", "holds no cases")
 
     for path in files:
-        where = str(path.relative_to(ROOT))
+        where = path.relative_to(ROOT).as_posix()
         document = _load(path, problems)
         if document is None:
             continue
@@ -1367,7 +1367,7 @@ def _vector_files(
     for kind in kinds:
         problems.unless(kind in files, f"corpus/{folder}/", f"has no {kind} vectors")
     for stem, path in files.items():
-        where = str(path.relative_to(ROOT))
+        where = path.relative_to(ROOT).as_posix()
         document = _load(path, problems)
         if document is None:
             continue
@@ -1473,7 +1473,7 @@ def check_zones(path: Path, problems: Problems) -> int:
     seconds since the epoch, the offset before it and the offset after
     it, in seconds east of UTC.
     """
-    where = str(path.relative_to(ROOT))
+    where = path.relative_to(ROOT).as_posix()
     document = _load(path, problems)
     if document is None:
         return 0
@@ -1856,7 +1856,7 @@ def check_overlays(
     records, and how its language runs the concurrent section of a machine.
     """
     for path in sorted((ROOT / "overlays").glob("*.json")):
-        where = str(path.relative_to(ROOT))
+        where = path.relative_to(ROOT).as_posix()
         overlay = _load(path, problems)
         if overlay is None:
             continue
