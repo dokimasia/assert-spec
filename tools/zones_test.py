@@ -12,6 +12,7 @@ import io
 import json
 import os
 import shutil
+import sys
 import tarfile
 import tempfile
 import unittest
@@ -46,6 +47,9 @@ Zone Test/Zone 1:00 Test C%sT
 
 #: The start of each line zdump -v prints for one zone.
 ZONE = "Europe/Amsterdam  "
+
+#: Skips a case that runs zic or zdump. Windows has neither program.
+needs_zic = unittest.skipIf(sys.platform == "win32", "Windows has no zic and no zdump")
 
 
 def _line(utc: str, local: str, offset: int) -> str:
@@ -140,7 +144,7 @@ class TableTest(unittest.TestCase):
 
     def test_the_definitions_table_is_the_tools(self) -> None:
         """The file states the release, the years and the zones the tool states."""
-        table = json.loads((ROOT / "spec" / "zones.json").read_text())
+        table = json.loads((ROOT / "spec" / "zones.json").read_text(encoding="utf-8"))
         assert table["release"] == RELEASE
         assert table["sha512"] == SHA512
         assert (table["from"], table["until"]) == (FROM_YEAR, UNTIL_YEAR)
@@ -196,6 +200,7 @@ class ReleaseTest(unittest.TestCase):
         ):
             zones.fetch(self.scratch)
 
+    @needs_zic
     def test_a_compiled_zone_lists_its_offset_changes(self) -> None:
         """A spring forward at 01:00 UTC and a fall back at 00:00 UTC."""
         compiled = zones.compile_zones(
@@ -206,12 +211,14 @@ class ReleaseTest(unittest.TestCase):
             (calendar.timegm((1990, 10, 1, 0, 0, 0)), 7200, 3600),
         ]
 
+    @needs_zic
     def test_sources_that_zic_refuses_raise(self) -> None:
         """A zone line without its offset."""
         release = self.tarball({"europe": "Zone Broken\n"})
         with pytest.raises(ZonesError, match="zic: "):
             zones.compile_zones(release, self.scratch)
 
+    @needs_zic
     def test_a_zone_the_release_lacks_raises(self) -> None:
         """The tool lists only zones the release compiles."""
         compiled = zones.compile_zones(
@@ -230,6 +237,7 @@ class ReleaseTest(unittest.TestCase):
         ):
             zones.program("zic")
 
+    @needs_zic
     def test_a_zdump_that_fails_raises(self) -> None:
         """A zdump that exits with an error stops the tool."""
         compiled = zones.compile_zones(
@@ -238,7 +246,7 @@ class ReleaseTest(unittest.TestCase):
         bin_dir = self.scratch / "bin"
         bin_dir.mkdir()
         fake = bin_dir / "zdump"
-        fake.write_text("#!/bin/sh\necho broken >&2\nexit 1\n")
+        fake.write_text("#!/bin/sh\necho broken >&2\nexit 1\n", encoding="utf-8")
         fake.chmod(0o755)
         path = f"{bin_dir}{os.pathsep}{os.environ.get('PATH', '')}"
         with (
@@ -247,6 +255,7 @@ class ReleaseTest(unittest.TestCase):
         ):
             zones.list_zone("Test/Zone", compiled)
 
+    @needs_zic
     def test_the_tool_writes_the_table_of_the_release_it_fetched(self) -> None:
         """One zone with two changes, written under the tool's root."""
         release = self.tarball({"europe": SPRING_AND_FALL})
@@ -264,7 +273,9 @@ class ReleaseTest(unittest.TestCase):
             contextlib.redirect_stdout(printed),
         ):
             assert zones.main() == 0
-        table = json.loads((self.scratch / "root" / "spec" / "zones.json").read_text())
+        table = json.loads(
+            (self.scratch / "root" / "spec" / "zones.json").read_text(encoding="utf-8")
+        )
         assert [zone["name"] for zone in table["zones"]] == ["Test/Zone"]
         assert len(table["zones"][0]["changes"]) == 2
         assert "2 offset changes in 1 zones" in printed.getvalue()
