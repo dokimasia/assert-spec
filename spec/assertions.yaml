@@ -20,7 +20,7 @@
 # assertion carries exactly these. got is what the assertion observed
 # and want is what it required, so an assertion whose failure holds
 # neither states no fields and reports the caller's message alone.
-version: "10.1.0"
+version: "11.0.0"
 
 # What a caller may change about equality, for one call.
 #
@@ -875,8 +875,9 @@ assertions:
       then generates inputs it has not tested until it has run the stated
       number of cases or tested every input. A fixed sequence of passes
       shrinks a failing case towards the smallest case that fails the
-      same way.
-    detail_fields: [outcome, cases, rejected, seed, counterexample, failure, choices, others, divergence, coverage]
+      same way. A case that skips before the run finds a failing case
+      skips the run.
+    detail_fields: [outcome, cases, rejected, seed, counterexample, failure, choices, others, divergence, coverage, reason]
 
   "linearizable":
     arity: 3

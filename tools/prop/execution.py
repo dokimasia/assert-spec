@@ -6,7 +6,9 @@
 The runner, the shrinker and the explain phase each call the body through
 execute(). A case that walks the case tree can end early as a repeat or a
 divergence. A case outside the tree, such as a stored case or a shrink
-candidate, cannot.
+candidate, cannot. A case that skips leaves no leaf in the tree: before
+the run finds a failing case the skip ends the run, and after it the case
+counts as a case that does not fail.
 
 Each call of a body has a phase, the part of the run that made it. An
 observer of a run sees every call with its phase, in the order a run on
@@ -19,7 +21,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
 
-from .case import Case, Failed, Overrun, Place, Provider, Rejected, Where
+from .case import Case, Failed, Overrun, Place, Provider, Rejected, Skipped, Where
 from .tree import Diverged, Ending, Repeated, Tree
 
 #: A body: it receives the case, draws from it, and fails it or returns.
@@ -58,6 +60,7 @@ class Status(StrEnum):
     REJECTED = "rejected"
     REPEATED = "repeated"
     DIVERGED = "diverged"
+    SKIPPED = "skipped"
 
 
 @dataclass(frozen=True)
@@ -98,12 +101,17 @@ class Divergence:
 
 @dataclass(frozen=True)
 class Execution:
-    """One call of the body: its case and how it ended."""
+    """One call of the body: its case and how it ended.
+
+    reason is the reason of a case that skipped, and None for every other
+    case.
+    """
 
     case: Case
     status: Status
     failure: Failed | None = None
     divergence: Divergence | None = None
+    reason: str | None = None
 
     @property
     def identity(self) -> str | None:
@@ -138,7 +146,8 @@ def execute(
     """Call the body once on a case whose values come from provider.
 
     With a tree, the case walks it, and a repeat or a divergence ends the
-    case early. A case that overruns its cap is rejected without a leaf.
+    case early. A case that overruns its cap is rejected without a leaf,
+    and a case that skips ends without a leaf.
     """
     walker = None if tree is None else tree.walker()
     case = Case(provider, max_choices, walker)
@@ -152,6 +161,8 @@ def execute(
         return Execution(case, Status.DIVERGED, divergence=divergence)
     except Overrun:
         return Execution(case, Status.REJECTED)
+    except Skipped as skipped:
+        return Execution(case, Status.SKIPPED, reason=skipped.reason)
     except Rejected:
         ending = Ending.REJECTED
     except Failed as failed:

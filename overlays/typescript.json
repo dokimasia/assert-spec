@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@10.1.0",
+  "extends": "spec://assertions@11.0.0",
   "language": "typescript",
   "diverge": [
     {
@@ -64,6 +64,11 @@
       "id": "history.workers",
       "what": "Searches one partition at a time, whatever the number of workers. A check reports what a check on one worker reports, as it does in every language.",
       "why": "A spec is a set of functions, and the structured clone that copies a message to a worker thread refuses a function, so every partition is searched on the runtime's one thread."
+    },
+    {
+      "id": "case.skip",
+      "what": "Skips the test through the seat of the vitest fixture test, which calls skip of the test context. On every other seat, the seat of a jest test included, the call record states the verdict skip and the test passes.",
+      "why": "jest offers no call that skips a test while it runs, and a seat outside the fixture has no test context to call skip on."
     }
   ],
   "surface": [

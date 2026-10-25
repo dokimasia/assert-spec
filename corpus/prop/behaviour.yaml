@@ -3,9 +3,9 @@
 
 # Behaviour: a body run under settings. Each case pins the detail of the
 # run, with every field present and the fields its outcome does not use
-# null. A body draws one value, labelled `value`, and classifies, rejects
-# and fails by predicates over it, or is one of the named bodies. Every
-# outcome has a case. `make render` writes the outputs.
+# null. A body draws one value, labelled `value`, and classifies, rejects,
+# skips and fails by predicates over it, or is one of the named bodies.
+# Every outcome has a case. `make render` writes the outputs.
 kind: behaviour
 cases:
   - id: behaviour/passes-a-body-that-never-fails
@@ -116,6 +116,30 @@ cases:
     settings: {seed: "7"}
   - id: behaviour/reports-a-failure-that-passes-on-replay
     body: {kind: fails-once}
+    settings: {seed: "7"}
+
+  - id: behaviour/skips-the-run-at-a-case-that-skips
+    body:
+      draw: {gen: integer, min: 0, max: 1000}
+      skips: [{reason: unsupported, when: {kind: always}}]
+    settings: {seed: "7"}
+  # The edge case at the maximum is the first case that draws 1000.
+  - id: behaviour/counts-the-valid-cases-before-a-case-that-skips
+    body:
+      draw: {gen: integer, min: 0, max: 1000}
+      skips: [{reason: unsupported, when: {kind: equals, value: {type: int, value: 1000}}}]
+    settings: {seed: "7"}
+  # The stored case fails, and the shrink tries 0, which skips. A case that
+  # skips after the run found a failing case does not fail, so the shrink
+  # goes on to the minimal failing value.
+  - id: behaviour/keeps-a-failure-whose-shrink-tries-a-value-that-skips
+    body:
+      draw: {gen: integer, min: 0, max: 1000}
+      skips: [{reason: unsupported, when: {kind: equals, value: {type: int, value: 0}}}]
+      fails: [{identity: big, when: {kind: at-least, n: 101}}]
+    settings: {seed: "7", stored: [[500]]}
+  - id: behaviour/reports-a-failure-that-skips-on-replay
+    body: {kind: fails-then-skips}
     settings: {seed: "7"}
 
   - id: behaviour/passes-once-every-input-of-a-small-domain-is-tested

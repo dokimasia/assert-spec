@@ -5,11 +5,11 @@
 # settings. Each case pins the verdict of the property and, in order, each
 # call of true that a recorded run writes: the call of the body that made
 # it, numbered from 1, the phase of that call, and the verdict of true.
-# The body draws one value, labelled `value`, and classifies and rejects
-# as a behaviour body does. It then calls true, which fails when a fails
-# entry holds. A call of the body that ends before true, rejected,
-# repeated, past its cap or diverging, makes no call of true. Every phase
-# but fuzz has a case. `make render` writes the outputs.
+# The body draws one value, labelled `value`, and classifies, rejects and
+# skips as a behaviour body does. It then calls true, which fails when a
+# fails entry holds. A call of the body that ends before true, rejected,
+# skipped, repeated, past its cap or diverging, makes no call of true.
+# Every phase but fuzz has a case. `make render` writes the outputs.
 kind: recording
 cases:
   # Runs 10, 20 and 21 repeat earlier cases and make no call.
@@ -47,3 +47,10 @@ cases:
       draw: {gen: integer, min: 0, max: 1000}
       fails: [{identity: big, when: {kind: at-least, n: 900}}]
     settings: {seed: "7", examples: [[5]], stored: [[3], [950]], shrink: 0}
+
+  # The edge case at the maximum skips, so the property's verdict is skip.
+  - id: recording/records-the-cases-before-a-case-that-skips
+    body:
+      draw: {gen: integer, min: 0, max: 1000}
+      skips: [{reason: unsupported, when: {kind: equals, value: {type: int, value: 1000}}}]
+    settings: {seed: "7"}

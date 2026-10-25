@@ -19,7 +19,7 @@
 # as its positive does. Each of these names takes the auxiliary that its
 # word takes in an English sentence: is before an adjective, has before a
 # noun and does before a verb.
-version: "10.1.0"
+version: "11.0.0"
 
 languages: [go, java, kotlin, php, python, rust, typescript]
 
@@ -612,6 +612,8 @@ relaxations:
 #
 # A case is a seat, so Go names its note Logf, the testing.TB member for
 # a message that a failing test reports, as it names the seat's members.
+# For the same reason Go names its skip Skipf, the testing.TB member that
+# skips a test with a formatted reason.
 # The case's cancellation handle is the one honours-cancellation hands a
 # subject in each language, and each language names the member after its
 # handle: Context for Go's context.Context, signal for TypeScript's
@@ -1109,6 +1111,13 @@ surface:
       rust: "cancellation"
       typescript: "signal"
       java: "cancelled"
+    "case.skip":
+      go: "Skipf"
+      python: "skip"
+      rust: "skip"
+      typescript: "skip"
+      java: "skip"
+      kotlin: "skip"
     "generator.map":
       go: "Map"
       python: "map"

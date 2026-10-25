@@ -47,6 +47,13 @@ MAX_REJECTIONS times as many cases as were valid, when no case requested
 an input, or when a coverage requirement is refuted or unmet, checked in
 that order.
 
+A case that skips before the run finds a failing case ends the run as
+skipped, in every phase. Once the run has found a failing case, a case
+that skips counts as a case that does not fail: the replay before
+shrinking that skips makes the run flaky, a shrink candidate that skips is
+not accepted, and an explain run that skips neither fails the way the
+failure fails nor passes.
+
 A run's observer sees every call of the body with its phase: an example,
 a stored case, the simplest case, a random case before the first check
 and a coverage case after it, a prefix case, an edge case, the replay
@@ -106,7 +113,11 @@ MIN_PREFIXED_CHOICES: Final = 2
 
 
 class Kind(StrEnum):
-    """How a run ended. Every kind but PASSED fails the test."""
+    """How a run ended.
+
+    PASSED passes the test, SKIPPED skips it where the test runner can skip
+    a running test, and every other kind fails it.
+    """
 
     PASSED = "passed"
     COUNTEREXAMPLE = "counterexample"
@@ -114,6 +125,7 @@ class Kind(StrEnum):
     REJECTED = "rejected"
     COVERAGE_UNMET = "coverage-unmet"
     VACUOUS = "vacuous"
+    SKIPPED = "skipped"
 
 
 @dataclass(frozen=True)
@@ -187,7 +199,8 @@ class Outcome:
     that made a run flaky, and shortfall the requirement a coverage-unmet
     run missed. runs counts the runs that shrinking and explaining spent.
     valued is set for a counterexample that an example of values found,
-    which has no choices and so no token.
+    which has no choices and so no token. reason is the reason of a skipped
+    run.
     """
 
     kind: Kind
@@ -202,6 +215,7 @@ class Outcome:
     token: str | None = None
     runs: int = 0
     valued: bool = False
+    reason: str | None = None
 
 
 def rejects_too_many(valid: int, rejected: int) -> bool:
@@ -233,6 +247,8 @@ class _Tally:
             return self.outcome(Kind.COUNTEREXAMPLE, failing=execution)
         if execution.status is Status.DIVERGED:
             return self.outcome(Kind.FLAKY, divergence=execution.divergence)
+        if execution.status is Status.SKIPPED:
+            return self.outcome(Kind.SKIPPED, reason=execution.reason)
         if execution.status is Status.REJECTED:
             self.rejected += 1
         elif execution.status is Status.PASSED:
@@ -247,10 +263,18 @@ class _Tally:
         failing: Execution | None = None,
         divergence: Divergence | None = None,
         shortfall: Shortfall | None = None,
+        reason: str | None = None,
     ) -> Outcome:
         """Return an outcome of kind with the counts so far."""
         return Outcome(
-            kind, self.valid, self.rejected, self.seed, failing, divergence, shortfall
+            kind,
+            self.valid,
+            self.rejected,
+            self.seed,
+            failing,
+            divergence,
+            shortfall,
+            reason=reason,
         )
 
     def failure_without_counterexample(self) -> Outcome | None:

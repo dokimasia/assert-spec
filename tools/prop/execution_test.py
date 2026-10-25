@@ -59,6 +59,19 @@ class ExecuteTest(unittest.TestCase):
         )
         assert execution.status is Status.REJECTED
 
+    def test_a_body_that_skips_ends_as_skipped_without_a_leaf(self) -> None:
+        """The reason comes back, and the tree keeps no ending for the case."""
+        tree = Tree()
+
+        def skip(case: Case) -> None:
+            case.draw(DIGIT, "n")
+            case.skip("unsupported")
+
+        execution = execute(skip, Replaying([Choice("integer", 3)]), 8192, tree)
+        assert (execution.status, execution.reason) == (Status.SKIPPED, "unsupported")
+        assert execution.identity is None
+        assert tree.root.children[3].ending is None
+
     def test_a_case_past_its_cap_is_rejected(self) -> None:
         """Two draws exceed a cap of one choice."""
 

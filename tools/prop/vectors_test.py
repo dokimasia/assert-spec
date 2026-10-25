@@ -147,9 +147,22 @@ class ComputeTest(unittest.TestCase):
                 "others",
                 "divergence",
                 "coverage",
+                "reason",
             ]
         )
         assert (detail["outcome"], detail["cases"]) == ("vacuous", 1)
+        assert (detail["counterexample"], detail["reason"]) == (None, None)
+
+    def test_a_skipped_run_states_its_reason(self) -> None:
+        """A body that skips every case skips at the simplest case."""
+        body = {
+            "draw": {"gen": "integer", "min": 0, "max": 9},
+            "skips": [{"reason": "unsupported", "when": {"kind": "always"}}],
+        }
+        got = compute("behaviour", {"body": body, "settings": {"seed": "7"}})
+        detail = got["detail"]
+        stated = (detail["outcome"], detail["cases"], detail["reason"])
+        assert stated == ("skipped", 0, "unsupported")
         assert detail["counterexample"] is None
 
     def test_a_divergence_states_the_label_and_the_step_of_its_request(self) -> None:
@@ -429,6 +442,22 @@ class ComputeTest(unittest.TestCase):
         }
         got = compute("recording", {"body": body, "settings": {"seed": "7"}})
         assert got == {"verdict": "fail", "calls": []}
+
+    def test_a_recording_vector_of_a_skipped_run_states_the_verdict_skip(self) -> None:
+        """The stored case passes, and the simplest case skips before true."""
+        body = {
+            "draw": {"gen": "integer", "min": 0, "max": 9},
+            "skips": [
+                {
+                    "reason": "unsupported",
+                    "when": {"kind": "equals", "value": {"type": "int", "value": 0}},
+                }
+            ],
+        }
+        settings = {"seed": "7", "stored": [[5]]}
+        got = compute("recording", {"body": body, "settings": settings})
+        call = {"run": 1, "phase": "stored", "verdict": "pass"}
+        assert got == {"verdict": "skip", "calls": [call]}
 
     def test_an_unknown_kind_or_missing_input_raises(self) -> None:
         """No such kind; a decoding vector without choices."""

@@ -11,10 +11,10 @@ the bridge. The case records every value with its request and the spans of
 the generators that asked for it. The shrinker edits that record.
 
 A body receives the case and uses draw(), assume(), classify(), note(),
-observe(), random() and fail(), and records the calls it makes to a
-subject in the case's history. The signals those members raise, Rejected
-and Failed, and the signals of the case tree end the body, which must let
-them pass.
+observe(), random(), skip() and fail(), and records the calls it makes to
+a subject in the case's history. The signals those members raise,
+Rejected, Skipped and Failed, and the signals of the case tree end the
+body, which must let them pass.
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Final, Protocol, final, runtime_checkable
+from typing import TYPE_CHECKING, Final, NoReturn, Protocol, final, runtime_checkable
 
 from history.seam import History
 
@@ -52,6 +52,20 @@ class Rejected(Exception):
 
 class Overrun(Rejected):
     """A case asked for more choices than its cap allows."""
+
+
+@final
+class Skipped(Exception):
+    """The signal that skips the run of a property, with the reason of the skip.
+
+    A case that skips before the run finds a failing case ends the run. A
+    case that skips after it counts as a case that does not fail.
+    """
+
+    def __init__(self, reason: str) -> None:
+        """Skip the run, with reason."""
+        super().__init__(reason)
+        self.reason = reason
 
 
 @final
@@ -503,6 +517,14 @@ class Case:
         This is the value the language's random-source interface produces.
         """
         return self.integer(IntegerBounds(0, UINT64_MAX))
+
+    def skip(self, reason: str) -> NoReturn:
+        """Skip the run of the property, with reason.
+
+        Raises:
+            Skipped: always.
+        """
+        raise Skipped(reason)
 
     def fail(self, identity: str, message: str = "") -> None:
         """Fail the case.

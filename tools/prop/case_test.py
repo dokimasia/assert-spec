@@ -21,6 +21,7 @@ from .case import (
     Rejected,
     Replaying,
     Request,
+    Skipped,
     Span,
     Step,
     Valuing,
@@ -449,6 +450,12 @@ class RecordTest(unittest.TestCase):
     def test_a_provider_that_hears_of_no_draw_is_no_tracer(self) -> None:
         """A replaying case has no tracer."""
         assert Case(Replaying([])).tracer is None
+
+    def test_skip_raises_the_signal_with_its_reason(self) -> None:
+        """skip() raises Skipped, which states the reason."""
+        with pytest.raises(Skipped) as raised:
+            Case(Replaying([])).skip("unsupported")
+        assert raised.value.reason == "unsupported"
 
 
 @final

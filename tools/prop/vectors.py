@@ -57,6 +57,9 @@ Vector = dict[str, Any]
 #: The identity a shrinking vector's body fails with.
 FAILS_WHEN: Final = "fails-when"
 
+#: The verdict of a property's call for each outcome that does not fail it.
+VERDICTS: Final = {Kind.PASSED: "pass", Kind.SKIPPED: "skip"}
+
 
 class VectorError(ValueError):
     """A vector whose inputs the reference cannot read."""
@@ -342,10 +345,10 @@ def recording(case: Mapping[str, Any]) -> Vector:
 
     The body is a behaviour body followed by one call of true, which fails
     exactly when the body fails. A call of the body that ends before its
-    end, rejected, repeated, past its cap or diverging, makes no call. The
-    outputs are the property's verdict and, for each call in order, the
-    call of the body that made it, numbered from 1, its phase and its
-    verdict.
+    end, rejected, skipped, repeated, past its cap or diverging, makes no
+    call. The outputs are the property's verdict, pass, skip or fail, and,
+    for each call in order, the call of the body that made it, numbered
+    from 1, its phase and its verdict.
     """
     body = build_body(case["body"])
     made: list[str] = []
@@ -371,8 +374,7 @@ def recording(case: Mapping[str, Any]) -> Vector:
         made.clear()
 
     outcome = run(asserting, run_settings(case.get("settings", {})), observe)
-    verdict = "pass" if outcome.kind is Kind.PASSED else "fail"
-    return {"verdict": verdict, "calls": calls}
+    return {"verdict": VERDICTS.get(outcome.kind, "fail"), "calls": calls}
 
 
 def form_run(case: Mapping[str, Any]) -> Vector:
@@ -472,6 +474,7 @@ def detail(outcome: Outcome) -> Vector:
             "valid": shortfall.valid,
             "verdict": shortfall.verdict.value,
         },
+        "reason": outcome.reason,
     }
 
 

@@ -297,6 +297,101 @@ class FailureWithoutCounterexampleTest(unittest.TestCase):
         assert outcome.divergence.index == 0
 
 
+#: The reason that the skipping bodies of these tests skip with.
+UNSUPPORTED = "unsupported"
+
+
+@final
+class SkippedRunTest(unittest.TestCase):
+    """Runs whose case skips, before and after the run finds a failing case."""
+
+    def test_a_skip_at_the_first_case_ends_the_run(self) -> None:
+        """The simplest case skips, and no other case runs."""
+        seen = Seen()
+
+        def body(case: Case) -> None:
+            case.draw(DIGITS, "digits")
+            case.skip(UNSUPPORTED)
+
+        outcome = run(body, Settings(SEED), seen)
+        got = (outcome.kind, outcome.cases, outcome.rejected, outcome.reason)
+        assert got == (Kind.SKIPPED, 0, 0, UNSUPPORTED)
+        assert seen.calls == [(Phase.SIMPLEST, Status.SKIPPED)]
+
+    def test_a_skip_counts_the_valid_cases_before_it(self) -> None:
+        """Every case before the first value above 10^6 passes and counts."""
+        seen = Seen()
+
+        def body(case: Case) -> None:
+            n = case.draw(WIDE, "n")
+            assert isinstance(n, int)
+            if n > MILLION:
+                case.skip(UNSUPPORTED)
+
+        outcome = run(body, Settings(SEED), seen)
+        passed = [status for _, status in seen.calls if status is Status.PASSED]
+        assert (outcome.kind, outcome.cases) == (Kind.SKIPPED, len(passed))
+        assert outcome.cases > 0
+        assert seen.calls[-1][1] is Status.SKIPPED
+
+    def test_a_skip_in_a_shrink_candidate_keeps_the_failure(self) -> None:
+        """The candidate 0 skips, and the shrink still finds the minimal 101."""
+        hundred = 100
+
+        def body(case: Case) -> None:
+            n = case.draw(build({"gen": "integer", "min": 0, "max": 1000}), "n")
+            assert isinstance(n, int)
+            if n == 0:
+                case.skip(UNSUPPORTED)
+            if n > hundred:
+                case.fail("big")
+
+        stored = ((Choice("integer", 500),),)
+        outcome = run(body, Settings(SEED, stored=stored))
+        assert outcome.kind is Kind.COUNTEREXAMPLE
+        assert outcome.failing is not None
+        assert outcome.failing.case.draws[0].value == hundred + 1
+        assert outcome.reason is None
+
+    def test_a_replay_that_skips_makes_the_run_flaky(self) -> None:
+        """The failing case skips on its replay, as a replay that passes would."""
+        failed: list[None] = []
+
+        def body(case: Case) -> None:
+            n = case.draw(WIDE, "n")
+            assert isinstance(n, int)
+            if failed:
+                case.skip(UNSUPPORTED)
+            if n > MILLION:
+                failed.append(None)
+                case.fail("big")
+
+        outcome = run(body, Settings(SEED))
+        assert outcome.kind is Kind.FLAKY
+        assert outcome.divergence is not None
+        divergence = outcome.divergence
+        assert (divergence.what, divergence.recorded, divergence.replayed) == (
+            "verdict",
+            "big",
+            None,
+        )
+
+    def test_a_replay_token_that_skips_ends_the_run(self) -> None:
+        """The one case of the token skips."""
+
+        def body(case: Case) -> None:
+            case.draw(WIDE, "n")
+            case.skip(UNSUPPORTED)
+
+        replayed = (Choice("integer", 5),)
+        outcome = run(body, Settings(SEED, replay=replayed))
+        assert (outcome.kind, outcome.reason, outcome.token) == (
+            Kind.SKIPPED,
+            UNSUPPORTED,
+            None,
+        )
+
+
 @final
 class CoverageTest(unittest.TestCase):
     """Requirements on labels."""

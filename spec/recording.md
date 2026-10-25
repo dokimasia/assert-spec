@@ -41,7 +41,7 @@ recorded.
 | `phase` | The kind of the property's case | For a call in a property's case |
 | `assertion` | The canonical id, as `assertions.json` names it | Always |
 | `contract` | The caller's message, unchanged | Always |
-| `verdict` | `pass`, `fail` or `error` | Always |
+| `verdict` | `pass`, `fail`, `error` or `skip` | Always |
 | `aborting` | `true` for the aborting surface, `false` for the recording one | Always |
 | `where` | The call site, as `file`, the base name of the file, and `line` | When the language supplies it, as for the failure record |
 | `detail` | The detail fields, as the detail section states them | On `fail`. A property states it on `pass` too |
@@ -88,6 +88,7 @@ A failing `equal` on the recording surface:
 | `pass` | The assertion found what the contract requires |
 | `fail` | The assertion did not, and the call reported its failure record |
 | `error` | The call ended without a verdict, because the library refused an argument or its environment, and the test failed |
+| `skip` | The run of a property ended at a case that called `skip`. The test skips where its runner can skip a running test |
 
 A malformed `DOKIMI_ASSERT_PROP_SEED`, a replay token in a form that no
 encoder writes, and a damaged file in a property's store each end a call
@@ -106,10 +107,12 @@ write a call record, because the call is no call of an assertion.
   Some fields, such as the `index` of `pairwise`, have no value on a
   pass.
 - `prop-for-all` and every property form state their detail on a pass
-  too, because the detail of a run describes the run on every outcome.
-  On a pass, `outcome` is `passed`, `cases`, `rejected` and `seed` state
-  the run, and every other field is null, as the behaviour vectors state
-  a passing run. A passing property does not report a failure record.
+  and on a skip too, because the detail of a run describes the run on
+  every outcome. On a pass, `outcome` is `passed`, `cases`, `rejected` and
+  `seed` state the run, and every other field is null, as the behaviour
+  vectors state a passing run. On a skip, `outcome` is `skipped` and
+  `reason` states the reason of the skip as well. A passing or a skipped
+  property does not report a failure record.
 - A property's detail is the detail of its run, written as the form
   vectors write it. The run fixes the type of each field, so a field is
   a plain JSON value. A value that the body drew is a typed literal,
@@ -130,7 +133,8 @@ A passing property and the first call of its body:
   "where": { "file": "codec_test.go", "line": 18 },
   "detail": { "outcome": "passed", "cases": 100, "rejected": 0, "seed": "7",
               "counterexample": null, "failure": null, "choices": null,
-              "others": null, "divergence": null, "coverage": null }
+              "others": null, "divergence": null, "coverage": null,
+              "reason": null }
 }
 ```
 
@@ -269,8 +273,9 @@ keeps the case's one call record, and checks that record:
 `corpus/prop/recording.json` pins the call records of a property's runs.
 Each vector states a behaviour body and the settings of a run. The body
 calls `true` once at its end, and the call fails when the predicate of a
-`fails` entry is true. The outputs are the property's verdict and, in order,
-the `run`, the `phase` and the `verdict` of each call of `true`. The
+`fails` entry is true. A case that skips ends before its call of `true`.
+The outputs are the property's verdict, `pass`, `skip` or `fail`, and, in
+order, the `run`, the `phase` and the `verdict` of each call of `true`. The
 property's call is `seq` 1, and the call at position k of the outputs,
 from 1, is `seq` k + 1 with `parent` 1.
 

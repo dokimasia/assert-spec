@@ -58,6 +58,29 @@ class DrawingBodyTest(unittest.TestCase):
         execution = execute(build_body(spec), Replaying([]), 8192)
         assert execution.status is Status.REJECTED
 
+    def test_a_skipping_body_skips_with_the_first_reason_before_it_fails(self) -> None:
+        """Both skips hold, so the first reason wins and the failure is not checked."""
+        spec = {
+            "draw": DIGIT,
+            "skips": [
+                {"reason": "big", "when": {"kind": "at-least", "n": 5}},
+                {"reason": "any", "when": {"kind": "always"}},
+            ],
+            "fails": [{"identity": "any", "when": {"kind": "always"}}],
+        }
+        execution = execute(build_body(spec), Replaying([Choice("integer", 7)]), 8192)
+        assert (execution.status, execution.reason) == (Status.SKIPPED, "big")
+
+    def test_a_rejecting_body_rejects_before_it_skips(self) -> None:
+        """rejects-when holds, so the skip is never checked."""
+        spec = {
+            "draw": DIGIT,
+            "rejects-when": {"kind": "always"},
+            "skips": [{"reason": "any", "when": {"kind": "always"}}],
+        }
+        execution = execute(build_body(spec), Replaying([]), 8192)
+        assert execution.status is Status.REJECTED
+
     def test_classification_counts_labels_whose_predicate_holds(self) -> None:
         """Even and small, not big."""
         spec = {
@@ -78,6 +101,10 @@ class DrawingBodyTest(unittest.TestCase):
             {"draw": DIGIT, "classify": []},
             {"draw": DIGIT, "fails": [{"identity": False, "when": {"kind": "never"}}]},
             {"draw": DIGIT, "classify": {True: {"kind": "never"}}},
+            {"draw": DIGIT, "skips": [{"reason": "x"}]},
+            {"draw": DIGIT, "skips": [{"when": {"kind": "never"}}]},
+            {"draw": DIGIT, "skips": {"reason": "x", "when": {"kind": "never"}}},
+            {"draw": DIGIT, "skips": [{"reason": 1, "when": {"kind": "never"}}]},
         ]
         for spec in malformed:
             with pytest.raises(BodyError):
@@ -111,6 +138,21 @@ class NamedBodyTest(unittest.TestCase):
     def test_fails_once_passes_1000(self) -> None:
         """1000 is not above 1000."""
         body = build_body({"kind": "fails-once"})
+        recorded = [Choice("integer", 1000)]
+        assert execute(body, Replaying(recorded), 8192).status is Status.PASSED
+
+    def test_fails_then_skips_skips_every_call_after_its_failure(self) -> None:
+        """The same value fails, then skips after its draw with the reason after."""
+        body = build_body({"kind": "fails-then-skips"})
+        recorded = [Choice("integer", 5000)]
+        assert execute(body, Replaying(recorded), 8192).identity == "once"
+        again = execute(body, Replaying(recorded), 8192)
+        assert (again.status, again.reason) == (Status.SKIPPED, "after")
+        assert [d.value for d in again.case.draws] == [5000]
+
+    def test_fails_then_skips_passes_1000_before_its_failure(self) -> None:
+        """1000 is not above 1000, and no call has failed yet."""
+        body = build_body({"kind": "fails-then-skips"})
         recorded = [Choice("integer", 1000)]
         assert execute(body, Replaying(recorded), 8192).status is Status.PASSED
 
