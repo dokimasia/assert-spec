@@ -20,13 +20,13 @@ they record why not.
 | [0007](0007-conformance-beyond-the-corpus.md) | Conformance beyond the corpus | Accepted |
 | [0008](0008-what-a-benchmark-measures.md) | What a benchmark measures | Accepted |
 | [0009](0009-an-allocation-ceiling-in-a-test.md) | An allocation ceiling in a test | Accepted |
-| [0010](0010-properties-over-generated-inputs.md) | Properties over generated inputs | Accepted |
+| [0010](0010-properties-over-generated-inputs.md) | Properties over generated inputs | Accepted, superseded in part by [RFC-0038](0038-a-case-that-skips-the-run-of-its-property.md) |
 | [0011](0011-property-forms-and-derived-inputs.md) | Property forms and inputs derived from types | Accepted |
 | [0012](0012-machines-simulation-and-campaigns.md) | Machines, simulation and campaigns | Accepted |
 | [0013](0013-typescript-names-free-on-vitest-expect.md) | TypeScript names that vitest's expect does not define | Accepted |
 | [0014](0014-pinning-the-answers-languages-disagree-on.md) | Pinning the answers languages disagree on | Accepted, superseded in part by [ADR-0001](../adr/0001-vendor-the-definition-with-spec.md) |
 | [0015](0015-isolation-checks-over-transaction-histories.md) | Isolation checks over transaction histories | Accepted |
-| [0016](0016-recording-every-assertion-call.md) | Recording every assertion call | Accepted |
+| [0016](0016-recording-every-assertion-call.md) | Recording every assertion call | Accepted, superseded in part by [RFC-0038](0038-a-case-that-skips-the-run-of-its-property.md) |
 | [0017](0017-pinning-map-keys.md) | Pinning map keys | Accepted |
 | [0018](0018-warm-up-iterations-in-a-benchmark-contract.md) | Warm-up iterations in a benchmark contract | Accepted |
 | [0019](0019-parallel-bodies-in-a-benchmark-contract.md) | Parallel bodies in a benchmark contract | Accepted |
@@ -48,3 +48,4 @@ they record why not.
 | [0035](0035-the-values-of-a-generator-for-a-seed.md) | The values of a generator for a seed | Accepted, superseded in part by [RFC-0037](0037-the-values-of-a-generator-under-using.md) |
 | [0036](0036-whether-a-run-checks-allocation-ceilings.md) | Whether a run checks allocation ceilings | Accepted |
 | [0037](0037-the-values-of-a-generator-under-using.md) | The values of a generator under the option using | Accepted |
+| [0038](0038-a-case-that-skips-the-run-of-its-property.md) | A case that skips the run of its property | Accepted |
