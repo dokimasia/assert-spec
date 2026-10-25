@@ -1,5 +1,5 @@
 {
-  "ergon": "0.14.0",
+  "ergon": "0.14.3",
   "files": [
     {
       "path": ".commitlint.yaml",
@@ -222,8 +222,7 @@
     "python.ci.steps": [],
     "python.ci.timeout": 30,
     "python.ci.versions": [],
-    "python.generate.args": [],
-    "python.generate.command": [],
+    "python.generate.commands": [],
     "python.paths": [
       "."
     ],

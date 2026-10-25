@@ -195,12 +195,12 @@ python:
   # test-python runs pytest with args.
   test:
     args: []
-  # generate-python runs command with args at the root of the repository. verify-generate-python,
-  # the step generate of check, runs the same and fails when the run changes a file of the
-  # repository. Without a command Python has neither target.
+  # generate-python runs each command line of commands in order at the root of the repository.
+  # verify-generate-python, the step generate of check, runs the same and fails when the run changes
+  # a file of the repository. Without a command line Python has neither target.
   generate:
-    command: [make, render]
-    args: []
+    commands:
+      - [make, render]
   # audit-python scans the packages of uv.lock with pip-audit, and accepts each advisory of ignore,
   # by its identifier, such as PYSEC-2024-1.
   audit:
