@@ -26,7 +26,7 @@ they record why not.
 | [0013](0013-typescript-names-free-on-vitest-expect.md) | TypeScript names that vitest's expect does not define | Accepted |
 | [0014](0014-pinning-the-answers-languages-disagree-on.md) | Pinning the answers languages disagree on | Accepted, superseded in part by [ADR-0001](../adr/0001-vendor-the-definition-with-spec.md) |
 | [0015](0015-isolation-checks-over-transaction-histories.md) | Isolation checks over transaction histories | Accepted |
-| [0016](0016-recording-every-assertion-call.md) | Recording every assertion call | Accepted, superseded in part by [RFC-0038](0038-a-case-that-skips-the-run-of-its-property.md) |
+| [0016](0016-recording-every-assertion-call.md) | Recording every assertion call | Accepted, superseded in part by [RFC-0038](0038-a-case-that-skips-the-run-of-its-property.md) and [RFC-0040](0040-a-check-that-skips-under-rejects.md) |
 | [0017](0017-pinning-map-keys.md) | Pinning map keys | Accepted |
 | [0018](0018-warm-up-iterations-in-a-benchmark-contract.md) | Warm-up iterations in a benchmark contract | Accepted |
 | [0019](0019-parallel-bodies-in-a-benchmark-contract.md) | Parallel bodies in a benchmark contract | Accepted |
@@ -44,10 +44,10 @@ they record why not.
 | [0031](0031-a-wrapper-around-each-run-of-a-property.md) | A wrapper around each run of a property | Accepted |
 | [0032](0032-ten-counts-of-an-allocation-ceiling.md) | Ten counts of an allocation ceiling | Accepted |
 | [0033](0033-faults-through-the-seat.md) | Faults through the seat | Accepted |
-| [0034](0034-a-check-that-ends-with-a-fault.md) | A check that ends with a fault | Accepted |
+| [0034](0034-a-check-that-ends-with-a-fault.md) | A check that ends with a fault | Accepted, superseded in part by [RFC-0040](0040-a-check-that-skips-under-rejects.md) |
 | [0035](0035-the-values-of-a-generator-for-a-seed.md) | The values of a generator for a seed | Accepted, superseded in part by [RFC-0037](0037-the-values-of-a-generator-under-using.md) |
 | [0036](0036-whether-a-run-checks-allocation-ceilings.md) | Whether a run checks allocation ceilings | Accepted |
 | [0037](0037-the-values-of-a-generator-under-using.md) | The values of a generator under the option using | Accepted, superseded in part by [RFC-0039](0039-a-stated-recursive-generator-of-its-own-type.md) |
-| [0038](0038-a-case-that-skips-the-run-of-its-property.md) | A case that skips the run of its property | Accepted |
+| [0038](0038-a-case-that-skips-the-run-of-its-property.md) | A case that skips the run of its property | Accepted, superseded in part by [RFC-0040](0040-a-check-that-skips-under-rejects.md) |
 | [0039](0039-a-stated-recursive-generator-of-its-own-type.md) | A stated recursive generator of its own type | Accepted |
-| [0040](0040-a-check-that-skips-under-rejects.md) | A check that skips under rejects | Draft |
+| [0040](0040-a-check-that-skips-under-rejects.md) | A check that skips under rejects | Accepted |

@@ -2,7 +2,7 @@
 rfc: 0040
 title: A check that skips under rejects
 author: Roy Klopper <roy.klopper@stealthscale.io>
-status: Draft
+status: Accepted
 created: 2026-10-26
 updated: 2026-10-26
 discussion: https://github.com/dokimasia/assert-spec/issues/22
