@@ -21,7 +21,7 @@ they record why not.
 | [0008](0008-what-a-benchmark-measures.md) | What a benchmark measures | Accepted |
 | [0009](0009-an-allocation-ceiling-in-a-test.md) | An allocation ceiling in a test | Accepted |
 | [0010](0010-properties-over-generated-inputs.md) | Properties over generated inputs | Accepted, superseded in part by [RFC-0038](0038-a-case-that-skips-the-run-of-its-property.md) |
-| [0011](0011-property-forms-and-derived-inputs.md) | Property forms and inputs derived from types | Accepted |
+| [0011](0011-property-forms-and-derived-inputs.md) | Property forms and inputs derived from types | Accepted, superseded in part by [RFC-0041](0041-complex-numbers-fractions-and-uintptr.md) |
 | [0012](0012-machines-simulation-and-campaigns.md) | Machines, simulation and campaigns | Accepted |
 | [0013](0013-typescript-names-free-on-vitest-expect.md) | TypeScript names that vitest's expect does not define | Accepted |
 | [0014](0014-pinning-the-answers-languages-disagree-on.md) | Pinning the answers languages disagree on | Accepted, superseded in part by [ADR-0001](../adr/0001-vendor-the-definition-with-spec.md) |
@@ -51,3 +51,4 @@ they record why not.
 | [0038](0038-a-case-that-skips-the-run-of-its-property.md) | A case that skips the run of its property | Accepted, superseded in part by [RFC-0040](0040-a-check-that-skips-under-rejects.md) |
 | [0039](0039-a-stated-recursive-generator-of-its-own-type.md) | A stated recursive generator of its own type | Accepted |
 | [0040](0040-a-check-that-skips-under-rejects.md) | A check that skips under rejects | Accepted |
+| [0041](0041-complex-numbers-fractions-and-uintptr.md) | Complex numbers, fractions and uintptr in the reading table | Accepted |
