@@ -47,5 +47,6 @@ they record why not.
 | [0034](0034-a-check-that-ends-with-a-fault.md) | A check that ends with a fault | Accepted |
 | [0035](0035-the-values-of-a-generator-for-a-seed.md) | The values of a generator for a seed | Accepted, superseded in part by [RFC-0037](0037-the-values-of-a-generator-under-using.md) |
 | [0036](0036-whether-a-run-checks-allocation-ceilings.md) | Whether a run checks allocation ceilings | Accepted |
-| [0037](0037-the-values-of-a-generator-under-using.md) | The values of a generator under the option using | Accepted |
+| [0037](0037-the-values-of-a-generator-under-using.md) | The values of a generator under the option using | Accepted, superseded in part by [RFC-0039](0039-a-stated-recursive-generator-of-its-own-type.md) |
 | [0038](0038-a-case-that-skips-the-run-of-its-property.md) | A case that skips the run of its property | Accepted |
+| [0039](0039-a-stated-recursive-generator-of-its-own-type.md) | A stated recursive generator of its own type | Accepted |
