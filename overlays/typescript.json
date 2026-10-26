@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@12.0.0",
+  "extends": "spec://assertions@12.1.0",
   "language": "typescript",
   "diverge": [
     {
@@ -69,6 +69,11 @@
       "id": "case.skip",
       "what": "Skips the test through the seat of the vitest fixture test, which calls skip of the test context. On every other seat, the seat of a jest test included, the call record states the verdict skip and the test passes.",
       "why": "jest offers no call that skips a test while it runs, and a seat outside the fixture has no test context to call skip on."
+    },
+    {
+      "id": "seat.skip",
+      "what": "Only the seat of the vitest fixture test states the member, which calls skip of the test context. A call of doesReject whose check skips on any other seat, the seat of a jest test included, states the verdict skip in its call record, and the test passes.",
+      "why": "jest offers no call that skips a test while it runs, and a seat outside the fixture has no test context to call skip on."
     }
   ],
   "surface": [
@@ -83,6 +88,10 @@
     {
       "id": "fault-reporter",
       "why": "The seat states reportFault as an optional member, which the library calls where the seat has it, and the library throws the fault for a seat without it. Only a language whose interfaces carry no defaults needs a second interface to say the same thing."
+    },
+    {
+      "id": "skipper",
+      "why": "The seat states skip as an optional member, which the library calls where the seat has it. Only a language whose interfaces carry no defaults needs a second interface to say the same thing."
     },
     {
       "id": "contract.excluding",

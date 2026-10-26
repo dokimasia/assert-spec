@@ -444,7 +444,10 @@ class ComputeTest(unittest.TestCase):
         assert got == {"verdict": "fail", "calls": []}
 
     def test_a_recording_vector_of_a_skipped_run_states_the_verdict_skip(self) -> None:
-        """The stored case passes, and the simplest case skips before true."""
+        """The stored case passes, and the simplest case skips before true.
+
+        The outputs state the reason of the skip beside the verdict.
+        """
         body = {
             "draw": {"gen": "integer", "min": 0, "max": 9},
             "skips": [
@@ -457,7 +460,7 @@ class ComputeTest(unittest.TestCase):
         settings = {"seed": "7", "stored": [[5]]}
         got = compute("recording", {"body": body, "settings": settings})
         call = {"run": 1, "phase": "stored", "verdict": "pass"}
-        assert got == {"verdict": "skip", "calls": [call]}
+        assert got == {"verdict": "skip", "reason": "unsupported", "calls": [call]}
 
     def test_an_unknown_kind_or_missing_input_raises(self) -> None:
         """No such kind; a decoding vector without choices."""

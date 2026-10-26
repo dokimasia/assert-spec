@@ -46,6 +46,7 @@ recorded.
 | `where` | The call site, as `file`, the base name of the file, and `line` | When the language supplies it, as for the failure record |
 | `detail` | The detail fields, as the detail section states them | On `fail`. A property states it on `pass` too |
 | `error` | The text of the fault that ended the call | On `error` |
+| `reason` | The reason of the skip | On `skip` |
 | `test` | The test, as the runner identifies it | When the artifact does not state the test beside the call record |
 
 `where.file` is the base name, as in the store's identity, so a call
@@ -88,12 +89,15 @@ A failing `equal` on the recording surface:
 | `pass` | The assertion found what the contract requires |
 | `fail` | The assertion did not, and the call reported its failure record |
 | `error` | The call ended without a verdict, because the library refused an argument or its environment, and the test failed |
-| `skip` | The run of a property ended at a case that called `skip`. The test skips where its runner can skip a running test |
+| `skip` | The run of a property ended at a case that called `skip`, or the check of `rejects` skipped before it failed. The test skips where its runner can skip a running test |
 
 A malformed `DOKIMI_ASSERT_PROP_SEED`, a replay token in a form that no
 encoder writes, and a damaged file in a property's store each end a call
 with `error`. A call of `rejects` whose check ends with a fault ends with
-`error` and the text of that fault.
+`error` and the text of that fault. A call of `rejects` whose check skips
+before it fails ends with `skip` and the reason of the skip. A property
+that skips states the reason in `reason` and in the field `reason` of its
+detail.
 
 The helper `fault` ends the call of a helper with a fault, and does not
 write a call record, because the call is no call of an assertion.
@@ -274,8 +278,9 @@ keeps the case's one call record, and checks that record:
 Each vector states a behaviour body and the settings of a run. The body
 calls `true` once at its end, and the call fails when the predicate of a
 `fails` entry is true. A case that skips ends before its call of `true`.
-The outputs are the property's verdict, `pass`, `skip` or `fail`, and, in
-order, the `run`, the `phase` and the `verdict` of each call of `true`. The
+The outputs are the property's verdict, `pass`, `skip` or `fail`, the
+`reason` of a property that skips, and, in order, the `run`, the `phase`
+and the `verdict` of each call of `true`. The
 property's call is `seq` 1, and the call at position k of the outputs,
 from 1, is `seq` k + 1 with `parent` 1.
 

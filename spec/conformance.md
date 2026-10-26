@@ -95,6 +95,16 @@ receives each fault as the error it is:
 A fault is an input of a test, so no vector pins it. Each language checks
 it in its own tests.
 
+**How a seat skips its test.** A seat that states `seat.skip` skips its
+test with the reason, where its runner can skip a running test. The seat
+of the check of `rejects` keeps the reason and ends the check, as a
+failure that stops ends it. `rejects` then ends its own call as skipped
+when the check skipped before it failed. The call record states the
+verdict `skip` and the reason, and `rejects` passes the skip to its own
+seat. A seat without the member receives nothing, and the test runs on.
+A skip is an input of a test, so no corpus case pins it. Each language
+checks it in its own tests.
+
 **What a recorded run states.** `recording.md` fixes the fields of a
 call record and their encoding, the verdicts, the phases of a property's
 cases, the opaque literal, the numbering, the switch and its values,

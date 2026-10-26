@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@12.0.0",
+  "extends": "spec://assertions@12.1.0",
   "language": "go",
   "diverge": [],
   "limits": [
@@ -70,6 +70,10 @@
     {
       "id": "contract.measuring",
       "why": "Go writes a benchmark body inline under testing.B, so a setup closure would take the caller out of both the loop and the chain. It marks the setup in place with Excluding instead."
+    },
+    {
+      "id": "skipper",
+      "why": "testing.TB declares Skipf, and the library finds the method along the seats that Unwrap returns, as it finds Logf. A seat with the method needs no interface that names it."
     }
   ],
   "sections": ["tasks", "threads"],

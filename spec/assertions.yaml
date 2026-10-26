@@ -20,7 +20,7 @@
 # assertion carries exactly these. got is what the assertion observed
 # and want is what it required, so an assertion whose failure holds
 # neither states no fields and reports the caller's message alone.
-version: "12.0.0"
+version: "12.1.0"
 
 # What a caller may change about equality, for one call.
 #
@@ -863,7 +863,10 @@ assertions:
     summary: >
       A check fails against an implementation it is meant to reject.
       Yields the failure records of the check, in call order. A fault
-      that ends the check ends the call with the same fault.
+      that ends the check ends the call with the same fault. A check that
+      skips before it fails ends the call as skipped, which yields no
+      record and skips the test where its runner can skip a running
+      test.
     detail_fields: []
 
   "prop-for-all":

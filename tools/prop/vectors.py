@@ -346,9 +346,9 @@ def recording(case: Mapping[str, Any]) -> Vector:
     The body is a behaviour body followed by one call of true, which fails
     exactly when the body fails. A call of the body that ends before its
     end, rejected, skipped, repeated, past its cap or diverging, makes no
-    call. The outputs are the property's verdict, pass, skip or fail, and,
-    for each call in order, the call of the body that made it, numbered
-    from 1, its phase and its verdict.
+    call. The outputs are the property's verdict, pass, skip or fail, the
+    reason of a run that skips, and, for each call in order, the call of
+    the body that made it, numbered from 1, its phase and its verdict.
     """
     body = build_body(case["body"])
     made: list[str] = []
@@ -374,6 +374,8 @@ def recording(case: Mapping[str, Any]) -> Vector:
         made.clear()
 
     outcome = run(asserting, run_settings(case.get("settings", {})), observe)
+    if outcome.kind is Kind.SKIPPED:
+        return {"verdict": "skip", "reason": outcome.reason, "calls": calls}
     return {"verdict": VERDICTS.get(outcome.kind, "fail"), "calls": calls}
 
 

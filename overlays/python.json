@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@12.0.0",
+  "extends": "spec://assertions@12.1.0",
   "language": "python",
   "diverge": [
     {
@@ -62,6 +62,10 @@
     {
       "id": "fault-reporter",
       "why": "A seat states report_fault itself, as a method that the library calls where the seat has it, and the library raises the fault for a seat without it. Only a language whose interfaces carry no defaults needs a second interface to say the same thing."
+    },
+    {
+      "id": "skipper",
+      "why": "A seat states skip itself, as a method that the library calls where the seat has it. Only a language whose interfaces carry no defaults needs a second interface to say the same thing."
     },
     {
       "id": "contract.measuring",

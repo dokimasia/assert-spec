@@ -19,7 +19,7 @@
 # as its positive does. Each of these names takes the auxiliary that its
 # word takes in an English sentence: is before an adjective, has before a
 # noun and does before a verb.
-version: "12.0.0"
+version: "12.1.0"
 
 languages: [go, java, kotlin, php, python, rust, typescript]
 
@@ -597,6 +597,13 @@ relaxations:
 # Go names it Fault, the public form of its internal End, and Java and
 # Kotlin name it Check.fault beside Check.that.
 #
+# A seat skips its test through skip. Go names the member Skipf, which
+# testing.TB declares, and the library finds it along the seats that Unwrap
+# returns, so Go declines Skipper. Java and Kotlin state the member on the
+# interface Skipper, as they state report-fault on FaultReporter. Python and
+# TypeScript state it as an optional member of the seat, and Rust gives it
+# a default on the trait, so the three decline Skipper.
+#
 # allocs-checked reports whether a run checks allocation ceilings. Go names
 # it AllocsChecked, and Java and Kotlin Check.allocsChecked. prop.values
 # returns the values of a generator for a seed, beside the other helpers
@@ -741,6 +748,9 @@ surface:
       go: "FaultReporter"
       java: "FaultReporter"
       kotlin: "FaultReporter"
+    "skipper":
+      java: "Skipper"
+      kotlin: "Skipper"
     "scrubber":
       go: "golden.Scrubber"
       python: "golden.Scrubber"
@@ -941,6 +951,13 @@ surface:
       rust: "cancellation"
       typescript: "signal"
       java: "cancelled"
+    "seat.skip":
+      go: "Skipf"
+      python: "skip"
+      rust: "skip"
+      typescript: "skip"
+      java: "skip"
+      kotlin: "skip"
     "clock.now":
       go: "Now"
       python: "now"
