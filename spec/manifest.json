@@ -1,7 +1,7 @@
 {
-    "digest": "sha256:f3e4a58f3909e28c4d3299c1e62ce45f0817fe320d476e087dd2999837d44f4a",
+    "digest": "sha256:d56f8791685212d1fa600ffbcf37581da3a7f342f7e4b671b2b4f0cf9310b11b",
     "files": {
-        "VERSION": "sha256:a712c758275b460d18fa77a26ed3589689bb3f69dcc1ea99b913e32db92a5cd2",
+        "VERSION": "sha256:4211530c8fb0d148aab950b0005433a64dd6f19f26460831515c07d12fc826a9",
         "corpus/accumulates.json": "sha256:9ac2967d84157a9b57d3fb59ef75378e60495ced35194ba170bf216deb0e3daf",
         "corpus/after-close.json": "sha256:c7df47d3ef812973763b2191caa55180c1d2536710873bb420ff8d4e79da6506",
         "corpus/associative.json": "sha256:41169311a5d852966b84a14702a528a8f99591e82c734d32017fc6586bae56e9",
@@ -54,7 +54,7 @@
         "corpus/prop/coverage.json": "sha256:6ddea5b6932e1722599d37efcbbfcbfbcf7a72fe82cef8d380c84430b041673e",
         "corpus/prop/decoding.json": "sha256:651e4ba90fee8ac5b67673c815b4d2a32f79054f009659a481b71c92a06c6934",
         "corpus/prop/draws.json": "sha256:d4f266f4969fb56722b2df90e5c608ece04827b9769098a575bbdf7d991a2a3d",
-        "corpus/prop/fixtures.json": "sha256:d9b7c57480b102cb649480779a4bdd1f25c933b38c608b35d18c9b5408af7364",
+        "corpus/prop/fixtures.json": "sha256:28183420828c11f50f3c4550a433d5b728e11f141569b06604f35a85322d0a41",
         "corpus/prop/forms.json": "sha256:c2cbc6a1e0d172cafe5acbfe4dbe40aecddbd5a5632eaf032e6742ee8e3257b5",
         "corpus/prop/generation.json": "sha256:790499ef131f4c062d9b4b406052cb9f8f070ca93d9a3a66ed170c7dc411ebe1",
         "corpus/prop/inverse.json": "sha256:82c1a258ebeb5e282deb7e7a6c9d722b50f8eeaec283cd20a2ad49a7ccda08f0",
@@ -70,14 +70,14 @@
         "corpus/throws.json": "sha256:40dd385108c7ada8c0ce236a79c13db2da23e8e142f2fa5947fcce1623e7e365",
         "corpus/total.json": "sha256:ee76e6bd97358d2576dd24dc9d32949cdce5b46484635237a1a4c0e043322cb3",
         "corpus/true.json": "sha256:43e01f045228fd01449d2abad5c07b50b8d700fd6c986e6877a4f192ff86b616",
-        "overlays/go.json": "sha256:abec293af0a60179e909689a0603d7d60c0104e03d00189e6c9018715f43a806",
-        "overlays/java.json": "sha256:ed29ea6cdf081ae6ac8c32ee67ac51088d35a6b49777c4bb6dd0207c35d18a32",
-        "overlays/kotlin.json": "sha256:2bdae232603288cdf98f382396b1666f572efb837b3a9b547642f8ee27c61add",
-        "overlays/python.json": "sha256:66d8446790cb6808074e8c28d70c42966f1304c98ea833c76c15df24be771303",
-        "overlays/rust.json": "sha256:0b8a56efd3363e6b4be406470d2beacd13c7ddc396a64ef38cd2105b43372779",
-        "overlays/typescript.json": "sha256:4e3765bbff186f5b3b4f94ecf858a013de2580eb8d955e25174fc97355918b0d",
-        "spec/assertions.json": "sha256:c1e706c22f2f92dafb1521a8002d585821efcd3bbc5221cca8c17d8e1ea6d1b3",
-        "spec/naming.json": "sha256:61868ac6ab50c6c03eabe10a24a1d86746a098227122f58a17f2a02aa7afec36",
+        "overlays/go.json": "sha256:8ef07ac6d80bea8b6fb9d10477d19c931cc4efa5150ff1aa4f348b8dae3e6758",
+        "overlays/java.json": "sha256:60d6fd227d25e65507feb63b1a9f36ef4a43bb047249daec8edef215ef9c60d3",
+        "overlays/kotlin.json": "sha256:ff259f9dc4e2d721480882fe3b7fa0b9a70af2e7a877bb4a295758e788b5cc20",
+        "overlays/python.json": "sha256:effb91d0d5ac06ce028a3159a12ae64562c8b28620139cb430dba7133e39df40",
+        "overlays/rust.json": "sha256:97a7d3ce64bef0a204c05fd1f0c11eb06c65511fc8976405ab36ea27b213faf0",
+        "overlays/typescript.json": "sha256:7718fc03e386022f0770a42bae64fb2ab93495c7fa8d7a34cca19dcc644006b1",
+        "spec/assertions.json": "sha256:f86d6650583b7d0ed9565ece2d9e5a705ff4a105e75713fa21ae5d5d22f45778",
+        "spec/naming.json": "sha256:ecb309687ef37cc080eb9f059ba566b3e32928c9a5cddf845b58d45c10648b33",
         "spec/zones.json": "sha256:6eb1d994a1e2d727161582e20dee8cd429073fa561c06f8eb7442c20f810f6c6"
     },
     "languages": {
@@ -100,5 +100,5 @@
             "overlays/typescript.json"
         ]
     },
-    "version": "12.1.0"
+    "version": "12.2.0"
 }

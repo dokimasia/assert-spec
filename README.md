@@ -62,7 +62,7 @@ tools/history/         the history's and the checkers' executable reference
 tools/stateful/        the machines' and the scheduler's executable reference
 tools/files/           the trees' and the file assertions' executable reference
 .spec.yaml             the files an implementation vendors with spec
-VERSION                12.1.0
+VERSION                12.2.0
 ```
 
 People edit the YAML. `make render` produces the JSON, which is
@@ -151,7 +151,7 @@ remaining 22 take an error value, a predicate, a callable that no subject
 describes, a golden file, a benchmark measurement, a property's body, a
 spec or a recorded history, and none of those is a typed literal
 either. The property engine
-itself is data in and data out, so 430 vectors under `corpus/prop/` pin
+itself is data in and data out, so 432 vectors under `corpus/prop/` pin
 its decoding, generation, shrinking, coverage test, fuzz bridge, replay
 token, run detail and store. They also pin the values each shape
 generates, the choices that produce a value, the shape each fixture type
@@ -287,7 +287,7 @@ differently.
 | TypeScript | [assert-typescript](https://github.com/dokimasia/assert-typescript) | 104 of 110 |
 
 Each count is what the language's overlay declares against version
-12.1.0. An implementation whose copy is behind has an open pull request
+12.2.0. An implementation whose copy is behind has an open pull request
 from spec with the new copy.
 
 Java and Kotlin ship from one repository and are named identically, so
@@ -306,9 +306,9 @@ Go and Rust state all 110 and declare nothing absent. Go checks no
 allocation ceiling in a build with the race detector, msan or asan, in
 one whose `-gcflags` turn off optimisation or inlining, or in a test
 binary that a mutation run instrumented, because those builds allocate
-differently from the one that ships. Go also reads an
-`int` at the platform's width, which is 32 bits on a 32-bit platform. A
-property over an `int` generates other values there. In Rust seven are
+differently from the one that ships. Go also reads `int`, `uint` and
+`uintptr` at the platform's width, which is 32 bits on a 32-bit platform.
+A property over one of them generates other values there. In Rust seven are
 partial: the six
 allocation ceilings need a counting allocator installed as the test
 binary's global allocator, and no-task-leaks sees tasks on a runtime but
@@ -325,7 +325,7 @@ supply a memory barrier that the subject lacks. TypeScript searches the
 partitions of a history one at a time for any number of workers.
 
 The TypeScript compiler erases every type, so the TypeScript library reads
-no type into a shape. It skips the 34 fixture vectors. A property derives
+no type into a shape. It skips the 36 fixture vectors. A property derives
 its inputs from shape files alone. The library runs the concurrent section
 of a machine only as tasks and declines `repeat`. Its overlay also limits
 `prop.fuzz`, because vitest does not run a fuzzer, and `prop.using`,

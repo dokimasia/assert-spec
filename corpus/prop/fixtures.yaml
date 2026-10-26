@@ -7,15 +7,31 @@
 # that has no type for a shape, or no type to read at run time, declares a
 # skip for that fixture. Between them the fixtures cover every shape a
 # native type reads as, which is every shape but wall-time, and every row of
-# the constraint table. A time fixture states its unit as a constraint,
-# because a unit otherwise follows the language's type. Nothing is computed:
-# `make render` checks that each shape reads.
+# the constraint table. The fixtures signal and share cover a complex number
+# and a fraction, which read as records. A time fixture states its unit as a
+# constraint, because a unit otherwise follows the language's type. Nothing
+# is computed: `make render` checks that each shape reads.
 kind: fixtures
 
 # The skip of a language whose compiler erases its types, so that no type
-# remains at run time for a reader.
+# remains at run time for a reader, and the skips of the languages whose
+# standard libraries have no complex type or no rational type.
 skips:
   erased: &erased
+    typescript: >-
+      the TypeScript compiler erases every type, so no type remains at run
+      time to read into a shape
+  no-complex: &no-complex
+    rust: the Rust standard library has no complex number type
+    java: the Java standard library has no complex number type
+    kotlin: the Kotlin and Java standard libraries have no complex number type
+    typescript: >-
+      the TypeScript compiler erases every type, so no type remains at run
+      time to read into a shape
+  no-fraction: &no-fraction
+    rust: the Rust standard library has no rational number type
+    java: the Java standard library has no rational number type
+    kotlin: the Kotlin and Java standard libraries have no rational number type
     typescript: >-
       the TypeScript compiler erases every type, so no type remains at run
       time to read into a shape
@@ -280,3 +296,32 @@ cases:
     summary: A record of one IP address field of version 4, address.
     shape: {shape: record, fields: [[address, {shape: ip-address, version: 4}]]}
     skip: *erased
+
+  - id: fixtures/signal
+    fixture: signal
+    covers: complex
+    summary: >-
+      A record of one complex field, sample, a record of the 64-bit floats
+      real and imag.
+    shape:
+      shape: record
+      fields:
+        - - sample
+          - shape: record
+            fields: [[real, {shape: float, width: 64}], [imag, {shape: float, width: 64}]]
+    skip: *no-complex
+  - id: fixtures/share
+    fixture: share
+    covers: fraction
+    summary: >-
+      A record of one rational field, part, a record of num, a signed 64-bit
+      integer, and den, an unsigned 64-bit integer from 1.
+    shape:
+      shape: record
+      fields:
+        - - part
+          - shape: record
+            fields:
+              - [num, {shape: int, width: 64, signed: true}]
+              - [den, {shape: int, width: 64, signed: false, min: 1}]
+    skip: *no-fraction
