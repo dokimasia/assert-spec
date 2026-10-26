@@ -50,3 +50,4 @@ they record why not.
 | [0037](0037-the-values-of-a-generator-under-using.md) | The values of a generator under the option using | Accepted, superseded in part by [RFC-0039](0039-a-stated-recursive-generator-of-its-own-type.md) |
 | [0038](0038-a-case-that-skips-the-run-of-its-property.md) | A case that skips the run of its property | Accepted |
 | [0039](0039-a-stated-recursive-generator-of-its-own-type.md) | A stated recursive generator of its own type | Accepted |
+| [0040](0040-a-check-that-skips-under-rejects.md) | A check that skips under rejects | Draft |
