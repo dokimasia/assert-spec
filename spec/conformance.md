@@ -91,6 +91,10 @@ receives each fault as the error it is:
   `recorder-seat.faults`. A fault that ends a call fails the recorder.
 - The seat of the check of `rejects` keeps the fault that ends the check.
   `rejects` then ends its own call with that fault.
+- A case of a property keeps the fault that ends a call in its body, and
+  passes a noted fault to the seat of the property. The kept fault ends
+  the run in every phase, and the property ends its own call with that
+  fault. The run neither shrinks nor stores a case then.
 
 A fault is an input of a test, so no vector pins it. Each language checks
 it in its own tests.

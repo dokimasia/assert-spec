@@ -19,7 +19,7 @@
 # as its positive does. Each of these names takes the auxiliary that its
 # word takes in an English sentence: is before an adjective, has before a
 # noun and does before a verb.
-version: "12.2.0"
+version: "13.0.0"
 
 languages: [go, java, kotlin, php, python, rust, typescript]
 

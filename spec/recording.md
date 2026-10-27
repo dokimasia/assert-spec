@@ -94,7 +94,8 @@ A failing `equal` on the recording surface:
 A malformed `DOKIMI_ASSERT_PROP_SEED`, a replay token in a form that no
 encoder writes, and a damaged file in a property's store each end a call
 with `error`. A call of `rejects` whose check ends with a fault ends with
-`error` and the text of that fault. A call of `rejects` whose check skips
+`error` and the text of that fault, and so does a property whose case ends
+with a fault. A call of `rejects` whose check skips
 before it fails ends with `skip` and the reason of the skip. A property
 that skips states the reason in `reason` and in the field `reason` of its
 detail.
