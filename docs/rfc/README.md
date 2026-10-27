@@ -20,7 +20,7 @@ they record why not.
 | [0007](0007-conformance-beyond-the-corpus.md) | Conformance beyond the corpus | Accepted |
 | [0008](0008-what-a-benchmark-measures.md) | What a benchmark measures | Accepted |
 | [0009](0009-an-allocation-ceiling-in-a-test.md) | An allocation ceiling in a test | Accepted |
-| [0010](0010-properties-over-generated-inputs.md) | Properties over generated inputs | Accepted, superseded in part by [RFC-0038](0038-a-case-that-skips-the-run-of-its-property.md) |
+| [0010](0010-properties-over-generated-inputs.md) | Properties over generated inputs | Accepted, superseded in part by [RFC-0038](0038-a-case-that-skips-the-run-of-its-property.md) and [RFC-0042](0042-a-case-that-ends-with-a-fault.md) |
 | [0011](0011-property-forms-and-derived-inputs.md) | Property forms and inputs derived from types | Accepted, superseded in part by [RFC-0041](0041-complex-numbers-fractions-and-uintptr.md) |
 | [0012](0012-machines-simulation-and-campaigns.md) | Machines, simulation and campaigns | Accepted |
 | [0013](0013-typescript-names-free-on-vitest-expect.md) | TypeScript names that vitest's expect does not define | Accepted |
@@ -52,3 +52,4 @@ they record why not.
 | [0039](0039-a-stated-recursive-generator-of-its-own-type.md) | A stated recursive generator of its own type | Accepted |
 | [0040](0040-a-check-that-skips-under-rejects.md) | A check that skips under rejects | Accepted |
 | [0041](0041-complex-numbers-fractions-and-uintptr.md) | Complex numbers, fractions and uintptr in the reading table | Accepted |
+| [0042](0042-a-case-that-ends-with-a-fault.md) | A case that ends with a fault | Accepted |
