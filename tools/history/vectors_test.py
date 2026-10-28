@@ -236,9 +236,9 @@ class IsolationTest(unittest.TestCase):
         with pytest.raises(VectorError, match="script entry 4"):
             compute("serializable", {"history": refused})
 
-    def test_refuses_a_history_that_is_no_list_append_history(self) -> None:
+    def test_refuses_a_history_that_is_no_transaction_history(self) -> None:
         """A transaction states micro-operations."""
-        broken = [txn(0, 0, mop("write", "x", 1)), done(0, mop("write", "x", 1))]
+        broken = [txn(0, 0, mop("delete", "x", 1)), done(0, mop("delete", "x", 1))]
         with pytest.raises(VectorError, match="argument 0 of call 0"):
             compute("snapshot-isolation", {"history": broken})
 

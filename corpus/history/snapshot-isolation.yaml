@@ -1,7 +1,7 @@
 # Copyright Dokimasia B.V. 2026
 # SPDX-License-Identifier: MIT
 
-# snapshot-isolation: a history of list-append transactions checked for an anomaly
+# snapshot-isolation: a history of list-append or register transactions checked for an anomaly
 # that snapshot isolation forbids. Each case states its history as a script of the
 # seam, as a linearizable case does. Every case of this file has a twin, with
 # the same history, in the file of the other isolation level.
@@ -177,3 +177,114 @@ cases:
       - {ok: 0, output: {type: list, items: [{type: list, items: [{type: string, value: append}, {type: string, value: x}, {type: int, value: 1}]}, {type: list, items: [{type: string, value: read}, {type: string, value: y}, {type: list, of: int, value: [2]}]}, {type: list, items: [{type: string, value: read}, {type: string, value: z}, {type: list, of: int, value: [3]}]}]}}
       - {ok: 1, output: {type: list, items: [{type: list, items: [{type: string, value: append}, {type: string, value: y}, {type: int, value: 2}]}, {type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: list, of: int, value: [1]}]}]}}
       - {ok: 2, output: {type: list, items: [{type: list, items: [{type: string, value: append}, {type: string, value: z}, {type: int, value: 3}]}, {type: list, items: [{type: string, value: read}, {type: string, value: y}, {type: list, of: int, value: [2]}]}]}}
+
+  # Register histories: each kind of anomaly that a register history can
+  # exhibit, a lost update, which snapshot isolation passes, a serial history
+  # and an observed write of unknown outcome.
+  - id: snapshot-isolation/registers-a-read-returns-a-value-that-no-transaction-wrote
+    history:
+      - {invoke: 0, client: 0, operation: txn, args: [{type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 1}]}], keys: [{type: string, value: x}]}
+      - {ok: 0, output: {type: list, items: [{type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 1}]}]}}
+      - {invoke: 1, client: 1, operation: txn, args: [{type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: "null"}]}], keys: [{type: string, value: x}]}
+      - {ok: 1, output: {type: list, items: [{type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: int, value: 9}]}]}}
+
+  - id: snapshot-isolation/registers-a-read-differs-from-its-transactions-earlier-write
+    history:
+      - {invoke: 0, client: 0, operation: txn, args: [{type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 2}]}], keys: [{type: string, value: x}]}
+      - {ok: 0, output: {type: list, items: [{type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 2}]}]}}
+      - {invoke: 1, client: 1, operation: txn, args: [{type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 1}]}, {type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: "null"}]}], keys: [{type: string, value: x}]}
+      - {ok: 1, output: {type: list, items: [{type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 1}]}, {type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: int, value: 2}]}]}}
+
+  - id: snapshot-isolation/registers-a-read-differs-from-its-transactions-earlier-read
+    history:
+      - {invoke: 0, client: 0, operation: txn, args: [{type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 1}]}], keys: [{type: string, value: x}]}
+      - {ok: 0, output: {type: list, items: [{type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 1}]}]}}
+      - {invoke: 1, client: 1, operation: txn, args: [{type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 2}]}], keys: [{type: string, value: x}]}
+      - {ok: 1, output: {type: list, items: [{type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 2}]}]}}
+      - {invoke: 2, client: 2, operation: txn, args: [{type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: "null"}]}, {type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: "null"}]}], keys: [{type: string, value: x}]}
+      - {ok: 2, output: {type: list, items: [{type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: int, value: 1}]}, {type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: int, value: 2}]}]}}
+
+  - id: snapshot-isolation/registers-a-read-returns-its-transactions-later-write
+    history:
+      - {invoke: 0, client: 0, operation: txn, args: [{type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: "null"}]}, {type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 1}]}], keys: [{type: string, value: x}]}
+      - {ok: 0, output: {type: list, items: [{type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: int, value: 1}]}, {type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 1}]}]}}
+
+  - id: snapshot-isolation/registers-a-read-observes-an-aborted-write
+    history:
+      - {invoke: 0, client: 0, operation: txn, args: [{type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 1}]}], keys: [{type: string, value: x}]}
+      - {fail: 0, error: aborted}
+      - {invoke: 1, client: 1, operation: txn, args: [{type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: "null"}]}], keys: [{type: string, value: x}]}
+      - {ok: 1, output: {type: list, items: [{type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: int, value: 1}]}]}}
+
+  - id: snapshot-isolation/registers-a-read-returns-a-value-its-writer-overwrote
+    history:
+      - {invoke: 0, client: 0, operation: txn, args: [{type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 1}]}, {type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 2}]}], keys: [{type: string, value: x}]}
+      - {ok: 0, output: {type: list, items: [{type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 1}]}, {type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 2}]}]}}
+      - {invoke: 1, client: 1, operation: txn, args: [{type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: "null"}]}], keys: [{type: string, value: x}]}
+      - {ok: 1, output: {type: list, items: [{type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: int, value: 1}]}]}}
+
+  - id: snapshot-isolation/registers-two-transactions-overwrite-each-others-reads
+    history:
+      - {invoke: 0, client: 0, operation: txn, args: [{type: list, items: [{type: string, value: write}, {type: string, value: y}, {type: int, value: 3}]}, {type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: "null"}]}, {type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 2}]}], keys: [{type: string, value: y}, {type: string, value: x}]}
+      - {invoke: 1, client: 1, operation: txn, args: [{type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 1}]}, {type: list, items: [{type: string, value: read}, {type: string, value: y}, {type: "null"}]}, {type: list, items: [{type: string, value: write}, {type: string, value: y}, {type: int, value: 4}]}], keys: [{type: string, value: x}, {type: string, value: y}]}
+      - {ok: 0, output: {type: list, items: [{type: list, items: [{type: string, value: write}, {type: string, value: y}, {type: int, value: 3}]}, {type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: int, value: 1}]}, {type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 2}]}]}}
+      - {ok: 1, output: {type: list, items: [{type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 1}]}, {type: list, items: [{type: string, value: read}, {type: string, value: y}, {type: int, value: 3}]}, {type: list, items: [{type: string, value: write}, {type: string, value: y}, {type: int, value: 4}]}]}}
+
+  - id: snapshot-isolation/registers-two-transactions-read-each-others-writes
+    history:
+      - {invoke: 0, client: 0, operation: txn, args: [{type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 1}]}, {type: list, items: [{type: string, value: read}, {type: string, value: y}, {type: "null"}]}], keys: [{type: string, value: x}, {type: string, value: y}]}
+      - {invoke: 1, client: 1, operation: txn, args: [{type: list, items: [{type: string, value: write}, {type: string, value: y}, {type: int, value: 2}]}, {type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: "null"}]}], keys: [{type: string, value: y}, {type: string, value: x}]}
+      - {ok: 0, output: {type: list, items: [{type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 1}]}, {type: list, items: [{type: string, value: read}, {type: string, value: y}, {type: int, value: 2}]}]}}
+      - {ok: 1, output: {type: list, items: [{type: list, items: [{type: string, value: write}, {type: string, value: y}, {type: int, value: 2}]}, {type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: int, value: 1}]}]}}
+
+  - id: snapshot-isolation/registers-a-read-skew
+    history:
+      - {invoke: 0, client: 0, operation: txn, args: [{type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 1}]}, {type: list, items: [{type: string, value: write}, {type: string, value: y}, {type: int, value: 1}]}], keys: [{type: string, value: x}, {type: string, value: y}]}
+      - {ok: 0, output: {type: list, items: [{type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 1}]}, {type: list, items: [{type: string, value: write}, {type: string, value: y}, {type: int, value: 1}]}]}}
+      - {invoke: 1, client: 1, operation: txn, args: [{type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: "null"}]}, {type: list, items: [{type: string, value: read}, {type: string, value: y}, {type: "null"}]}], keys: [{type: string, value: x}, {type: string, value: y}]}
+      - {invoke: 2, client: 2, operation: txn, args: [{type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: "null"}]}, {type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 2}]}, {type: list, items: [{type: string, value: write}, {type: string, value: y}, {type: int, value: 2}]}], keys: [{type: string, value: x}, {type: string, value: y}]}
+      - {ok: 2, output: {type: list, items: [{type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: int, value: 1}]}, {type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 2}]}, {type: list, items: [{type: string, value: write}, {type: string, value: y}, {type: int, value: 2}]}]}}
+      - {ok: 1, output: {type: list, items: [{type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: int, value: 1}]}, {type: list, items: [{type: string, value: read}, {type: string, value: y}, {type: int, value: 2}]}]}}
+
+  - id: snapshot-isolation/registers-a-long-fork
+    history:
+      - {invoke: 0, client: 0, operation: txn, args: [{type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 1}]}], keys: [{type: string, value: x}]}
+      - {ok: 0, output: {type: list, items: [{type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 1}]}]}}
+      - {invoke: 1, client: 1, operation: txn, args: [{type: list, items: [{type: string, value: write}, {type: string, value: y}, {type: int, value: 1}]}], keys: [{type: string, value: y}]}
+      - {ok: 1, output: {type: list, items: [{type: list, items: [{type: string, value: write}, {type: string, value: y}, {type: int, value: 1}]}]}}
+      - {invoke: 2, client: 2, operation: txn, args: [{type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: "null"}]}, {type: list, items: [{type: string, value: read}, {type: string, value: y}, {type: "null"}]}], keys: [{type: string, value: x}, {type: string, value: y}]}
+      - {ok: 2, output: {type: list, items: [{type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: int, value: 1}]}, {type: list, items: [{type: string, value: read}, {type: string, value: y}, {type: "null"}]}]}}
+      - {invoke: 3, client: 3, operation: txn, args: [{type: list, items: [{type: string, value: read}, {type: string, value: y}, {type: "null"}]}, {type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: "null"}]}], keys: [{type: string, value: y}, {type: string, value: x}]}
+      - {ok: 3, output: {type: list, items: [{type: list, items: [{type: string, value: read}, {type: string, value: y}, {type: int, value: 1}]}, {type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: "null"}]}]}}
+
+  - id: snapshot-isolation/registers-a-write-skew
+    history:
+      - {invoke: 0, client: 0, operation: txn, args: [{type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: "null"}]}, {type: list, items: [{type: string, value: read}, {type: string, value: y}, {type: "null"}]}, {type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 1}]}], keys: [{type: string, value: x}, {type: string, value: y}]}
+      - {invoke: 1, client: 1, operation: txn, args: [{type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: "null"}]}, {type: list, items: [{type: string, value: read}, {type: string, value: y}, {type: "null"}]}, {type: list, items: [{type: string, value: write}, {type: string, value: y}, {type: int, value: 2}]}], keys: [{type: string, value: x}, {type: string, value: y}]}
+      - {ok: 0, output: {type: list, items: [{type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: "null"}]}, {type: list, items: [{type: string, value: read}, {type: string, value: y}, {type: "null"}]}, {type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 1}]}]}}
+      - {ok: 1, output: {type: list, items: [{type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: "null"}]}, {type: list, items: [{type: string, value: read}, {type: string, value: y}, {type: "null"}]}, {type: list, items: [{type: string, value: write}, {type: string, value: y}, {type: int, value: 2}]}]}}
+
+  - id: snapshot-isolation/registers-a-lost-update
+    history:
+      - {invoke: 0, client: 0, operation: txn, args: [{type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 1}]}], keys: [{type: string, value: x}]}
+      - {ok: 0, output: {type: list, items: [{type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 1}]}]}}
+      - {invoke: 1, client: 1, operation: txn, args: [{type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: "null"}]}, {type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 2}]}], keys: [{type: string, value: x}]}
+      - {invoke: 2, client: 2, operation: txn, args: [{type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: "null"}]}, {type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 3}]}], keys: [{type: string, value: x}]}
+      - {ok: 1, output: {type: list, items: [{type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: int, value: 1}]}, {type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 2}]}]}}
+      - {ok: 2, output: {type: list, items: [{type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: int, value: 1}]}, {type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 3}]}]}}
+
+  - id: snapshot-isolation/registers-a-serial-history-of-read-modify-writes
+    history:
+      - {invoke: 0, client: 0, operation: txn, args: [{type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: "null"}]}, {type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 1}]}], keys: [{type: string, value: x}]}
+      - {ok: 0, output: {type: list, items: [{type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: "null"}]}, {type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 1}]}]}}
+      - {invoke: 1, client: 0, operation: txn, args: [{type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: "null"}]}, {type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 2}]}], keys: [{type: string, value: x}]}
+      - {ok: 1, output: {type: list, items: [{type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: int, value: 1}]}, {type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 2}]}]}}
+      - {invoke: 2, client: 0, operation: txn, args: [{type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: "null"}]}], keys: [{type: string, value: x}]}
+      - {ok: 2, output: {type: list, items: [{type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: int, value: 2}]}]}}
+
+  - id: snapshot-isolation/registers-an-observed-write-of-unknown-outcome-commits
+    history:
+      - {invoke: 0, client: 0, operation: txn, args: [{type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 1}]}, {type: list, items: [{type: string, value: write}, {type: string, value: y}, {type: int, value: 1}]}], keys: [{type: string, value: x}, {type: string, value: y}]}
+      - {unknown: 0, error: "timed out"}
+      - {invoke: 1, client: 1, operation: txn, args: [{type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: "null"}]}, {type: list, items: [{type: string, value: read}, {type: string, value: y}, {type: "null"}]}], keys: [{type: string, value: x}, {type: string, value: y}]}
+      - {ok: 1, output: {type: list, items: [{type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: int, value: 1}]}, {type: list, items: [{type: string, value: read}, {type: string, value: y}, {type: "null"}]}]}}

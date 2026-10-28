@@ -1,7 +1,7 @@
 # Copyright Dokimasia B.V. 2026
 # SPDX-License-Identifier: MIT
 
-"""check() over list-append histories: the workload, the anomalies and the record."""
+"""check() over list-append and register histories: workloads, anomalies, records."""
 
 from __future__ import annotations
 
@@ -16,11 +16,13 @@ from .isolation import (
     APPEND,
     READ,
     TXN,
+    WRITE,
     Analysis,
     Anomaly,
     Level,
     TransactionError,
     check,
+    registers,
     transactions,
 )
 from .seam import Call, History
@@ -102,11 +104,11 @@ class TransactionsTest(unittest.TestCase):
         with pytest.raises(TransactionError, match="argument 0 of call 0"):
             transactions(history.events())
 
-    def test_refuses_a_read_that_states_a_list_before_it_ran(self) -> None:
-        """An invocation states a read's key and no list."""
+    def test_refuses_a_read_that_states_a_value_before_it_ran(self) -> None:
+        """An invocation states a read's key and no value."""
         history = History()
         history.invoke(0, TXN, [read("x", [1])], ["x"])
-        with pytest.raises(TransactionError, match="states a list before it ran"):
+        with pytest.raises(TransactionError, match="states a value before it ran"):
             transactions(history.events())
 
     def test_refuses_an_output_that_does_not_repeat_the_invocation(self) -> None:
@@ -631,6 +633,282 @@ class CycleTest(unittest.TestCase):
             detail["kinds"],
             [entry["call"] for entry in detail["cycle"]],
         ) == ("G-single", ["G-single", "G2"], [4, 5])
+
+
+def write(key: object, value: object) -> list[object]:
+    """Return a micro-operation that writes value to the register key."""
+    return [WRITE, key, value]
+
+
+def cycle_of(history: History, level: Level) -> tuple[str | None, list[str], list[int]]:
+    """Return the anomaly, the kinds and the cycle's calls of a check of history."""
+    detail = check(history.events(), level).detail()
+    calls = [entry["call"] for entry in detail["cycle"] or []]
+    return detail["anomaly"], detail["kinds"], calls
+
+
+@final
+class RegisterTransactionsTest(unittest.TestCase):
+    """transactions() over register histories, and the histories it refuses."""
+
+    def test_keeps_a_registers_read_of_the_initial_value_as_null(self) -> None:
+        """A history that writes is a register history, whose reads hold values."""
+        history = History()
+        run(history, 0, read("x", None), write("x", 1))
+        (txn,) = transactions(history.events())
+        assert registers([txn])
+        assert txn.mops[0].value is None
+
+    def test_refuses_a_history_that_both_appends_and_writes(self) -> None:
+        """A history is either list-append or registers."""
+        history = History()
+        run(history, 0, append("x", 1))
+        run(history, 1, write("y", 1))
+        with pytest.raises(TransactionError, match="call 0 appends and call 2 writes"):
+            transactions(history.events())
+
+    def test_refuses_a_write_of_null(self) -> None:
+        """Null is the initial value of every key."""
+        history = History()
+        history.invoke(0, TXN, [write("x", None)], ["x"])
+        with pytest.raises(TransactionError, match="writes null"):
+            transactions(history.events())
+
+    def test_refuses_a_value_written_twice_to_one_key(self) -> None:
+        """A value names one write, so it is written to its key once."""
+        history = History()
+        run(history, 0, write("x", 1))
+        run(history, 0, write("x", 1))
+        with pytest.raises(TransactionError, match="calls 0 and 2 both write 1"):
+            transactions(history.events())
+        history = History()
+        run(history, 0, write("x", 1), write("x", 1))
+        with pytest.raises(TransactionError, match=r"call 0 writes 1 .* twice"):
+            transactions(history.events())
+
+
+@final
+class RegisterDirectTest(unittest.TestCase):
+    """The anomalies of a register history that need no dependency graph."""
+
+    def test_passes_a_serial_history_of_read_modify_writes(self) -> None:
+        """Each transaction reads the value that the one before it wrote."""
+        history = History()
+        run(history, 0, read("x", None), write("x", 1))
+        run(history, 0, read("x", 1), write("x", 2))
+        run(history, 0, read("x", 2))
+        for level in LEVELS:
+            assert check(history.events(), level).passed
+
+    def test_reports_a_garbage_read(self) -> None:
+        """A read returned a value that no transaction wrote."""
+        history = History()
+        run(history, 0, write("x", 1))
+        run(history, 1, read("x", 9))
+        detail = check(history.events(), Level.SERIALIZABLE).detail()
+        assert (detail["anomaly"], detail["explanation"]) == (
+            "garbage-read",
+            [{"call": 2, "key": encode("x"), "read": encode(9), "value": encode(9)}],
+        )
+
+    def test_reports_a_read_that_differs_from_the_transactions_own_write(self) -> None:
+        """After its write of 1, the transaction read 2."""
+        history = History()
+        run(history, 0, write("x", 2))
+        run(history, 1, write("x", 1), read("x", 2))
+        detail = check(history.events(), Level.SERIALIZABLE).detail()
+        assert (detail["anomaly"], detail["explanation"]) == (
+            "internal-inconsistency",
+            [
+                {
+                    "call": 2,
+                    "key": encode("x"),
+                    "read": encode(2),
+                    "expected": encode(1),
+                    "whole": True,
+                    "future": None,
+                }
+            ],
+        )
+
+    def test_reports_a_read_of_the_transactions_own_later_write(self) -> None:
+        """The transaction read 1 before it wrote 1."""
+        history = History()
+        run(history, 0, read("x", 1), write("x", 1))
+        detail = check(history.events(), Level.SNAPSHOT_ISOLATION).detail()
+        assert (detail["anomaly"], detail["explanation"]) == (
+            "internal-inconsistency",
+            [
+                {
+                    "call": 0,
+                    "key": encode("x"),
+                    "read": encode(1),
+                    "expected": None,
+                    "whole": False,
+                    "future": encode(1),
+                }
+            ],
+        )
+
+    def test_reports_an_aborted_read(self) -> None:
+        """A committed read observed a write of a call that failed."""
+        history = History()
+        invoke(history, 0, write("x", 1)).fail("aborted")
+        run(history, 1, read("x", 1))
+        detail = check(history.events(), Level.SERIALIZABLE).detail()
+        assert (detail["anomaly"], detail["explanation"]) == (
+            "aborted-read",
+            [{"call": 2, "key": encode("x"), "value": encode(1), "appender": 0}],
+        )
+
+    def test_reports_an_intermediate_read(self) -> None:
+        """A read returned a value that its writer overwrote in the same call."""
+        history = History()
+        run(history, 0, write("x", 1), write("x", 2))
+        run(history, 1, read("x", 1))
+        detail = check(history.events(), Level.SERIALIZABLE).detail()
+        assert (detail["anomaly"], detail["kinds"], detail["explanation"]) == (
+            "intermediate-read",
+            ["intermediate-read"],
+            [
+                {
+                    "call": 2,
+                    "key": encode("x"),
+                    "value": encode(1),
+                    "appender": 0,
+                    "next": encode(2),
+                }
+            ],
+        )
+
+    def test_passes_a_read_of_the_transactions_own_overwritten_write(self) -> None:
+        """A read of the transaction's own earlier write is no intermediate read."""
+        history = History()
+        run(history, 0, write("x", 1), read("x", 1), write("x", 2))
+        for level in LEVELS:
+            assert check(history.events(), level).passed
+
+
+@final
+class RegisterCycleTest(unittest.TestCase):
+    """The cycles over the edges that the version pairs of registers reveal."""
+
+    def test_reports_a_cycle_of_write_dependencies(self) -> None:
+        """Each call reads the other's write to one key, then overwrites it."""
+        history = History()
+        first = invoke(history, 0, write("y", 3), read("x", None), write("x", 2))
+        second = invoke(history, 1, write("x", 1), read("y", None), write("y", 4))
+        first.ok([write("y", 3), read("x", 1), write("x", 2)])
+        second.ok([write("x", 1), read("y", 3), write("y", 4)])
+        detail = check(history.events(), Level.SERIALIZABLE).detail()
+        assert (detail["anomaly"], detail["kinds"], detail["cycle"]) == (
+            "G0",
+            ["G0", "G1c"],
+            [{"call": 0, "relations": ["ww"]}, {"call": 1, "relations": ["ww"]}],
+        )
+        assert detail["explanation"][0] == {
+            "from": 0,
+            "to": 1,
+            "relation": "ww",
+            "key": encode("y"),
+            "value": encode(3),
+            "next": encode(4),
+        }
+
+    def test_reports_a_cycle_of_write_and_read_dependencies(self) -> None:
+        """Calls 0 and 1 each read the other's write."""
+        history = History()
+        first = invoke(history, 0, write("x", 1), read("y", None))
+        second = invoke(history, 1, write("y", 2), read("x", None))
+        first.ok([write("x", 1), read("y", 2)])
+        second.ok([write("y", 2), read("x", 1)])
+        assert cycle_of(history, Level.SNAPSHOT_ISOLATION) == ("G1c", ["G1c"], [0, 1])
+
+    def test_reports_a_read_skew_as_g_single(self) -> None:
+        """Call 2 reads x before call 3 overwrites it, and y after."""
+        history = History()
+        run(history, 0, write("x", 1), write("y", 1))
+        reader = invoke(history, 1, read("x", None), read("y", None))
+        writer = invoke(history, 2, read("x", None), write("x", 2), write("y", 2))
+        writer.ok([read("x", 1), write("x", 2), write("y", 2)])
+        reader.ok([read("x", 1), read("y", 2)])
+        assert cycle_of(history, Level.SERIALIZABLE) == (
+            "G-single",
+            ["G-single", "G2"],
+            [2, 3],
+        )
+        assert cycle_of(history, Level.SNAPSHOT_ISOLATION)[:2] == (
+            "G-single",
+            ["G-single"],
+        )
+
+    def test_fails_a_write_skew_as_serializable_and_passes_it_as_snapshot_isolation(
+        self,
+    ) -> None:
+        """Each call reads both keys empty and writes one."""
+        history = History()
+        first = invoke(history, 0, read("x", None), read("y", None), write("x", 1))
+        second = invoke(history, 1, read("x", None), read("y", None), write("y", 2))
+        first.ok([read("x", None), read("y", None), write("x", 1)])
+        second.ok([read("x", None), read("y", None), write("y", 2)])
+        detail = check(history.events(), Level.SERIALIZABLE).detail()
+        assert (detail["anomaly"], detail["kinds"]) == ("G2", ["G2"])
+        assert detail["explanation"][0] == {
+            "from": 0,
+            "to": 1,
+            "relation": "rw",
+            "key": encode("y"),
+            "value": None,
+            "next": encode(2),
+        }
+        assert check(history.events(), Level.SNAPSHOT_ISOLATION).passed
+
+    def test_passes_a_lost_update_as_snapshot_isolation(self) -> None:
+        """Two calls read 1 and overwrite it, and no read orders their writes."""
+        history = History()
+        run(history, 0, write("x", 1))
+        first = invoke(history, 1, read("x", None), write("x", 2))
+        second = invoke(history, 2, read("x", None), write("x", 3))
+        first.ok([read("x", 1), write("x", 2)])
+        second.ok([read("x", 1), write("x", 3)])
+        assert cycle_of(history, Level.SERIALIZABLE) == ("G2", ["G2"], [2, 3])
+        assert check(history.events(), Level.SNAPSHOT_ISOLATION).passed
+
+    def test_reports_a_long_fork_at_both_levels(self) -> None:
+        """Calls 4 and 6 see the writes to x and y in opposite orders."""
+        history = History()
+        run(history, 0, write("x", 1))
+        run(history, 1, write("y", 1))
+        run(history, 2, read("x", 1), read("y", None))
+        run(history, 3, read("y", 1), read("x", None))
+        assert cycle_of(history, Level.SERIALIZABLE)[:2] == (
+            "G-nonadjacent",
+            ["G-nonadjacent", "G2"],
+        )
+        assert cycle_of(history, Level.SNAPSHOT_ISOLATION)[:2] == (
+            "G-nonadjacent",
+            ["G-nonadjacent"],
+        )
+
+    def test_takes_a_call_of_unknown_outcome_as_committed_when_a_read_observed_it(
+        self,
+    ) -> None:
+        """Call 0's write to x is observed, so its write to y counts too."""
+        history = History()
+        invoke(history, 0, write("x", 1), write("y", 1)).unknown("timed out")
+        run(history, 1, read("x", 1), read("y", None))
+        assert cycle_of(history, Level.SERIALIZABLE)[:2] == (
+            "G-single",
+            ["G-single", "G2"],
+        )
+
+    def test_leaves_out_a_call_of_unknown_outcome_that_no_read_observed(self) -> None:
+        """Without the observation, no edge leads to call 0."""
+        history = History()
+        invoke(history, 0, write("x", 1), write("y", 1)).unknown("timed out")
+        run(history, 1, read("x", None), read("y", None))
+        for level in LEVELS:
+            assert check(history.events(), level).passed
 
 
 if __name__ == "__main__":

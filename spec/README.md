@@ -77,8 +77,8 @@ records, the entry that the history refuses, and the verdict, the steps
 and the record of a check. A vector of `linearizable` names a spec from
 the `specs` section of `assertions.yaml`, as a case names a subject, and
 each implementation builds every named spec natively. A vector of an
-isolation level states a history of list-append transactions, and every
-history appears once at each level. People write the inputs in
+isolation level states a history of list-append or register transactions,
+and every history appears once at each level. People write the inputs in
 `corpus/history/<kind>.yaml`, and `make render` computes the outputs with
 the executable reference in `tools/history/`.
 

@@ -1,28 +1,36 @@
 # Copyright Dokimasia B.V. 2026
 # SPDX-License-Identifier: MIT
 
-"""Decide whether a history of list-append transactions exhibits an isolation anomaly.
+"""Decide whether a history of transactions exhibits an isolation anomaly.
 
 A transaction is one call whose operation is ``txn``. Its arguments are its
-micro-operations in the order it ran them: ``["append", key, value]`` and
-``["read", key, None]``. An ok completion commits the transaction, and its
-output repeats the micro-operations with each read's list filled in, or null
-for an empty list. A fail completion aborts it. A transaction whose
-completion is unknown, or missing, counts as committed when a committed read
-observed one of its appends, and is left out otherwise. Every value is
-appended to its key once, so a value names the append that produced it.
+micro-operations in the order it ran them. A list-append transaction states
+``["append", key, value]`` and ``["read", key, None]``. A register
+transaction states ``["write", key, value]`` and ``["read", key, None]``. A
+history whose micro-operations write is a register history, and every other
+history is a list-append history. An ok completion commits the transaction,
+and its output repeats the micro-operations with each read's value filled
+in: a list, or null for an empty list, in a list-append history, and the
+value, or null for the initial value, in a register history. A fail
+completion aborts it. A transaction whose completion is unknown, or missing,
+counts as committed when a committed read observed one of its appends or
+writes, and is left out otherwise. Every value is appended or written to its
+key once, so a value names the micro-operation that produced it.
 
-check() first reads the micro-operations for the six anomalies that need no
-dependency graph. It then takes each key's version order from its longest
-committed read, places every committed append that no read observed after
-that order, derives the write-write, write-read and read-write dependencies
-between committed transactions, and searches the graph for the five kinds of
-cycle. A level forbids a set of the eleven kinds, and the record reports the
-first of them that the history exhibits.
+check() first reads the micro-operations for the anomalies that need no
+dependency graph. For a list-append history it then takes each key's version
+order from its longest committed read, places every committed append that no
+read observed after that order, and derives the write-write, write-read and
+read-write dependencies between committed transactions. For a register
+history it derives them from the version pairs that the initial value and
+the writes that follow reads reveal. It searches the graph for the five
+kinds of cycle. A level forbids a set of the eleven kinds, and the record
+reports the first of them that the history exhibits.
 """
 
 from __future__ import annotations
 
+import dataclasses
 import itertools
 from collections import deque
 from dataclasses import dataclass
@@ -43,11 +51,14 @@ TXN: Final = "txn"
 #: The function of a micro-operation that appends a value to a key.
 APPEND: Final = "append"
 
-#: The function of a micro-operation that reads a key's list.
+#: The function of a micro-operation that reads a key's list or value.
 READ: Final = "read"
 
+#: The function of a micro-operation that writes a value to a register.
+WRITE: Final = "write"
+
 #: The functions a micro-operation may state.
-_FUNCTIONS: Final = frozenset({APPEND, READ})
+_FUNCTIONS: Final = frozenset({APPEND, READ, WRITE})
 
 #: A micro-operation states its function, its key and its value.
 _FIELDS: Final = 3
@@ -142,15 +153,17 @@ _SEARCHES: Final[dict[Anomaly, _Search]] = {
 
 
 class TransactionError(ValueError):
-    """A history that is no history of list-append transactions."""
+    """A history that is no history of list-append or register transactions."""
 
 
 @dataclass(frozen=True)
 class Mop:
     """One micro-operation of a transaction.
 
-    value is the appended value of an append. For a read, it is the list that
-    the read returned, or None for a read whose transaction did not commit.
+    value is the appended value of an append and the written value of a
+    write. For a read, it is the list or the value that the read returned,
+    and None for a read whose transaction did not commit and for a register
+    read of the initial value.
     """
 
     function: str
@@ -196,28 +209,77 @@ class Transaction:
 def transactions(events: Sequence[Event]) -> list[Transaction]:
     """Return a history's transactions in the order of their invocations.
 
+    A list-append history's committed reads return lists, and a read that
+    returned null returned the empty list.
+
     Raises:
-        TransactionError: a call is no list-append transaction, an ok output
-            does not repeat its invocation's micro-operations, or a value is
-            appended to one key twice.
+        TransactionError: a call is no transaction, an ok output does not
+            repeat its invocation's micro-operations, a value is appended or
+            written to one key twice, the history both appends and writes, or
+            a list-append read returned no list.
     """
     completions = {e.call: e for e in events if e.kind is not Kind.INVOKE}
-    appended: dict[tuple[object, object], int] = {}
+    produced: dict[tuple[object, object], int] = {}
     out: list[Transaction] = []
     for invocation in events:
         if invocation.kind is Kind.INVOKE:
             txn = _transaction(invocation, completions.get(invocation.index))
-            _register(txn, appended)
+            _register(txn, produced)
             out.append(txn)
-    return out
+    if registers(out):
+        return out
+    return [_with_lists(txn) for txn in out]
+
+
+def registers(txns: Sequence[Transaction]) -> bool:
+    """Report whether a history is a register history: whether it writes.
+
+    Raises:
+        TransactionError: the history both appends and writes.
+    """
+    first: dict[str, int] = {}
+    for txn in txns:
+        for mop in txn.mops:
+            if mop.function in {APPEND, WRITE}:
+                first.setdefault(mop.function, txn.call)
+    if len(first) > 1:
+        msg = (
+            f"history: call {first[APPEND]} appends and call {first[WRITE]} "
+            "writes, and a history is either list-append or registers"
+        )
+        raise TransactionError(msg)
+    return WRITE in first
+
+
+def _with_lists(txn: Transaction) -> Transaction:
+    """Return a committed list-append transaction with each read's list.
+
+    Raises:
+        TransactionError: a read returned no list.
+    """
+    if txn.kind is not Kind.OK:
+        return txn
+    mops: list[Mop] = []
+    for position, mop in enumerate(txn.mops):
+        if mop.function == READ and mop.value is None:
+            mops.append(Mop(READ, mop.key, []))
+            continue
+        if mop.function == READ and not isinstance(mop.value, list):
+            msg = (
+                f"history: the read at micro-operation {position} of the output "
+                f"of call {txn.call} returned {mop.value!r}, not a list"
+            )
+            raise TransactionError(msg)
+        mops.append(mop)
+    return dataclasses.replace(txn, mops=tuple(mops))
 
 
 def _transaction(invocation: Event, completion: Event | None) -> Transaction:
     """Return the transaction of one call.
 
     Raises:
-        TransactionError: the call is no list-append transaction, or its ok
-            output does not repeat its micro-operations.
+        TransactionError: the call is no transaction, or its ok output does
+            not repeat its micro-operations.
     """
     call = invocation.index
     if invocation.operation != TXN:
@@ -247,20 +309,26 @@ def _invoked(call: int, position: int, raw: object) -> Mop:
     """Return the micro-operation that one argument of an invocation states.
 
     Raises:
-        TransactionError: the argument is no micro-operation, or a read states
-            a list before it ran.
+        TransactionError: the argument is no micro-operation, a read states
+            a value before it ran, or a write writes null.
     """
     if not isinstance(raw, list) or len(raw) != _FIELDS or raw[0] not in _FUNCTIONS:
         msg = (
             f"history: argument {position} of call {call} is {raw!r}, not "
-            "[append, key, value] or [read, key, null]"
+            "[append, key, value], [write, key, value] or [read, key, null]"
         )
         raise TransactionError(msg)
     function, key, value = raw
     if function == READ and value is not None:
         msg = (
             f"history: the read at argument {position} of call {call} states "
-            "a list before it ran"
+            "a value before it ran"
+        )
+        raise TransactionError(msg)
+    if function == WRITE and value is None:
+        msg = (
+            f"history: the write at argument {position} of call {call} writes "
+            "null, the initial value of every key"
         )
         raise TransactionError(msg)
     return Mop(str(function), key, value)
@@ -285,12 +353,10 @@ def _returned(call: int, invoked: tuple[Mop, ...], output: object) -> tuple[Mop,
 
 
 def _repeated(call: int, position: int, mop: Mop, raw: object) -> Mop:
-    """Return one micro-operation of an ok output.
-
-    A read that returned null returned the empty list.
+    """Return one micro-operation of an ok output, with a read's value as returned.
 
     Raises:
-        TransactionError: raw does not repeat mop, or a read returned no list.
+        TransactionError: raw does not repeat mop.
     """
     if not (
         isinstance(raw, list)
@@ -305,44 +371,38 @@ def _repeated(call: int, position: int, mop: Mop, raw: object) -> Mop:
             f"is {raw!r}, which does not repeat {stated!r}"
         )
         raise TransactionError(msg)
-    value = raw[2]
-    if mop.function == APPEND:
+    if mop.function != READ:
         return mop
-    if value is None:
-        return Mop(READ, mop.key, [])
-    if not isinstance(value, list):
-        msg = (
-            f"history: the read at micro-operation {position} of the output of "
-            f"call {call} returned {value!r}, not a list"
-        )
-        raise TransactionError(msg)
-    return Mop(READ, mop.key, value)
+    return Mop(READ, mop.key, raw[2])
 
 
-def _register(txn: Transaction, appended: dict[tuple[object, object], int]) -> None:
-    """Record each value that txn appends, under its key.
+def _register(txn: Transaction, produced: dict[tuple[object, object], int]) -> None:
+    """Record each value that txn appends or writes, under its key.
 
     Raises:
-        TransactionError: a value is appended to its key a second time.
+        TransactionError: a value is appended or written to its key a second
+            time.
     """
     for mop in txn.mops:
-        if mop.function != APPEND:
+        if mop.function == READ:
             continue
+        verb = "appends" if mop.function == APPEND else "writes"
         name = (canonical(mop.key), canonical(mop.value))
-        first = appended.get(name)
+        first = produced.get(name)
         if first == txn.call:
             msg = (
-                f"history: call {txn.call} appends {mop.value!r} to the key "
+                f"history: call {txn.call} {verb} {mop.value!r} to the key "
                 f"{mop.key!r} twice"
             )
             raise TransactionError(msg)
         if first is not None:
+            both = "both append" if mop.function == APPEND else "both write"
             msg = (
-                f"history: calls {first} and {txn.call} both append {mop.value!r} "
+                f"history: calls {first} and {txn.call} {both} {mop.value!r} "
                 f"to the key {mop.key!r}"
             )
             raise TransactionError(msg)
-        appended[name] = txn.call
+        produced[name] = txn.call
 
 
 @dataclass(frozen=True)
@@ -407,13 +467,16 @@ class Verdict:
 
 
 def check(events: Sequence[Event], level: Level) -> Verdict:
-    """Return whether a list-append history exhibits an anomaly that level forbids.
+    """Return whether a history exhibits an anomaly that level forbids.
 
     Raises:
-        TransactionError: the history is no history of list-append transactions.
+        TransactionError: the history is no history of list-append or of
+            register transactions.
     """
     txns = transactions(events)
-    analysis = Analysis(txns)
+    analysis: Analysis | RegisterAnalysis = (
+        RegisterAnalysis(txns) if registers(txns) else Analysis(txns)
+    )
     found = [
         (kind, case)
         for kind in FORBIDS[level]
@@ -433,7 +496,7 @@ def _name(key: object, value: object) -> tuple[object, object]:
 
 
 def _read_case(
-    anomaly: Anomaly, call: int, key: object, read: list[object], value: object
+    anomaly: Anomaly, call: int, key: object, read: object, value: object
 ) -> Case:
     """Return the case of an anomaly that one read of call shows by one value."""
     evidence = {
@@ -445,9 +508,171 @@ def _read_case(
     return Case(anomaly, (call,), None, (evidence,))
 
 
+class _Graph:
+    """The dependencies between a history's committed transactions, and their cycles.
+
+    A subclass sets the committed transactions, derives the edges through
+    _edge, and finds the anomalies that need no graph.
+    """
+
+    _committed: set[int]
+    _edges: dict[tuple[int, int], list[dict[str, Any]]]
+
+    def _edge(self, a: int | None, b: int | None, evidence: dict[str, Any]) -> None:
+        """Add the evidence of a dependency of b on a, when both are committed."""
+        if a is None or b is None or a == b:
+            return
+        self._edges.setdefault((a, b), []).append({"from": a, "to": b, **evidence})
+
+    def _adjacency(self, relations: frozenset[Relation]) -> dict[int, list[int]]:
+        """Return each transaction's targets over the edges of relations, in order."""
+        out: dict[int, list[int]] = {}
+        for (a, b), evidence in self._edges.items():
+            if any(entry["relation"] in relations for entry in evidence):
+                out.setdefault(a, []).append(b)
+        for targets in out.values():
+            targets.sort()
+        return out
+
+    def _cycle(self, anomaly: Anomaly) -> Case | None:
+        """Return the first cycle of a kind, as the kind's search finds it, or None.
+
+        The closing edge of a G-single cycle counts as its one read-write
+        dependency. Each other edge counts by the relations the search follows.
+        """
+        search = _SEARCHES[anomaly]
+        around = self._adjacency(search.component)
+        back = self._adjacency(search.path)
+        for component in _components(sorted(self._committed), around):
+            members = set(component)
+            for a in component:
+                for b in around.get(a, []):
+                    if b not in members or not self._has(a, b, search.closing):
+                        continue
+                    path = _path(b, a, back, members)
+                    if path is None:
+                        continue
+                    first = search.component
+                    if anomaly is Anomaly.G_SINGLE:
+                        first = frozenset({search.closing})
+                    used = [first] + [search.path] * (len(path) - 1)
+                    return self._cycle_case(anomaly, [a, *path[:-1]], used)
+        return None
+
+    def _nonadjacent(self) -> Case | None:
+        """Return the first G-nonadjacent cycle, or None.
+
+        The search tries each component's read-write edges in the order of their
+        sources and then their targets. From an edge's target it takes the
+        shortest walk back to the edge's source on which no read-write edge
+        follows another, that takes one more read-write edge at least, and whose
+        last edge is no read-write edge. It reduces the closed walk to a simple
+        cycle with no two adjacent read-write edges, and reports that cycle when
+        it has two read-write edges or more.
+        """
+        around = self._adjacency(frozenset(Relation))
+        for component in _components(sorted(self._committed), around):
+            members = set(component)
+            for a in component:
+                for b in around.get(a, []):
+                    if b not in members or not self._has(a, b, Relation.RW):
+                        continue
+                    steps = self._alternating(b, a, around, members)
+                    if steps is None:
+                        continue
+                    nodes = [a, b, *(node for node, _ in steps[:-1])]
+                    walk = list(
+                        zip(nodes, [Relation.RW, *(r for _, r in steps)], strict=True)
+                    )
+                    cycle = _simple(walk)
+                    if sum(r is Relation.RW for _, r in cycle) < _NONADJACENT_RW:
+                        continue
+                    return self._cycle_case(
+                        Anomaly.G_NONADJACENT,
+                        [node for node, _ in cycle],
+                        [
+                            frozenset({r}) if r is Relation.RW else _NON_RW
+                            for _, r in cycle
+                        ],
+                    )
+        return None
+
+    def _alternating(
+        self,
+        start: int,
+        goal: int,
+        around: Mapping[int, Sequence[int]],
+        members: set[int],
+    ) -> list[tuple[int, Relation]] | None:
+        """Return the shortest alternating walk from start to goal, or None.
+
+        A read-write edge leads into start. Each step of the walk is the
+        transaction it enters and the relation of the edge it follows, and the
+        search tries each transaction's edges in the order of their targets
+        and of the relations.
+        """
+        origin: _State = (start, True, False)
+        parent: dict[_State, tuple[_State, Relation] | None] = {origin: None}
+        queue: deque[_State] = deque([origin])
+        while queue:
+            state = queue.popleft()
+            node, after_rw, taken = state
+            if node == goal and not after_rw and taken:
+                return _walk(state, parent)
+            for target in around.get(node, ()):
+                if target not in members:
+                    continue
+                for relation in self._relations(node, target):
+                    if relation is Relation.RW and after_rw:
+                        continue
+                    rw = relation is Relation.RW
+                    following: _State = (target, rw, taken or rw)
+                    if following not in parent:
+                        parent[following] = (state, relation)
+                        queue.append(following)
+        return None
+
+    def _relations(self, a: int, b: int) -> list[Relation]:
+        """Return the relations of the edge from a to b, in relation order."""
+        present = {entry["relation"] for entry in self._edges[(a, b)]}
+        return [relation for relation in _RELATIONS if relation in present]
+
+    def _has(self, a: int, b: int, relation: Relation) -> bool:
+        """Report whether the edge from a to b has a relation."""
+        return any(entry["relation"] == relation for entry in self._edges[(a, b)])
+
+    def _cycle_case(
+        self, anomaly: Anomaly, nodes: list[int], used: list[frozenset[Relation]]
+    ) -> Case:
+        """Return the case of a cycle through nodes in order, back to the first.
+
+        used gives, for the edge from each transaction to the next, the
+        relations the search followed it by. The cycle lists the edge's
+        relations among them, and the explanation the first evidence of one.
+        """
+        entries: list[dict[str, Any]] = []
+        explanation: list[dict[str, Any]] = []
+        for position, node in enumerate(nodes):
+            following = nodes[(position + 1) % len(nodes)]
+            evidence = [
+                e
+                for e in self._edges[(node, following)]
+                if e["relation"] in used[position]
+            ]
+            relations = {entry["relation"] for entry in evidence}
+            entries.append(
+                {
+                    "call": node,
+                    "relations": [r.value for r in _RELATIONS if r in relations],
+                }
+            )
+            explanation.append(evidence[0])
+        return Case(anomaly, tuple(nodes), tuple(entries), tuple(explanation))
+
+
 @final
-class Analysis:
-    """The derivation over one history's transactions.
+class Analysis(_Graph):
+    """The derivation over one list-append history's transactions.
 
     The committed transactions are the ok ones, and the ones whose outcome
     is unknown and whose append a committed read observed. A key's version
@@ -672,156 +897,289 @@ class Analysis:
         appender = self._appender.get((key, canonical(value)))
         return appender if appender in self._committed else None
 
-    def _edge(self, a: int | None, b: int | None, evidence: dict[str, Any]) -> None:
-        """Add the evidence of a dependency of b on a, when both are committed."""
-        if a is None or b is None or a == b:
-            return
-        self._edges.setdefault((a, b), []).append({"from": a, "to": b, **evidence})
 
-    def _adjacency(self, relations: frozenset[Relation]) -> dict[int, list[int]]:
-        """Return each transaction's targets over the edges of relations, in order."""
-        out: dict[int, list[int]] = {}
-        for (a, b), evidence in self._edges.items():
-            if any(entry["relation"] in relations for entry in evidence):
-                out.setdefault(a, []).append(b)
-        for targets in out.values():
-            targets.sort()
-        return out
+#: An external read of a register: the reading transaction, the key and the
+#: value it returned, None for the initial value.
+_External = tuple[int, object, object]
 
-    def _cycle(self, anomaly: Anomaly) -> Case | None:
-        """Return the first cycle of a kind, as the kind's search finds it, or None.
 
-        The closing edge of a G-single cycle counts as its one read-write
-        dependency. Each other edge counts by the relations the search follows.
+@final
+class RegisterAnalysis(_Graph):
+    """The derivation over one register history's transactions.
+
+    The committed transactions are the ok ones, and the ones whose outcome is
+    unknown and whose write a committed read observed. A transaction's
+    external read of a key is its first read of the key before it writes the
+    key, and its external write is its last write of the key. The value of a
+    committed transaction's external write is installed. The initial value
+    precedes each installed value, and a committed transaction's external read
+    precedes its external write of the same key.
+    """
+
+    def __init__(self, txns: Sequence[Transaction]) -> None:
+        """Index the writes and the committed reads of txns, and derive the edges."""
+        self._txns = txns
+        self._writer: dict[tuple[object, object], int] = {}
+        self._later: dict[tuple[object, object], tuple[object]] = {}
+        self._keys: dict[object, object] = {}
+        for txn in txns:
+            self._index(txn)
+        self._aborted = {txn.call for txn in txns if txn.kind is Kind.FAIL}
+        self._reads: list[tuple[int, object, object]] = [
+            (txn.call, mop.key, mop.value)
+            for txn in txns
+            if txn.kind is Kind.OK
+            for mop in txn.mops
+            if mop.function == READ
+        ]
+        observed = {_name(key, v) for _, key, v in self._reads if v is not None}
+        undecided = {txn.call for txn in txns if txn.kind in {Kind.UNKNOWN, None}}
+        self._committed = {txn.call for txn in txns if txn.kind is Kind.OK} | {
+            self._writer[name]
+            for name in observed
+            if self._writer.get(name) in undecided
+        }
+        self._edges = {}
+        self._derive()
+
+    def _index(self, txn: Transaction) -> None:
+        """Index the keys txn touches, and the writes it makes."""
+        last: dict[object, tuple[object, object]] = {}
+        for mop in txn.mops:
+            key = canonical(mop.key)
+            self._keys.setdefault(key, mop.key)
+            if mop.function != WRITE:
+                continue
+            name = (key, canonical(mop.value))
+            self._writer[name] = txn.call
+            if key in last:
+                self._later[last[key]] = (mop.value,)
+            last[key] = name
+
+    def case(self, anomaly: Anomaly) -> Case | None:
+        """Return the first instance of an anomaly in the history, or None.
+
+        A register history exhibits no duplicate append and no incompatible
+        order: a value written twice is a fault, and a register has no list.
         """
-        search = _SEARCHES[anomaly]
-        around = self._adjacency(search.component)
-        back = self._adjacency(search.path)
-        for component in _components(sorted(self._committed), around):
-            members = set(component)
-            for a in component:
-                for b in around.get(a, []):
-                    if b not in members or not self._has(a, b, search.closing):
-                        continue
-                    path = _path(b, a, back, members)
-                    if path is None:
-                        continue
-                    first = search.component
-                    if anomaly is Anomaly.G_SINGLE:
-                        first = frozenset({search.closing})
-                    used = [first] + [search.path] * (len(path) - 1)
-                    return self._cycle_case(anomaly, [a, *path[:-1]], used)
+        direct: dict[Anomaly, Callable[[], Case | None]] = {
+            Anomaly.GARBAGE_READ: self._garbage_read,
+            Anomaly.DUPLICATE_APPEND: lambda: None,
+            Anomaly.INTERNAL_INCONSISTENCY: self._internal_inconsistency,
+            Anomaly.INCOMPATIBLE_ORDER: lambda: None,
+            Anomaly.ABORTED_READ: self._aborted_read,
+            Anomaly.INTERMEDIATE_READ: self._intermediate_read,
+        }
+        finder = direct.get(anomaly)
+        if finder is not None:
+            return finder()
+        if anomaly is Anomaly.G_NONADJACENT:
+            return self._nonadjacent()
+        return self._cycle(anomaly)
+
+    def _garbage_read(self) -> Case | None:
+        """Return the first committed read of a value that no transaction wrote."""
+        for call, key, value in self._reads:
+            if value is not None and _name(key, value) not in self._writer:
+                return _read_case(Anomaly.GARBAGE_READ, call, key, value, value)
         return None
 
-    def _nonadjacent(self) -> Case | None:
-        """Return the first G-nonadjacent cycle, or None.
-
-        The search tries each component's read-write edges in the order of their
-        sources and then their targets. From an edge's target it takes the
-        shortest walk back to the edge's source on which no read-write edge
-        follows another, that takes one more read-write edge at least, and whose
-        last edge is no read-write edge. It reduces the closed walk to a simple
-        cycle with no two adjacent read-write edges, and reports that cycle when
-        it has two read-write edges or more.
-        """
-        around = self._adjacency(frozenset(Relation))
-        for component in _components(sorted(self._committed), around):
-            members = set(component)
-            for a in component:
-                for b in around.get(a, []):
-                    if b not in members or not self._has(a, b, Relation.RW):
-                        continue
-                    steps = self._alternating(b, a, around, members)
-                    if steps is None:
-                        continue
-                    nodes = [a, b, *(node for node, _ in steps[:-1])]
-                    walk = list(
-                        zip(nodes, [Relation.RW, *(r for _, r in steps)], strict=True)
-                    )
-                    cycle = _simple(walk)
-                    if sum(r is Relation.RW for _, r in cycle) < _NONADJACENT_RW:
-                        continue
-                    return self._cycle_case(
-                        Anomaly.G_NONADJACENT,
-                        [node for node, _ in cycle],
-                        [
-                            frozenset({r}) if r is Relation.RW else _NON_RW
-                            for _, r in cycle
-                        ],
-                    )
+    def _internal_inconsistency(self) -> Case | None:
+        """Return the first committed read that contradicts its own transaction."""
+        for txn in self._txns:
+            if txn.kind is Kind.OK and (case := _internal_register(txn)) is not None:
+                return case
         return None
 
-    def _alternating(
-        self,
-        start: int,
-        goal: int,
-        around: Mapping[int, Sequence[int]],
-        members: set[int],
-    ) -> list[tuple[int, Relation]] | None:
-        """Return the shortest alternating walk from start to goal, or None.
-
-        A read-write edge leads into start. Each step of the walk is the
-        transaction it enters and the relation of the edge it follows, and the
-        search tries each transaction's edges in the order of their targets
-        and of the relations.
-        """
-        origin: _State = (start, True, False)
-        parent: dict[_State, tuple[_State, Relation] | None] = {origin: None}
-        queue: deque[_State] = deque([origin])
-        while queue:
-            state = queue.popleft()
-            node, after_rw, taken = state
-            if node == goal and not after_rw and taken:
-                return _walk(state, parent)
-            for target in around.get(node, ()):
-                if target not in members:
-                    continue
-                for relation in self._relations(node, target):
-                    if relation is Relation.RW and after_rw:
-                        continue
-                    rw = relation is Relation.RW
-                    following: _State = (target, rw, taken or rw)
-                    if following not in parent:
-                        parent[following] = (state, relation)
-                        queue.append(following)
-        return None
-
-    def _relations(self, a: int, b: int) -> list[Relation]:
-        """Return the relations of the edge from a to b, in relation order."""
-        present = {entry["relation"] for entry in self._edges[(a, b)]}
-        return [relation for relation in _RELATIONS if relation in present]
-
-    def _has(self, a: int, b: int, relation: Relation) -> bool:
-        """Report whether the edge from a to b has a relation."""
-        return any(entry["relation"] == relation for entry in self._edges[(a, b)])
-
-    def _cycle_case(
-        self, anomaly: Anomaly, nodes: list[int], used: list[frozenset[Relation]]
-    ) -> Case:
-        """Return the case of a cycle through nodes in order, back to the first.
-
-        used gives, for the edge from each transaction to the next, the
-        relations the search followed it by. The cycle lists the edge's
-        relations among them, and the explanation the first evidence of one.
-        """
-        entries: list[dict[str, Any]] = []
-        explanation: list[dict[str, Any]] = []
-        for position, node in enumerate(nodes):
-            following = nodes[(position + 1) % len(nodes)]
-            evidence = [
-                e
-                for e in self._edges[(node, following)]
-                if e["relation"] in used[position]
-            ]
-            relations = {entry["relation"] for entry in evidence}
-            entries.append(
-                {
-                    "call": node,
-                    "relations": [r.value for r in _RELATIONS if r in relations],
+    def _aborted_read(self) -> Case | None:
+        """Return the first committed read of a value that an aborted call wrote."""
+        for call, key, value in self._reads:
+            if value is None:
+                continue
+            writer = self._writer.get(_name(key, value))
+            if writer is not None and writer in self._aborted:
+                evidence = {
+                    "call": call,
+                    "key": encode(key),
+                    "value": encode(value),
+                    "appender": writer,
                 }
-            )
-            explanation.append(evidence[0])
-        return Case(anomaly, tuple(nodes), tuple(entries), tuple(explanation))
+                return Case(Anomaly.ABORTED_READ, (call, writer), None, (evidence,))
+        return None
+
+    def _intermediate_read(self) -> Case | None:
+        """Return the first committed read of a value that its writer overwrote.
+
+        A transaction's read of its own write is no intermediate read.
+        """
+        for call, key, value in self._reads:
+            if value is None:
+                continue
+            name = _name(key, value)
+            writer, later = self._writer.get(name), self._later.get(name)
+            if writer is not None and writer != call and later is not None:
+                evidence = {
+                    "call": call,
+                    "key": encode(key),
+                    "value": encode(value),
+                    "appender": writer,
+                    "next": encode(later[0]),
+                }
+                return Case(
+                    Anomaly.INTERMEDIATE_READ, (call, writer), None, (evidence,)
+                )
+        return None
+
+    def _derive(self) -> None:
+        """Derive the dependencies between committed transactions, key by key.
+
+        Each key adds its write-write edges in the order of the installing
+        transactions, then the write-read and read-write edges of each external
+        read in the order of the reading transactions.
+        """
+        externals: dict[object, list[_External]] = {}
+        installs: dict[object, list[tuple[int, object]]] = {}
+        for txn in self._txns:
+            if txn.call not in self._committed:
+                continue
+            for key, value in _external_reads(txn).items():
+                externals.setdefault(key, []).append((txn.call, key, value))
+            for key, value in _external_writes(txn).items():
+                installs.setdefault(key, []).append((txn.call, value))
+        for key, stated in self._keys.items():
+            reads = externals.get(key, [])
+            read_by = {call: value for call, _, value in reads}
+            pairs = [
+                (before, call, value)
+                for call, value in installs.get(key, [])
+                for before in _predecessors(read_by.get(call, _NONE))
+            ]
+            self._key_edges(key, encode(stated), pairs, reads)
+
+    def _key_edges(
+        self,
+        key: object,
+        literal: dict[str, Any],
+        pairs: Sequence[tuple[object, int, object]],
+        reads: Sequence[_External],
+    ) -> None:
+        """Derive the edges of one key from its version pairs and its external reads.
+
+        A pair is a value, the transaction that installed a later value, and
+        that later value.
+        """
+        for before, call, value in pairs:
+            if before is not None:
+                self._edge(
+                    self._installer(key, before), call, _ww(literal, before, value)
+                )
+        for reader, _, read in reads:
+            if read is not None:
+                evidence = {
+                    "relation": Relation.WR.value,
+                    "key": literal,
+                    "value": encode(read),
+                }
+                self._edge(self._installer(key, read), reader, evidence)
+            for before, call, value in pairs:
+                if canonical(before) == canonical(read):
+                    rw = {
+                        "relation": Relation.RW.value,
+                        "key": literal,
+                        "value": _literal(read),
+                        "next": encode(value),
+                    }
+                    self._edge(reader, call, rw)
+
+    def _installer(self, key: object, value: object) -> int | None:
+        """Return the committed transaction that installed value on key, or None.
+
+        A value that its writer overwrote later in the same transaction was
+        never installed.
+        """
+        name = (key, canonical(value))
+        writer = self._writer.get(name)
+        if writer not in self._committed or name in self._later:
+            return None
+        return writer
+
+
+#: The read of a transaction that read no key before its external write.
+_NONE: Final = object()
+
+
+def _literal(value: object) -> object:
+    """Return a register value as a typed literal, and null for the initial value."""
+    return None if value is None else encode(value)
+
+
+def _predecessors(read: object) -> list[object]:
+    """Return the values that precede a transaction's external write of a key.
+
+    The initial value precedes every installed value. The transaction's
+    external read of the key, when it has one and read another value,
+    precedes it too.
+    """
+    if read is _NONE or read is None:
+        return [None]
+    return [None, read]
+
+
+def _external_reads(txn: Transaction) -> dict[object, object]:
+    """Return the value of each external read of an ok transaction, by key.
+
+    A read of a key that the transaction has already read or written is no
+    external read.
+    """
+    if txn.kind is not Kind.OK:
+        return {}
+    touched: set[object] = set()
+    out: dict[object, object] = {}
+    for mop in txn.mops:
+        key = canonical(mop.key)
+        if mop.function == READ and key not in touched:
+            out[key] = mop.value
+        touched.add(key)
+    return out
+
+
+def _external_writes(txn: Transaction) -> dict[object, object]:
+    """Return the value of each external write of a transaction, by key."""
+    return {canonical(m.key): m.value for m in txn.mops if m.function == WRITE}
+
+
+def _internal_register(txn: Transaction) -> Case | None:
+    """Return the first read of an ok register transaction that contradicts it.
+
+    After a write or a read of a key, the transaction knows the key's value.
+    A later read returns that value, and no read returns a value that the
+    transaction writes to the key after it.
+    """
+    known: dict[object, object] = {}
+    for position, mop in enumerate(txn.mops):
+        key = canonical(mop.key)
+        if mop.function == WRITE:
+            known[key] = mop.value
+            continue
+        later = [
+            m.value
+            for m in txn.mops[position + 1 :]
+            if m.function == WRITE and canonical(m.key) == key
+        ]
+        future = next((v for v in later if canonical(v) == canonical(mop.value)), _NONE)
+        stale = key in known and canonical(known[key]) != canonical(mop.value)
+        if future is not _NONE or stale:
+            evidence = {
+                "call": txn.call,
+                "key": encode(mop.key),
+                "read": _literal(mop.value),
+                "expected": _literal(known.get(key)),
+                "whole": key in known,
+                "future": None if future is _NONE else encode(future),
+            }
+            return Case(Anomaly.INTERNAL_INCONSISTENCY, (txn.call,), None, (evidence,))
+        known[key] = mop.value
+    return None
 
 
 def _internal(txn: Transaction) -> Case | None:

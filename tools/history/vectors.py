@@ -19,7 +19,7 @@ with an optional budget, memo limit and number of workers. Its outputs are
 whether the check passes and the detail of its record.
 
 A serializable or snapshot-isolation vector states a history of list-append
-transactions as a script. Its outputs are whether the check at the level of
+or register transactions as a script. Its outputs are whether the check at the level of
 its kind passes, and the detail of its record.
 """
 
@@ -131,11 +131,11 @@ def at_level(level: isolation.Level) -> Callable[[Mapping[str, Any]], Vector]:
     """Return the function that checks a vector's history at one isolation level."""
 
     def checked(case: Mapping[str, Any]) -> Vector:
-        """Check a list-append history, and return the verdict and its detail.
+        """Check a transaction history, and return the verdict and its detail.
 
         Raises:
             VectorError: the history's script is refused, or the history is no
-                history of list-append transactions.
+                history of list-append or register transactions.
         """
         try:
             events = record(case["history"])
