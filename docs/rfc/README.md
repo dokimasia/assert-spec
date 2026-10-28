@@ -56,3 +56,4 @@ they record why not.
 | [0043](0043-the-kinds-of-record-in-an-artifact.md) | The kinds of record in an artifact | Accepted |
 | [0044](0044-a-seat-that-observes-every-call.md) | A seat that observes every call | Accepted |
 | [0045](0045-a-ceiling-on-the-live-heap-of-a-call.md) | A ceiling on the live heap of a call | Accepted |
+| [0046](0046-isolation-checks-over-register-histories.md) | Isolation checks over register histories | Accepted |
