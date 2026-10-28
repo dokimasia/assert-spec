@@ -62,7 +62,7 @@ tools/history/         the history's and the checkers' executable reference
 tools/stateful/        the machines' and the scheduler's executable reference
 tools/files/           the trees' and the file assertions' executable reference
 .spec.yaml             the files an implementation vendors with spec
-VERSION                13.1.0
+VERSION                13.2.0
 ```
 
 People edit the YAML. `make render` produces the JSON, which is
@@ -99,19 +99,19 @@ one definition.
 
 ## The set
 
-71 assertions: 50 in the root namespace, 4 for golden files and golden
+72 assertions: 51 in the root namespace, 4 for golden files and golden
 trees, 9 for trees of files and single paths, 4 for benchmark ceilings,
 1 property check and 3 checks of a recorded history. They cover equality,
 truth, nullity, length, containment, text, numbers, ordering, errors,
 raising, cancellation and deadlines, retrying, goroutine and task leaks,
-allocations, relations between runs of a subject, recorded output, files
-and directories, performance ceilings, properties over generated inputs,
-the linearizability of concurrent calls, and the isolation of
-transactions.
+allocations, the live heap, relations between runs of a subject, recorded
+output, files and directories, performance ceilings, properties over
+generated inputs, the linearizability of concurrent calls, and the
+isolation of transactions.
 
 39 of them also have a property form, which runs the assertion on every
 input that a property generates. Rendering adds the forms to the `prop`
-package by one rule, so the assertion table states 110 entries.
+package by one rule, so the assertion table states 111 entries.
 
 An assertion earns its place by answering two questions. Does it state
 something that must be true, and fail when it is not? Does it mean the
@@ -142,12 +142,12 @@ what the failure must mention:
 ```
 
 Typed literals cross a language boundary only as data, so the corpus
-covers 39 of the 71 assertions. Eighteen of those state their
+covers 39 of the 72 assertions. Eighteen of those state their
 arguments. The other 21 name a behaviour instead, because what they
 take is a callable and no encoding states one. The ten assertions that
 read files take a directory or a path, which a case states as a tree
 that the runner writes before the call, so their cases are vectors. The
-remaining 22 take an error value, a predicate, a callable that no subject
+remaining 23 take an error value, a predicate, a callable that no subject
 describes, a golden file, a benchmark measurement, a property's body, a
 spec or a recorded history, and none of those is a typed literal
 either. The property engine
@@ -174,7 +174,7 @@ content and the mode at one path.
 **The completeness gate** checks membership. Every assertion must be
 present under the name the naming table gives it, with the arity the
 definition states as far as the language can read it. The gate covers
-the 22 assertions that the corpus cannot state, and `prop-max-allocs` and
+the 23 assertions that the corpus cannot state, and `prop-max-allocs` and
 `prop-max-allocs-with-setup`, whose allocation counts no vector can
 state. The standard checks a
 library's meaning where meaning can be stated, and its membership
@@ -279,15 +279,15 @@ differently.
 
 | Language | Repository | Assertions |
 |---|---|---|
-| Go | [assert-go](https://github.com/dokimasia/assert-go) | 110 of 110 |
-| Java | [assert-java](https://github.com/dokimasia/assert-java) | 105 of 110 |
-| Kotlin | [assert-java](https://github.com/dokimasia/assert-java) | 105 of 110 |
-| Python | [assert-python](https://github.com/dokimasia/assert-python) | 105 of 110 |
-| Rust | [assert-rust](https://github.com/dokimasia/assert-rust) | 110 of 110 |
-| TypeScript | [assert-typescript](https://github.com/dokimasia/assert-typescript) | 104 of 110 |
+| Go | [assert-go](https://github.com/dokimasia/assert-go) | 111 of 111 |
+| Java | [assert-java](https://github.com/dokimasia/assert-java) | 106 of 111 |
+| Kotlin | [assert-java](https://github.com/dokimasia/assert-java) | 106 of 111 |
+| Python | [assert-python](https://github.com/dokimasia/assert-python) | 106 of 111 |
+| Rust | [assert-rust](https://github.com/dokimasia/assert-rust) | 111 of 111 |
+| TypeScript | [assert-typescript](https://github.com/dokimasia/assert-typescript) | 104 of 111 |
 
 Each count is what the language's overlay declares against version
-13.1.0. An implementation whose copy is behind has an open pull request
+13.2.0. An implementation whose copy is behind has an open pull request
 from spec with the new copy.
 
 Java and Kotlin ship from one repository and are named identically, so
@@ -299,19 +299,21 @@ running count. For the same reason its ceiling on bytes bounds the peak
 of an iteration and not the bytes it allocates, which its overlay
 declares as a limit. TypeScript states none of the four
 allocation ceilings, because V8 reports allocation only as a heap-usage
-delta that moves with whether the collector ran. Each gap is in that
+delta that moves with whether the collector ran. It does not state
+max-live-bytes either, because Node releases a freed buffer after the
+collection, so a reading counts it as kept. Each gap is in that
 language's overlay with the measurement behind it.
 
-Go and Rust state all 110 and declare nothing absent. Go checks no
+Go and Rust state all 111 and declare nothing absent. Go checks no
 allocation ceiling in a build with the race detector, msan or asan, in
 one whose `-gcflags` turn off optimisation or inlining, or in a test
 binary that a mutation run instrumented, because those builds allocate
 differently from the one that ships. Go also reads `int`, `uint` and
 `uintptr` at the platform's width, which is 32 bits on a 32-bit platform.
-A property over one of them generates other values there. In Rust seven are
+A property over one of them generates other values there. In Rust eight are
 partial: the six
-allocation ceilings need a counting allocator installed as the test
-binary's global allocator, and no-task-leaks sees tasks on a runtime but
+allocation ceilings and max-live-bytes need a counting allocator installed
+as the test binary's global allocator, and no-task-leaks sees tasks on a runtime but
 not a thread, because nothing in Rust's standard library enumerates
 threads. Rust also declines the three relaxations. Its types keep an
 absent container and an empty one apart, and its own equality already

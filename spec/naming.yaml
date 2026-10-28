@@ -19,7 +19,7 @@
 # as its positive does. Each of these names takes the auxiliary that its
 # word takes in an English sentence: is before an adjective, has before a
 # noun and does before a verb.
-version: "13.1.0"
+version: "13.2.0"
 
 languages: [go, java, kotlin, php, python, rust, typescript]
 
@@ -367,6 +367,13 @@ names:
     typescript: "maxAllocsWithSetup"
     java: "maxAllocsWithSetup"
     kotlin: "maxAllocsWithSetup"
+  "max-live-bytes":
+    go: "MaxLiveBytes"
+    python: "max_live_bytes"
+    rust: "max_live_bytes"
+    typescript: "maxLiveBytes"
+    java: "maxLiveBytes"
+    kotlin: "maxLiveBytes"
   "golden-match":
     go: "golden.Match"
     python: "golden.match"

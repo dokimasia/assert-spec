@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@13.1.0",
+  "extends": "spec://assertions@13.2.0",
   "language": "kotlin",
   "diverge": [
     {
@@ -34,6 +34,11 @@
     }
   ],
   "limits": [
+    {
+      "id": "max-live-bytes",
+      "what": "Reads the heap used of the MemoryMXBean after System.gc, under the Serial, the Parallel and the G1 collector. Under -XX:+DisableExplicitGC, under -XX:+ExplicitGCInvokesConcurrent and under any other collector the call ends with a fault. A test that runs beside the call and keeps memory reachable adds that memory to each reading.",
+      "why": "System.gc runs a full collection that has ended when it returns only under those three collectors without the two flags. With explicit collections off, each reading of a streaming filter contained the garbage of the call, and ZGC reports its heap in pages of 2 MiB."
+    },
     {
       "id": "no-task-leaks",
       "what": "Sees coroutines launched in the scope, and the platform threads the Java artifact sees. A leaked virtual thread is not reported.",

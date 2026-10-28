@@ -1,8 +1,13 @@
 {
-  "extends": "spec://assertions@13.1.0",
+  "extends": "spec://assertions@13.2.0",
   "language": "go",
   "diverge": [],
   "limits": [
+    {
+      "id": "max-live-bytes",
+      "what": "Reads HeapAlloc after runtime.GC, which counts the live heap of the whole process, in every build. A test that runs beside the call and keeps memory reachable adds that memory to each reading, so the test that calls MaxLiveBytes does not call t.Parallel.",
+      "why": "The Go runtime keeps one heap for all goroutines and counts no live bytes per goroutine. Over a streaming and a buffering filter of 1,024 entries of 1 KiB, a build with the race detector and a build with -gcflags=\"all=-N -l\" read peaks within 400 bytes of an ordinary build, so no build stops the check."
+    },
     {
       "id": "history",
       "what": "Records every invocation and completion through one counter that all clients share, whose increment is sequentially consistent. A subject whose correctness depends on a memory barrier it lacks can pass under the recorder and fail without it.",

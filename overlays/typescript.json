@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@13.1.0",
+  "extends": "spec://assertions@13.2.0",
   "language": "typescript",
   "diverge": [
     {
@@ -19,6 +19,12 @@
       "stance": "blocked",
       "why": "The form runs max-allocs on each input, and max-allocs is absent for the reason its entry gives.",
       "remedy": "The counter in V8's API that bench-max-allocs needs."
+    },
+    {
+      "id": "max-live-bytes",
+      "stance": "blocked",
+      "why": "Node releases the backing store of a freed typed array on a background thread after the collection. On Node 26.12.1 a freed array of 256 KiB stayed in process.memoryUsage().arrayBuffers after gc(), after a second gc(), after a last-resort collection, after a microtask, after setImmediate and after setTimeout(0), and left it about 10 ms later. A synchronous probe therefore reads freed buffers as kept, and heapUsed alone does not count the backing stores at all, so no reading can hold a call to a ceiling.",
+      "remedy": "A collection in V8 or Node that releases the backing stores of freed array buffers before it returns."
     },
     {
       "id": "max-allocs-with-setup",

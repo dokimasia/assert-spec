@@ -20,7 +20,7 @@
 # assertion carries exactly these. got is what the assertion observed
 # and want is what it required, so an assertion whose failure holds
 # neither states no fields and reports the caller's message alone.
-version: "13.1.0"
+version: "13.2.0"
 
 # What a caller may change about equality, for one call.
 #
@@ -702,6 +702,22 @@ assertions:
       the ceilings, the counts, got and total of max-allocs.
     detail_fields: [want, got, total]
 
+  "max-live-bytes":
+    arity: 3
+    summary: >
+      A callable keeps at most a stated number of bytes of the heap
+      reachable at each call of a probe that the assertion hands it. The
+      assertion calls it once with a probe that reads nothing to warm it.
+      A run then collects and reads the live heap, and calls the callable
+      with a probe that collects and reads the live heap at each call. The
+      excess of a run is its largest reading less the first reading, or 0.
+      A run whose excess exceeds the ceiling is taken again, and the
+      assertion fails when ten runs exceed it. got is the smallest excess
+      and probes the calls of the probe in the run of that excess. A
+      callable that calls the probe in no run ends the call with a fault,
+      and so does a run that cannot read the live heap.
+    detail_fields: [want, got, probes]
+
   "golden-match":
     arity: 3
     package: golden
@@ -931,11 +947,11 @@ assertions:
 # - The form of a relation generates the arguments that the relation
 #   takes. Its arity is the relation's less those arguments.
 #
-# The other 32 assertions have no form: they retry over time, measure
-# time, scope a block, compare a file, a tree of files or a measurement,
-# read a path, drive a check, check a recorded history, are prop-for-all
-# itself, or read state without taking an input. total has none either,
-# because generating its domain is the form of err-absent.
+# The other 33 assertions have no form: they retry over time, measure
+# time or the live heap, scope a block, compare a file, a tree of files or
+# a measurement, read a path, drive a check, check a recorded history, are
+# prop-for-all itself, or read state without taking an input. total has
+# none either, because generating its domain is the form of err-absent.
 forms:
   functions:
     - "equal"
