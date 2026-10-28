@@ -109,6 +109,17 @@ seat. A seat without the member receives nothing, and the test runs on.
 A skip is an input of a test, so no corpus case pins it. Each language
 checks it in its own tests.
 
+**How a seat observes a call.** The first seat of a test's chain that
+states `seat.observe-call` receives an `assertion-call`, with the assertion's
+id and the contract, for each call that a recorded run records, whatever
+`DOKIMI_ASSERT_RECORD` states. That covers every verdict and the calls in
+the body of a property, of `eventually` and of `rejects`. The seat observes
+each call once, before it receives the failure, the fault or the skip of
+that call. It receives the calls of a property's cases in the order of a
+run on one worker. An assertion on a seat without the
+member does not allocate for it. An observer is an input of a test, so no
+corpus case pins it. Each language checks it in its own tests.
+
 **What a recorded run states.** `recording.md` fixes the fields of a
 call record and their encoding, the verdicts, the phases of a property's
 cases, the opaque literal, the numbering, the switch and its values,

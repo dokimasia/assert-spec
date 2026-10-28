@@ -255,6 +255,60 @@ class Validator(unittest.TestCase):
         )
         self.assert_caught("overlays/rust.json: records states no status")
 
+    def test_a_records_entry_without_kinds_is_caught(self) -> None:
+        """A reader of the artifact needs the kinds of record that it contains."""
+        _edit(self.tree / "overlays" / "go.json", lambda d: d["records"].pop("kinds"))
+        self.assert_caught("overlays/go.json: records states no kinds")
+
+    def test_kinds_that_are_no_list_are_caught(self) -> None:
+        """The kinds are a list of names."""
+        _edit(
+            self.tree / "overlays" / "go.json",
+            lambda d: d["records"].update(kinds="dokimi.assert"),
+        )
+        self.assert_caught("overlays/go.json: records states no kinds")
+
+    def test_a_kind_listed_twice_is_caught(self) -> None:
+        """Each kind is listed once."""
+        _edit(
+            self.tree / "overlays" / "go.json",
+            lambda d: d["records"].update(kinds=["dokimi.assert", "dokimi.assert"]),
+        )
+        self.assert_caught(
+            "overlays/go.json: records lists the kind 'dokimi.assert' twice"
+        )
+
+    def test_a_kind_outside_the_reserved_prefix_is_caught(self) -> None:
+        """A kind starts with the prefix dokimi. that dokimasia reserves."""
+        _edit(
+            self.tree / "overlays" / "go.json",
+            lambda d: d["records"].update(kinds=["dokimi.assert", "vendor.trace"]),
+        )
+        self.assert_caught(
+            "overlays/go.json: records lists 'vendor.trace', which is no kind"
+        )
+
+    def test_a_kind_that_overlays_md_does_not_list_is_caught(self) -> None:
+        """A kind joins the table of overlays.md before an overlay lists it."""
+        _edit(
+            self.tree / "overlays" / "go.json",
+            lambda d: d["records"].update(kinds=["dokimi.assert", "dokimi.trace"]),
+        )
+        self.assert_caught(
+            "overlays/go.json: records lists 'dokimi.trace', "
+            "which the table of kinds does not list"
+        )
+
+    def test_kinds_without_the_call_records_are_caught(self) -> None:
+        """The artifact of every language contains the call records."""
+        _edit(
+            self.tree / "overlays" / "go.json",
+            lambda d: d["records"].update(kinds=["dokimi.suite"]),
+        )
+        self.assert_caught(
+            "overlays/go.json: records does not list the kind 'dokimi.assert'"
+        )
+
     def test_an_overlay_without_sections_is_caught(self) -> None:
         """An overlay states how its language runs a concurrent section."""
         _edit(self.tree / "overlays" / "go.json", lambda d: d.pop("sections"))

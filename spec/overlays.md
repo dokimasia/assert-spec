@@ -119,24 +119,44 @@ and a case it should cover is missing.
 
 `recording.md` fixes what a recorded run states. Each language writes
 its call records into the artifact that its test runner writes for a
-run. Its overlay states that artifact:
+run. Its overlay states that artifact, and the kinds of record in it:
 
 ```json
 "records": {
   "artifact": "The event stream that go test -json writes for a run. go test writes the call records under -json and -v alone.",
-  "location": "One attr event per call record. Its Package and Test name the test, its Key is dokimi.assert.<seq>, and its Value is the call record's JSON. A call record whose line does not fit test2json's 4,096-byte line buffer is split over consecutive attr events of the same Key, whose Values join into the call record.",
-  "status": "The pass, fail and skip events of each test."
+  "location": "One attr event per record. Its Package and Test name the test, its Key is the kind of the record followed by the record's number in its test, such as dokimi.assert.3 or dokimi.suite.1, and its Value is the record's JSON. A record whose line does not fit test2json's 4,096-byte line buffer is split over consecutive attr events of the same Key, whose Values join into the record.",
+  "status": "The pass, fail and skip events of each test.",
+  "kinds": ["dokimi.assert", "dokimi.suite"]
 }
 ```
 
 | Key | States |
 |---|---|
 | `artifact` | What the runner writes for a run, and the command that writes it |
-| `location` | Where each call record is in the artifact, and how the artifact names its test |
+| `location` | Where each record of each kind is in the artifact, and how the artifact names its test |
 | `status` | Where the artifact states each test's status |
+| `kinds` | The kinds of record that the artifact can contain |
+
+The artifact can contain the records of more than one tool. Every name of
+a record that starts with `dokimi.` belongs to a tool of dokimasia. A kind
+is the part of the name before the number of the record, such as
+`dokimi.assert` in `dokimi.assert.3`, and matches `dokimi\.[a-z][a-z0-9-]*`.
+`location` states one rule for every kind: a record of any kind is found
+and split as a call record is, under the name of its own kind.
+
+| Kind | Records | Specification |
+|---|---|---|
+| `dokimi.assert` | The call records of assert | `recording.md` |
+| `dokimi.suite` | The suite records of dokimi, one for each application of a suite | dokimi |
+
+A kind joins this table through an RFC of this repository. The definition
+fixes the name and the place of a record of another tool, and that tool
+fixes its fields.
 
 The validator refuses an overlay without the entry, and an entry whose
-key is missing or empty.
+key is missing or empty. It refuses an entry whose `kinds` is not a
+non-empty list, lists a kind twice, lists a value that is no kind or a kind
+outside this table, or does not list `dokimi.assert`.
 
 ## Sections
 

@@ -19,7 +19,7 @@
 # as its positive does. Each of these names takes the auxiliary that its
 # word takes in an English sentence: is before an adjective, has before a
 # noun and does before a verb.
-version: "13.0.0"
+version: "13.1.0"
 
 languages: [go, java, kotlin, php, python, rust, typescript]
 
@@ -604,6 +604,15 @@ relaxations:
 # TypeScript state it as an optional member of the seat, and Rust gives it
 # a default on the trait, so the three decline Skipper.
 #
+# A seat observes each assertion call through observe-call, which receives
+# an assertion-call of the assertion's id and the contract. The member is not
+# named observe, because a case is a seat and case.observe records a
+# fingerprint. Python and TypeScript find a member of a seat by its name, so
+# one name would make every case an observer. Go, Java and Kotlin state the
+# member on the interface Observer, and Python, TypeScript and Rust state it
+# on the seat, so the three decline Observer. Java and Kotlin name the call
+# AssertionCall, because Call names the call of a history there.
+#
 # allocs-checked reports whether a run checks allocation ceilings. Go names
 # it AllocsChecked, and Java and Kotlin Check.allocsChecked. prop.values
 # returns the values of a generator for a seed, beside the other helpers
@@ -751,6 +760,17 @@ surface:
     "skipper":
       java: "Skipper"
       kotlin: "Skipper"
+    "observer":
+      go: "Observer"
+      java: "Observer"
+      kotlin: "Observer"
+    "assertion-call":
+      go: "Call"
+      python: "Call"
+      rust: "Call"
+      typescript: "Call"
+      java: "AssertionCall"
+      kotlin: "AssertionCall"
     "scrubber":
       go: "golden.Scrubber"
       python: "golden.Scrubber"
@@ -939,6 +959,27 @@ surface:
       typescript: "reportFault"
       java: "reportFault"
       kotlin: "reportFault"
+    "seat.observe-call":
+      go: "ObserveCall"
+      python: "observe_call"
+      rust: "observe_call"
+      typescript: "observeCall"
+      java: "observeCall"
+      kotlin: "observeCall"
+    "assertion-call.assertion":
+      go: "Assertion"
+      python: "assertion"
+      rust: "assertion"
+      typescript: "assertion"
+      java: "assertion"
+      kotlin: "assertion"
+    "assertion-call.contract":
+      go: "Contract"
+      python: "contract"
+      rust: "contract"
+      typescript: "contract"
+      java: "contract"
+      kotlin: "contract"
     "seat.clock":
       go: "Clock"
       python: "clock"

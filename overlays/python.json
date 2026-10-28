@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@13.0.0",
+  "extends": "spec://assertions@13.1.0",
   "language": "python",
   "diverge": [
     {
@@ -64,6 +64,10 @@
       "why": "A seat states report_fault itself, as a method that the library calls where the seat has it, and the library raises the fault for a seat without it. Only a language whose interfaces carry no defaults needs a second interface to say the same thing."
     },
     {
+      "id": "observer",
+      "why": "A seat states observe_call itself, as a method that the library calls where the seat has it. Only a language whose interfaces carry no defaults needs a second interface to say the same thing."
+    },
+    {
       "id": "skipper",
       "why": "A seat states skip itself, as a method that the library calls where the seat has it. Only a language whose interfaces carry no defaults needs a second interface to say the same thing."
     },
@@ -103,7 +107,8 @@
   "sections": ["tasks", "threads"],
   "records": {
     "artifact": "The JUnit XML file that pytest --junitxml=PATH writes to PATH when the session ends.",
-    "location": "One property element per call record, in the order the calls report their verdicts, under the properties element of the test's testcase element. Its name is dokimi.assert.<seq> and its value is the call record's JSON. The testcase element names the test by its classname, the module's dotted path and the class, and its name, the function's name with its parameters.",
-    "status": "The child of each testcase element: none for a pass, failure for a failed call, error for a failed setup or teardown, and skipped for a skip or an expected failure."
+    "location": "One property element per record, in the order the records are made, under the properties element of the test's testcase element. Its name is the kind of the record followed by the record's number in its test, such as dokimi.assert.3 or dokimi.suite.1, and its value is the record's JSON. The testcase element names the test by its classname, the module's dotted path and the class, and its name, the function's name with its parameters.",
+    "status": "The child of each testcase element: none for a pass, failure for a failed call, error for a failed setup or teardown, and skipped for a skip or an expected failure.",
+    "kinds": ["dokimi.assert", "dokimi.suite"]
   }
 }

@@ -118,6 +118,18 @@ UNRECORDED_PHASES = frozenset({Phase.FUZZ.value})
 #: states each test's status.
 RECORDS_KEYS = ("artifact", "location", "status")
 
+#: The kinds of record that an artifact can contain, as the table of
+#: overlays.md lists them: the call records of assert and the suite records
+#: of dokimi.
+RECORD_KINDS = frozenset({"dokimi.assert", "dokimi.suite"})
+
+#: The kind of the call records, which every artifact contains.
+CALL_RECORDS = "dokimi.assert"
+
+#: The form of a kind: the prefix dokimi., which dokimasia reserves for its
+#: tools, and a name in lowercase.
+KIND = re.compile(r"dokimi\.[a-z][a-z0-9-]*")
+
 #: What the ids of each kind of history vector begin with: the seam's
 #: vectors are named for the history, and each checker's for its assertion.
 HISTORY_PREFIXES = {
@@ -1749,7 +1761,8 @@ def check_overlay_records(
     """Check that one overlay states where its language writes the call records.
 
     The records entry states each of RECORDS_KEYS, and none of them is
-    empty.
+    empty. Its kinds are a list of the kinds of record in the artifact, each
+    once, each a kind of RECORD_KINDS, and the call records among them.
     """
     records = overlay.get("records")
     if records is None:
@@ -1764,6 +1777,33 @@ def check_overlay_records(
             where,
             f"records states no {key}",
         )
+    check_record_kinds(records.get("kinds"), where, problems)
+
+
+def check_record_kinds(kinds: object, where: str, problems: Problems) -> None:
+    """Check the kinds of record that an overlay's records entry lists."""
+    if not isinstance(kinds, list) or not kinds:
+        problems.at(where, "records states no kinds")
+        return
+    seen: set[object] = set()
+    for kind in kinds:
+        problems.unless(
+            kind not in seen, where, f"records lists the kind {kind!r} twice"
+        )
+        seen.add(kind)
+        if not isinstance(kind, str) or KIND.fullmatch(kind) is None:
+            problems.at(where, f"records lists {kind!r}, which is no kind")
+            continue
+        problems.unless(
+            kind in RECORD_KINDS,
+            where,
+            f"records lists {kind!r}, which the table of kinds does not list",
+        )
+    problems.unless(
+        CALL_RECORDS in seen,
+        where,
+        f"records does not list the kind {CALL_RECORDS!r}",
+    )
 
 
 def check_overlay_sections(

@@ -62,7 +62,7 @@ tools/history/         the history's and the checkers' executable reference
 tools/stateful/        the machines' and the scheduler's executable reference
 tools/files/           the trees' and the file assertions' executable reference
 .spec.yaml             the files an implementation vendors with spec
-VERSION                13.0.0
+VERSION                13.1.0
 ```
 
 People edit the YAML. `make render` produces the JSON, which is
@@ -287,7 +287,7 @@ differently.
 | TypeScript | [assert-typescript](https://github.com/dokimasia/assert-typescript) | 104 of 110 |
 
 Each count is what the language's overlay declares against version
-13.0.0. An implementation whose copy is behind has an open pull request
+13.1.0. An implementation whose copy is behind has an open pull request
 from spec with the new copy.
 
 Java and Kotlin ship from one repository and are named identically, so
