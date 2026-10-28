@@ -55,4 +55,4 @@ they record why not.
 | [0042](0042-a-case-that-ends-with-a-fault.md) | A case that ends with a fault | Accepted |
 | [0043](0043-the-kinds-of-record-in-an-artifact.md) | The kinds of record in an artifact | Accepted |
 | [0044](0044-a-seat-that-observes-every-call.md) | A seat that observes every call | Accepted |
-| [0045](0045-a-ceiling-on-the-live-heap-of-a-call.md) | A ceiling on the live heap of a call | Draft |
+| [0045](0045-a-ceiling-on-the-live-heap-of-a-call.md) | A ceiling on the live heap of a call | Accepted |

@@ -2,7 +2,7 @@
 rfc: 0045
 title: A ceiling on the live heap of a call
 author: Roy Klopper <roy.klopper@stealthscale.io>
-status: Draft
+status: Accepted
 created: 2026-10-28
 updated: 2026-10-28
 discussion: https://github.com/dokimasia/assert-spec/issues/26
@@ -32,8 +32,9 @@ of memory reachable while they run. This proposal adds the assertion
 - A run that cannot read the live heap ends the call with a fault, so the
   assertion never passes without a reading.
 
-Go, Python, Rust, TypeScript, Java and Kotlin supply it. Definition 13.2.0
-adds the assertion.
+Go, Python, Rust, Java and Kotlin supply it. TypeScript declines it,
+because Node releases a freed buffer after the collection and a reading
+counts it as kept. Definition 13.2.0 adds the assertion.
 
 ## Motivation
 
@@ -59,11 +60,10 @@ reading above the heap before the call:
 |---|---|---|---|---|
 | Go 1.27.3 | `HeapAlloc` after `runtime.GC` | 11,904 B | 1,047,048 B | 67 µs |
 | Python 3.11.15 | `tracemalloc` after `gc.collect` | 1,433 B | 1,115,071 B | 243 µs |
-| Node 26.12.1 | `heapUsed + arrayBuffers` after a collection | 864 B | 1,245,408 B | 1.0 ms |
 | OpenJDK 27.0.1, G1 | heap used after `System.gc` | 7,984 B | 1,068,144 B | 1.2 ms |
 
 A ceiling of 64 KiB passes the streaming filter and fails the buffering
-filter in every runtime.
+filter in each of the three runtimes.
 
 ### The check belongs in assert
 
@@ -72,9 +72,7 @@ caller then has to know the rules of each runtime. One rule picks the
 collection to force. Another picks the counter of the live heap, and a
 third lists the settings that make a reading wrong.
 
-Each rule has a trap. Node counts the backing store of a typed array only
-in `arrayBuffers`. A reading of `heapUsed` alone reads the buffering filter
-at 215 KB to 232 KB. The JVM ignores `System.gc` under
+Each rule has a trap. The JVM ignores `System.gc` under
 `-XX:+DisableExplicitGC`, and each reading of the JVM probe under that flag
 contained the garbage of the call.
 
@@ -141,7 +139,6 @@ reads the bytes of live objects.
 | Go | `runtime.GC()` | `runtime.MemStats.HeapAlloc` of `runtime.ReadMemStats` |
 | Python | `gc.collect()` | the current size of `tracemalloc.get_traced_memory()` |
 | Rust | none: a value is freed when it drops | the bytes that the calling thread allocated less the bytes that it freed, which `CountingAllocator` counts |
-| TypeScript | the `gc` that `v8.setFlagsFromString("--expose-gc")` and `vm.runInNewContext("gc")` return | `heapUsed + arrayBuffers` of `process.memoryUsage()` |
 | Java, Kotlin | `System.gc()` | `getHeapMemoryUsage().getUsed()` of the `MemoryMXBean` |
 
 Go reads `HeapAlloc` and not the metric `/gc/heap/live:bytes`. After the
@@ -161,13 +158,31 @@ Rust adds a signed counter of live bytes to the thread-local counts of
 `dealloc` subtracts it, and `realloc` adds the difference of the two sizes.
 A reading costs one thread-local read.
 
-TypeScript forces a collection without `--expose-gc` on the command line,
-as jest-leak-detector 30.5.1 does. It turns the flag off again when the
-process did not set it. A process that starts with `--expose-gc` keeps
-its flags, and the assertion calls its global `gc`. A fault that demanded
-the flag would make each caller change the configuration of its test
-runner. Jest changes the flag at run time in every run with
-`--detectLeaks`.
+### Why TypeScript declines it
+
+Node counts the backing store of a typed array in
+`process.memoryUsage().arrayBuffers` and not in `heapUsed`. A reading of
+`heapUsed` alone reads a filter that buffers 1,024 entries of 1 KiB at
+215 KB to 232 KB, so it misses the bytes that the filter keeps.
+
+`arrayBuffers` counts a freed backing store as kept. Node releases the
+store on a background thread after the collection. On Node 26.12.1 a freed
+array of 256 KiB stayed counted after these steps:
+
+| After | Bytes still counted |
+|---|---|
+| `gc()`, which `vm.runInNewContext("gc")` returns once `--expose-gc` is set | 262,144 |
+| A second `gc()` | 262,144 |
+| `gc({ type: "major", execution: "sync", flavor: "last-resort" })` | 262,144 |
+| A microtask, `setImmediate` or `setTimeout(0)` | 262,144 |
+| About 10 ms | 0 |
+
+A probe is a synchronous call, so a reading at a probe counts the buffers
+that the callable freed before it. A stale first reading also hides growth
+when the stale buffers leave during the run. Neither reading can hold a
+call to a ceiling, so the TypeScript overlay declines the assertion. A
+collection that releases freed backing stores before it returns would
+remove the gap.
 
 ### Faults
 
@@ -178,7 +193,6 @@ the cause. Each cause is a configuration that the caller can change:
 |---|---|
 | Rust | The test binary does not install `CountingAllocator` as its global allocator. The text is the fault of `max_allocs` |
 | Java, Kotlin | `-XX:+DisableExplicitGC` or `-XX:+ExplicitGCInvokesConcurrent` is set, or the collector is neither Serial, Parallel nor G1, as `HotSpotDiagnosticMXBean` and the `GarbageCollectorMXBean` names report |
-| TypeScript | The runtime is not Node |
 
 The JVM shows why each Java case faults. Under
 `-XX:+DisableExplicitGC` each reading contains the garbage of the call:
@@ -195,8 +209,7 @@ fault names it.
 
 ### Parallel tests
 
-Go, Python, TypeScript and the JVM read the live heap of the whole process
-or the whole isolate. A test that runs beside the call and keeps memory
+Go, Python and the JVM read the live heap of the whole process. A test that runs beside the call and keeps memory
 reachable adds that memory to each reading. Go states the rule that
 `MaxAllocs` states: the test that calls `MaxLiveBytes` does not call
 `t.Parallel`. Rust reads the counts of the calling thread, so tests on
@@ -244,20 +257,6 @@ def max_live_bytes(
 pub fn max_live_bytes(seat: &dyn Seat, body: impl FnMut(&dyn Fn()), ceiling: u64, msg: &str);
 ```
 
-```typescript
-/**
- * Fails when fn keeps more than ceiling bytes of the heap and of array
- * buffers reachable at a call of probe. fn may return a promise, and the
- * returned promise settles when every run has ended.
- */
-export function maxLiveBytes(
-  seat: Seat,
-  fn: (probe: () => void) => void | Promise<void>,
-  ceiling: number,
-  msg: string,
-): Promise<void>;
-```
-
 A Go caller states the contract of a filter like this. `filter` and
 `entries` are the caller's own:
 
@@ -276,7 +275,9 @@ assert.MaxLiveBytes(t, func(probe func()) {
 |---|---|---|---|---|---|---|
 | `max-live-bytes` | `MaxLiveBytes` | `max_live_bytes` | `max_live_bytes` | `maxLiveBytes` | `maxLiveBytes` | `maxLiveBytes` |
 
-The assertion is in the root namespace, beside `max-allocs`.
+The assertion is in the root namespace, beside `max-allocs`. TypeScript
+keeps its name in the table, as it keeps the names of the allocation
+ceilings that it declines.
 
 ### Conformance
 
@@ -310,7 +311,7 @@ their collectors learn which objects are live only during a collection.
 Their counters between two collections include the garbage of the call.
 The peak of Python and Rust also includes every temporary buffer, and
 those two languages would fail callables that Go and the JVM pass. With a
-probe the six languages read the heap at the same points of the call.
+probe the five languages read the heap at the same points of the call.
 
 ### B. A reading after the call alone
 
@@ -326,9 +327,8 @@ A thread would read the heap at an interval while the callable runs. The
 callable would take no probe.
 
 **Why not:** a forced collection stops the callable wherever the interval
-ends, and two runs read different peaks. Node runs the JavaScript of an
-isolate on one thread, and a second thread cannot read the heap of the
-isolate while the callable runs. A probe makes the readings repeatable.
+ends, and two runs read different peaks. A probe makes the readings
+repeatable.
 
 ### D. A pass without a reading
 
@@ -355,13 +355,15 @@ memory is reachable at one time.
 ## Drawbacks
 
 - A reading costs a full collection: 61 to 80 µs in Go, 243 to 256 µs in
-  Python, 0.9 to 1.0 ms in Node and 1.2 to 1.7 ms in the JVM, measured by
-  the probes of the motivation. A collection scans the
-  whole live heap, so its cost grows with the heap of the test process. A
-  callable with 1,024 probes takes about 1 s per run in Node, and a
-  failing call takes ten runs.
-- Go, Python, TypeScript and the JVM read the heap of the whole process or
-  isolate. A Go test that calls `MaxLiveBytes` cannot run in parallel with
+  Python and 1.2 to 1.7 ms in the JVM, measured by the probes of the
+  motivation. A collection scans the whole live heap, so its cost grows
+  with the heap of the test process. A callable with 1,024 probes takes
+  1.2 s to 1.7 s per run in the JVM, and a failing call takes ten runs. In
+  the full suite of assert-python a spec of a failing call with one probe
+  took 2.4 s to 5.8 s.
+- TypeScript declines the assertion, so a TypeScript test cannot state the
+  contract.
+- Go, Python and the JVM read the heap of the whole process. A Go test that calls `MaxLiveBytes` cannot run in parallel with
   other tests. In Python a thread that runs beside the call adds to the
   readings.
 - The readings contain the bookkeeping of each runtime: Go read 11,904 B
@@ -371,13 +373,10 @@ memory is reachable at one time.
   buffers to a worker thread keeps memory that no reading counts.
 - Java and Kotlin fault under ZGC, Shenandoah and two common flags of the
   JVM.
-- TypeScript changes a V8 flag at run time. Node documents that a change
-  through `v8.setFlagsFromString` after the start of the VM can behave
-  unpredictably, crash or lose data, or have no effect.
 - Rust's `CountingAllocator` gains one counter and one subtraction in
   `dealloc`.
-- The naming table gains one row, and each language gains one assertion
-  and its specs.
+- The naming table gains one row, and each language but TypeScript gains
+  one assertion and its specs.
 
 ## Unresolved and future work
 
@@ -393,7 +392,7 @@ memory is reachable at one time.
 | `runtime.GC` and `/gc/heap/live:bytes`, Go 1.27.3 | `src/runtime/mgc.go`, `src/runtime/metrics/description.go` |
 | `tracemalloc.get_traced_memory`, CPython 3.11 | <https://docs.python.org/3.11/library/tracemalloc.html> |
 | A collection forced in a running Node process, under `--detectLeaks` | `jest-leak-detector` 30.5.1, `build/index.js`, lines 109 to 116 |
-| `v8.setFlagsFromString` and `process.memoryUsage().arrayBuffers`, Node 26.12.1 | `@types/node`, `v8.d.ts` and `process.d.ts` |
+| `process.memoryUsage().arrayBuffers` after a collection, Node 26.12.1 | Two probes run on 2026-10-28 that read a freed typed array of 256 KiB after each step of the table under "Why TypeScript declines it" |
 | `System.gc` under G1, ZGC, `-XX:+DisableExplicitGC` and `-XX:+ExplicitGCInvokesConcurrent` | OpenJDK 27.0.1, measured by the JVM probe below |
 | `HeapStats` with `curr_bytes` and `max_bytes` | <https://docs.rs/dhat/latest/dhat/struct.HeapStats.html> |
-| The probes of the readings, run on 2026-10-28 | Four programs that run a streaming and a buffering filter over 1,024 entries of 1 KiB in Go, Python, Node and the JVM |
+| The probes of the readings, run on 2026-10-28 | Three programs that run a streaming and a buffering filter over 1,024 entries of 1 KiB in Go, Python and the JVM |
