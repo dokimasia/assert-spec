@@ -53,3 +53,5 @@ they record why not.
 | [0040](0040-a-check-that-skips-under-rejects.md) | A check that skips under rejects | Accepted |
 | [0041](0041-complex-numbers-fractions-and-uintptr.md) | Complex numbers, fractions and uintptr in the reading table | Accepted |
 | [0042](0042-a-case-that-ends-with-a-fault.md) | A case that ends with a fault | Accepted |
+| [0043](0043-the-kinds-of-record-in-an-artifact.md) | The kinds of record in an artifact | Accepted |
+| [0044](0044-a-seat-that-observes-every-call.md) | A seat that observes every call | Accepted |
