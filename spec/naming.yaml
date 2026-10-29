@@ -19,7 +19,7 @@
 # as its positive does. Each of these names takes the auxiliary that its
 # word takes in an English sentence: is before an adjective, has before a
 # noun and does before a verb.
-version: "13.3.0"
+version: "13.4.0"
 
 languages: [go, java, kotlin, php, python, rust, typescript]
 
@@ -620,6 +620,18 @@ relaxations:
 # on the seat, so the three decline Observer. Java and Kotlin name the call
 # AssertionCall, because Call names the call of a history there.
 #
+# A seat registers a function that runs when its test, its case or its body
+# ends through cleanup, which case.cleanup names for a case. Go names the
+# member Cleanup, which testing.TB declares, and the helper cleanup finds it
+# along the seats that Unwrap returns, as Context finds Context. Python and
+# TypeScript state the member as an optional member of the seat, and the
+# helper ends the call with a fault on a seat without it. Rust, Java and
+# Kotlin give the member a default on the seat that ends the call with the
+# same fault, so a helper calls the member and the three decline the helper.
+# A recorder runs its cleanups at run-cleanups. Java and Kotlin name it
+# close, because their recorder is an AutoCloseable that try-with-resources
+# and Kotlin's use close.
+#
 # allocs-checked reports whether a run checks allocation ceilings. Go names
 # it AllocsChecked, and Java and Kotlin Check.allocsChecked. prop.values
 # returns the values of a generator for a seed, beside the other helpers
@@ -1006,6 +1018,13 @@ surface:
       typescript: "skip"
       java: "skip"
       kotlin: "skip"
+    "seat.cleanup":
+      go: "Cleanup"
+      python: "cleanup"
+      rust: "cleanup"
+      typescript: "cleanup"
+      java: "cleanup"
+      kotlin: "cleanup"
     "clock.now":
       go: "Now"
       python: "now"
@@ -1076,6 +1095,13 @@ surface:
       typescript: "faults"
       java: "faults"
       kotlin: "faults"
+    "recorder-seat.run-cleanups":
+      go: "RunCleanups"
+      python: "run_cleanups"
+      rust: "run_cleanups"
+      typescript: "runCleanups"
+      java: "close"
+      kotlin: "close"
     "collector-seat.collected":
       python: "collected"
       rust: "collected"
@@ -1421,6 +1447,10 @@ surface:
     "cancellation-of":
       go: "Context"
       typescript: "signalOf"
+    "cleanup":
+      go: "Cleanup"
+      python: "cleanup"
+      typescript: "cleanup"
     "fault":
       go: "Fault"
       python: "fault"

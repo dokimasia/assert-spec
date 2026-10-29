@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@13.3.0",
+  "extends": "spec://assertions@13.4.0",
   "language": "kotlin",
   "diverge": [
     {
@@ -76,6 +76,10 @@
     {
       "id": "cancellation-of",
       "why": "The helper reads the seat's cancellation handle, and a Kotlin seat states none, for the reason the seat.cancellation entry gives."
+    },
+    {
+      "id": "cleanup",
+      "why": "Kotlin uses the Seat of Java, which gives cleanup() a default that ends the call with a fault, so a helper calls the member on any seat and needs no function to register a cleanup."
     },
     {
       "id": "scheduler.yield",

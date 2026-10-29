@@ -120,6 +120,29 @@ run on one worker. An assertion on a seat without the
 member does not allocate for it. An observer is an input of a test, so no
 corpus case pins it. Each language checks it in its own tests.
 
+**How a seat runs its cleanups.** A seat that has `seat.cleanup` runs the
+functions that it registers when its test, its case or its body ends:
+
+- It runs the last registered first, however the test or the body ended.
+- It ends its cancellation handle before the first cleanup runs.
+- A failure in a cleanup is a failure of the seat. The later cleanups
+  still run.
+- A cleanup that another cleanup registers runs in the same pass.
+- The seat that `rejects` hands its check runs its cleanups on the thread
+  of the check, before `rejects` returns. The seat that `eventually` hands
+  an attempt runs them before the next attempt starts. The records of the
+  assertions in a cleanup are records of the body's run, and a cleanup
+  that arrives after the cleanups ran runs at once.
+- A recorder runs its cleanups at `recorder-seat.run-cleanups`, and forgets
+  them. It keeps an error that a cleanup raises as a failure.
+- The helper `cleanup` registers a function through the member, and ends
+  the call with a fault on a seat without it. The function then does not
+  run. A language that gives the member a default on the seat ends the
+  call with the same fault in the default.
+
+A cleanup is an input of a test, so no vector pins it. Each language checks
+it in its own tests.
+
 **What a recorded run states.** `recording.md` fixes the fields of a
 call record and their encoding, the verdicts, the phases of a property's
 cases, the opaque literal, the numbering, the switch and its values,
