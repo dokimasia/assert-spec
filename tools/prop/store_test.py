@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-import datetime
+import datetime as dt
 import json
 import re
 import unittest
@@ -59,7 +59,7 @@ DEEPEST_VALUE: Final = MAX_DEPTH - 3
 
 def _written() -> dict[str, Any]:
     """Return FAILURE's entry as definition 1.2.0 writes it on 1 October 2026."""
-    return entry(FAILURE, "1.2.0", datetime.date(2026, 10, 1))
+    return entry(FAILURE, "1.2.0", dt.date(2026, 10, 1))
 
 
 def _verdict(document: object) -> Verdict:
@@ -120,7 +120,7 @@ class EntryTest(unittest.TestCase):
             FAILURE.identity,
             ({"label": "v", "value": _nested(DEEPEST_VALUE)},),
         )
-        written = entry(deep, "1.2.0", datetime.date(2026, 10, 1))
+        written = entry(deep, "1.2.0", dt.date(2026, 10, 1))
         assert depth(written) == MAX_DEPTH
         assert _verdict(written) == Verdict.REPLAY
 
@@ -132,7 +132,7 @@ class EntryTest(unittest.TestCase):
             FAILURE.identity,
             ({"label": "v", "value": _nested(DEEPEST_VALUE + 1)},),
         )
-        written = entry(deep, "1.2.0", datetime.date(2026, 10, 1))
+        written = entry(deep, "1.2.0", dt.date(2026, 10, 1))
         assert written["counterexample"] == [{"label": "v"}]
 
     def test_the_format_and_the_token_version_are_pinned(self) -> None:

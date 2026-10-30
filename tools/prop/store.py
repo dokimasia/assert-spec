@@ -48,7 +48,7 @@ A runner gives each file one verdict:
 
 from __future__ import annotations
 
-import datetime
+import datetime as dt
 import enum
 import json
 import re
@@ -165,7 +165,7 @@ def name(contract: str, choices: Sequence[Choice]) -> str:
     return f"{key:016x}{NAME_SUFFIX}"
 
 
-def entry(failure: Failure, definition: str, found: datetime.date) -> dict[str, object]:
+def entry(failure: Failure, definition: str, found: dt.date) -> dict[str, object]:
     """Return the entry a runner of definition writes on the date found.
 
     A draw whose value would nest the entry past MAX_DEPTH is recorded by
@@ -324,7 +324,7 @@ def _date(found: object) -> bool:
     if not isinstance(found, str) or _DATE.fullmatch(found) is None:
         return False
     try:
-        datetime.date.fromisoformat(found)
+        dt.date.fromisoformat(found)
     except ValueError:
         return False
     return True

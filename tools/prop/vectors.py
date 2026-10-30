@@ -20,7 +20,7 @@ lists its steps among its draws in that form.
 
 from __future__ import annotations
 
-import datetime
+import datetime as dt
 import json
 from collections.abc import Callable, Mapping, Sequence
 from functools import partial
@@ -322,7 +322,7 @@ def store_entry(case: Mapping[str, Any]) -> Vector:
         contract, choices, case["identity"], tuple(case["counterexample"])
     )
     try:
-        found = datetime.date.fromisoformat(str(case["found"]))
+        found = dt.date.fromisoformat(str(case["found"]))
     except ValueError as bad:
         msg = f"prop: found {case['found']!r} is no date"
         raise VectorError(msg) from bad

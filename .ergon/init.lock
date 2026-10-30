@@ -1,5 +1,5 @@
 {
-  "ergon": "0.16.0",
+  "ergon": "0.17.1",
   "files": [
     {
       "path": ".commitlint.yaml",
@@ -59,7 +59,7 @@
     {
       "path": ".github/workflows/baseline.yml",
       "producer": "github",
-      "sha256": "f78236a5bf27947e6603195add5025efba2850bf85f5654e75f6d3987814c42c"
+      "sha256": "ed9bddd96e5f913127d61535451cea1550d0ca0994c7f3ca411974bb67f01d15"
     },
     {
       "path": ".github/workflows/ci.yml",
@@ -69,7 +69,7 @@
     {
       "path": ".github/workflows/codeql.yml",
       "producer": "github",
-      "sha256": "44bf7e0dd658b827245ecb414e0d08cea163da8b970ac18b4f5052ccd2da2b19"
+      "sha256": "e67384326c9ba0c296dbda490c4a18ef6cb3fc685490ee155eb8c5950afe685e"
     },
     {
       "path": ".github/workflows/nightly.yml",
@@ -84,12 +84,12 @@
     {
       "path": ".github/workflows/security.yml",
       "producer": "github",
-      "sha256": "b5c9200492b89caba78213ec12f5a660c8b467dbef6d8b39c0c363172ec5be5c"
+      "sha256": "33183b6b72977f37ed6079b871caaff613e04e3afd8c4193a6c1e052d7e179ee"
     },
     {
       "path": ".github/workflows/version.yml",
       "producer": "github",
-      "sha256": "3cd99e2ba16943fc1b4804263f298e2e6b5c7f1665a4d46c7426165b15bf60fe"
+      "sha256": "0a01a896e196d1a3568fd8f66b421e4a73140dbdba99b1e8f8927dd48370d7c3"
     },
     {
       "path": ".gitignore",
@@ -155,11 +155,11 @@
     },
     "common.tools.commitlint.version": "0.12.0",
     "common.tools.rumdl.sha256": {
-      "darwin/arm64": "8c0ecf93a61bf612df5f6c6f22813d066a6f51a5680f3c12da49b93ed892aebb",
-      "linux/amd64": "a85ae77c6880616118e10dda1e36292df59815bcfbf767201736ff6971213cf3",
-      "windows/amd64": "07d12118c143976fadaaf7d053ac6be328798ce3b59b3f774572ac946b123672"
+      "darwin/arm64": "bc62f4176dd9257547c939fa152b535b6f393365acd352fcfd94e5e19a792bb4",
+      "linux/amd64": "6c90c398f04c11a09dcbd2da08bdaa6d53d9b14393e3cd32dbdf4da5620eec5c",
+      "windows/amd64": "72ed0bd3912560758cfc66cb439a2804755a858573e605cd3d1e65e8aa79d2a1"
     },
-    "common.tools.rumdl.version": "0.2.79",
+    "common.tools.rumdl.version": "0.3.0",
     "github.ci.actions.attest.commit": "1e69f48acb82d1966a394da916b4c1698aa569d6",
     "github.ci.actions.attest.release": "v4.2.2",
     "github.ci.actions.attest.uses": "actions/attest",
@@ -169,11 +169,11 @@
     "github.ci.actions.checkout.commit": "3d3c42e5aac5ba805825da76410c181273ba90b1",
     "github.ci.actions.checkout.release": "v7.0.1",
     "github.ci.actions.checkout.uses": "actions/checkout",
-    "github.ci.actions.codeql.commit": "2892aa5e19bbd11bc0cff5427e3b750a04d9e3c2",
-    "github.ci.actions.codeql.release": "v4.38.2",
+    "github.ci.actions.codeql.commit": "9b3254085494b55a0f7c4c2b3d2d52cc712ce370",
+    "github.ci.actions.codeql.release": "v4.39.1",
     "github.ci.actions.codeql.uses": "github/codeql-action",
-    "github.ci.actions.create-github-app-token.commit": "bcd2ba49218906704ab6c1aa796996da409d3eb1",
-    "github.ci.actions.create-github-app-token.release": "v3.2.0",
+    "github.ci.actions.create-github-app-token.commit": "64ab729a6294000f5aa4a4bc0b73d1f32bc45510",
+    "github.ci.actions.create-github-app-token.release": "v3.3.0",
     "github.ci.actions.create-github-app-token.uses": "actions/create-github-app-token",
     "github.ci.actions.dependency-review.commit": "a1d282b36b6f3519aa1f3fc636f609c47dddb294",
     "github.ci.actions.dependency-review.release": "v5.0.0",
@@ -181,8 +181,8 @@
     "github.ci.actions.download-artifact.commit": "9000827ccba6bdab643e8b6fd33ac0654aef8333",
     "github.ci.actions.download-artifact.release": "v8.0.2",
     "github.ci.actions.download-artifact.uses": "actions/download-artifact",
-    "github.ci.actions.scorecard.commit": "2d1146689b8cda280b9bc96326124645441f03bc",
-    "github.ci.actions.scorecard.release": "v2.4.4",
+    "github.ci.actions.scorecard.commit": "fa7117db83c52d787ae5a89f350999701505d78e",
+    "github.ci.actions.scorecard.release": "v2.5.0",
     "github.ci.actions.scorecard.uses": "ossf/scorecard-action",
     "github.ci.actions.upload-artifact.commit": "cf430e030ddbb5b0abf93d22962f4752f3646cd9",
     "github.ci.actions.upload-artifact.release": "v7.0.2",
@@ -230,13 +230,13 @@
     "python.tools.mypy": "mypy@2.4.0",
     "python.tools.pip-audit": "pip-audit@2.10.1",
     "python.tools.pytest": "pytest@9.1.1",
-    "python.tools.ruff": "ruff@0.16.10",
+    "python.tools.ruff": "ruff@0.17.1",
     "python.tools.uv.sha256": {
-      "darwin/arm64": "50487ae565ccd96e499056b4674d438f4c53170202617b4c759defe0c6a1b544",
-      "linux/amd64": "9167d72b3319674b6303c4cbe071854bba13ebdf3d76b1a7cbdc175471fb66d6",
-      "windows/amd64": "75d05de6762778c31ee183398de7dd15093fad0ed90b1f236d8205ea5ec00c90"
+      "darwin/arm64": "743f85035a1996ecb350659e01cd9faea9709829be09b1b4b03c73eaf3c9cd73",
+      "linux/amd64": "f68d291c75783122dad58ab77def0e13f3233f358731db5d6d7e8715603b928f",
+      "windows/amd64": "a38b8d1902b7cfbc76b423ba1bb456f623f42064cdc72628b6075b89afd1019a"
     },
-    "python.tools.uv.version": "0.12.23",
+    "python.tools.uv.version": "0.13.5",
     "spec.ci.timeout": 10,
     "spec.roles": [],
     "spec.tools.spec.sha256": {
