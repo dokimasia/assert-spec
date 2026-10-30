@@ -19,7 +19,7 @@
 # as its positive does. Each of these names takes the auxiliary that its
 # word takes in an English sentence: is before an adjective, has before a
 # noun and does before a verb.
-version: "13.5.0"
+version: "13.6.0"
 
 languages: [go, java, kotlin, php, python, rust, typescript]
 
@@ -643,6 +643,12 @@ relaxations:
 # prop.run-seed returns the seed that a run of a contract takes without
 # prop.seed, so a tool can give one seed to many runs.
 #
+# prop.on-result hands a function the run-result of each run of a property.
+# A run-result has one member for each field of the detail of the run. Go,
+# Python and TypeScript name the type Result. Rust and Kotlin name it
+# RunResult, because Rust's prelude declares Result and every Kotlin file
+# imports kotlin.Result. Java shares the names of Kotlin.
+#
 # Java names the platform clock SystemClock because System is
 # java.lang.System, which every class in the package would otherwise
 # have to qualify. The same reason throws became throwsException.
@@ -829,6 +835,13 @@ surface:
       typescript: "prop.Case"
       java: "Case"
       kotlin: "Case"
+    "run-result":
+      go: "prop.Result"
+      python: "prop.Result"
+      rust: "prop::RunResult"
+      typescript: "prop.Result"
+      java: "RunResult"
+      kotlin: "RunResult"
     "history":
       go: "history.History"
       python: "history.History"
@@ -1418,6 +1431,83 @@ surface:
       typescript: "target"
       java: "target"
       kotlin: "target"
+    "run-result.outcome":
+      go: "Outcome"
+      python: "outcome"
+      rust: "outcome"
+      typescript: "outcome"
+      java: "outcome"
+      kotlin: "outcome"
+    "run-result.cases":
+      go: "Cases"
+      python: "cases"
+      rust: "cases"
+      typescript: "cases"
+      java: "cases"
+      kotlin: "cases"
+    "run-result.rejected":
+      go: "Rejected"
+      python: "rejected"
+      rust: "rejected"
+      typescript: "rejected"
+      java: "rejected"
+      kotlin: "rejected"
+    "run-result.seed":
+      go: "Seed"
+      python: "seed"
+      rust: "seed"
+      typescript: "seed"
+      java: "seed"
+      kotlin: "seed"
+    "run-result.counterexample":
+      go: "Counterexample"
+      python: "counterexample"
+      rust: "counterexample"
+      typescript: "counterexample"
+      java: "counterexample"
+      kotlin: "counterexample"
+    "run-result.failure":
+      go: "Failure"
+      python: "failure"
+      rust: "failure"
+      typescript: "failure"
+      java: "failure"
+      kotlin: "failure"
+    "run-result.choices":
+      go: "Choices"
+      python: "choices"
+      rust: "choices"
+      typescript: "choices"
+      java: "choices"
+      kotlin: "choices"
+    "run-result.others":
+      go: "Others"
+      python: "others"
+      rust: "others"
+      typescript: "others"
+      java: "others"
+      kotlin: "others"
+    "run-result.divergence":
+      go: "Divergence"
+      python: "divergence"
+      rust: "divergence"
+      typescript: "divergence"
+      java: "divergence"
+      kotlin: "divergence"
+    "run-result.coverage":
+      go: "Coverage"
+      python: "coverage"
+      rust: "coverage"
+      typescript: "coverage"
+      java: "coverage"
+      kotlin: "coverage"
+    "run-result.reason":
+      go: "Reason"
+      python: "reason"
+      rust: "reason"
+      typescript: "reason"
+      java: "reason"
+      kotlin: "reason"
     "scheduler.spawn":
       go: "Spawn"
       python: "spawn"
@@ -1716,6 +1806,13 @@ surface:
       typescript: "prop.around"
       java: "Prop.around"
       kotlin: "Prop.around"
+    "prop.on-result":
+      go: "prop.OnResult"
+      python: "prop.on_result"
+      rust: "prop::on_result"
+      typescript: "prop.onResult"
+      java: "Prop.onResult"
+      kotlin: "Prop.onResult"
     "prop.fuzz":
       go: "prop.Fuzz"
       python: "prop.fuzz"

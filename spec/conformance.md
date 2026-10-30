@@ -165,6 +165,17 @@ helper, and the helper returns 0. The helper does not write a call record.
 The environment is an input of a test, so no vector pins it. Each language
 checks it in its own tests.
 
+**The result of a run.** The option `prop.on-result` hands a function the
+`run-result` of each run of a property. A `run-result` has one member for
+each field of the detail of the run. Each member has the value of its
+field, as `recording.md` defines the detail, and a member that the outcome
+does not use is null. The seed has the type that `prop.seed` takes. A call
+of a property, of a form or of the fuzz bridge calls the function once, on
+the thread of the call, after its run ends and before it reports its
+verdict. A run that a fault ends does not call the function. The allocation
+ceilings of a run apply to a call without the option. A function is an input
+of a test, so no vector pins it. Each language checks it in its own tests.
+
 **What a recorded run states.** `recording.md` fixes the fields of a
 call record and their encoding, the verdicts, the phases of a property's
 cases, the opaque literal, the numbering, the switch and its values,
