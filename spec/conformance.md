@@ -143,6 +143,28 @@ functions that it registers when its test, its case or its body ends:
 A cleanup is an input of a test, so no vector pins it. Each language checks
 it in its own tests.
 
+**How a tool writes a record of a kind.** The helper `write-record` writes
+the JSON text of one record into the artifact of the test of its seat, at
+the place that the overlay's `location` states for the record's kind. The
+records of one kind in one test take the numbers 1, 2 and 3 in the order of
+the calls, where the name of a record contains its number. The helper writes
+whatever `DOKIMI_ASSERT_RECORD` states. A kind outside the pattern of a
+kind, the kind `dokimi.assert` and a record that is not one JSON object end
+the call with a fault, and the helper does not write the record. A seat that
+keeps its call records as values does not write the record either, and
+neither does a seat outside a test runner. A record of a kind is an output
+of a test, so no vector pins it. Each language checks it in its own tests.
+
+**The seed of a run without `seed`.** The helper `prop.run-seed` returns the
+seed that a run of a contract takes without the option `seed`, in a run that
+is not hermetic. It returns the seed that `DOKIMI_ASSERT_PROP_SEED` states,
+then the seed that a mutation run and the profile `ci` derive from the
+contract, then a random seed. A malformed seed and an unknown profile end
+the call with the fault that a run reports, under the operation of the
+helper, and the helper returns 0. The helper does not write a call record.
+The environment is an input of a test, so no vector pins it. Each language
+checks it in its own tests.
+
 **What a recorded run states.** `recording.md` fixes the fields of a
 call record and their encoding, the verdicts, the phases of a property's
 cases, the opaque literal, the numbering, the switch and its values,

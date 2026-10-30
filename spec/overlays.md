@@ -151,7 +151,8 @@ and split as a call record is, under the name of its own kind.
 
 A kind joins this table through an RFC of this repository. The definition
 fixes the name and the place of a record of another tool, and that tool
-fixes its fields.
+fixes its fields. The helper `write-record` writes a record of another tool
+at the place of its kind.
 
 The validator refuses an overlay without the entry, and an entry whose
 key is missing or empty. It refuses an entry whose `kinds` is not a
