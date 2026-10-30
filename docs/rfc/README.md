@@ -60,3 +60,4 @@ they record why not.
 | [0047](0047-cleanups-on-a-seat.md) | Cleanups on a seat | Accepted |
 | [0048](0048-writing-a-record-of-a-kind.md) | Writing a record of a kind | Accepted |
 | [0049](0049-the-seed-of-a-run.md) | The seed of a run | Accepted |
+| [0050](0050-the-result-of-a-run.md) | The result of a run | Accepted |
