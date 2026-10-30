@@ -58,3 +58,5 @@ they record why not.
 | [0045](0045-a-ceiling-on-the-live-heap-of-a-call.md) | A ceiling on the live heap of a call | Accepted |
 | [0046](0046-isolation-checks-over-register-histories.md) | Isolation checks over register histories | Accepted |
 | [0047](0047-cleanups-on-a-seat.md) | Cleanups on a seat | Accepted |
+| [0048](0048-writing-a-record-of-a-kind.md) | Writing a record of a kind | Accepted |
+| [0049](0049-the-seed-of-a-run.md) | The seed of a run | Accepted |
