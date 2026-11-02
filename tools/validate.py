@@ -71,6 +71,10 @@ NON_FINITE = {"NaN", "Inf", "-Inf"}
 #: The outcomes a case may expect of the assertion under test.
 OUTCOMES = {"pass", "fail"}
 
+#: The relaxations that take a function, which no typed literal states, so
+#: no case names one.
+UNSTATABLE = frozenset({"equate-by"})
+
 #: Ids and names are lowercase words joined by hyphens. A qualified
 #: name adds one dot, naming a member of a subpackage.
 ID = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
@@ -697,6 +701,11 @@ def check_case(
                 option in vocabulary.relaxations,
                 f"{where} [{cid}]",
                 f"names option {option!r}, which {assertion} does not accept",
+            )
+            problems.unless(
+                option not in UNSTATABLE,
+                f"{where} [{cid}]",
+                f"names option {option!r}, whose transform no typed literal states",
             )
         problems.unless(
             len({str(option) for option in options}) == len(options),

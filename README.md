@@ -62,7 +62,7 @@ tools/history/         the history's and the checkers' executable reference
 tools/stateful/        the machines' and the scheduler's executable reference
 tools/files/           the trees' and the file assertions' executable reference
 .spec.yaml             the files an implementation vendors with spec
-VERSION                14.0.0
+VERSION                14.1.0
 ```
 
 People edit the YAML. `make render` produces the JSON, which is
@@ -288,7 +288,7 @@ differently.
 | TypeScript | [assert-typescript](https://github.com/dokimasia/assert-typescript) | 104 of 111 |
 
 Each count is what the language's overlay declares against version
-14.0.0. An implementation whose copy is behind has an open pull request
+14.1.0. An implementation whose copy is behind has an open pull request
 from spec with the new copy.
 
 Java and Kotlin ship from one repository and are named identically, so
@@ -316,10 +316,11 @@ partial: the six
 allocation ceilings and max-live-bytes need a counting allocator installed
 as the test binary's global allocator, and no-task-leaks sees tasks on a runtime but
 not a thread, because nothing in Rust's standard library enumerates
-threads. Rust also declines the three relaxations. Its types keep an
+threads. Rust also declines the four relaxations. Its types keep an
 absent container and an empty one apart, and its own equality already
 treats NaN as unequal to itself. Its assertions compare through
-`PartialEq`, which has no identity to compare by.
+`PartialEq`, which has no identity to compare by and in which a type
+states its own equality.
 
 Go, Java, Kotlin and Rust declare a limit on the history's recorder
 because their threads run on more than one core. The recorder's counter

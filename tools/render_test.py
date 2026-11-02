@@ -60,7 +60,12 @@ class FormsTest(unittest.TestCase):
         entry = _tables()[0]["assertions"]["prop-equal"]
         assert entry["arity"] == 3
         assert entry["package"] == "prop"
-        assert entry["relaxations"] == ["equate-empty", "equate-nans", "by-identity"]
+        assert entry["relaxations"] == [
+            "equate-empty",
+            "equate-nans",
+            "by-identity",
+            "equate-by",
+        ]
         assert entry["form"] == {
             "of": "equal",
             "kind": "function",

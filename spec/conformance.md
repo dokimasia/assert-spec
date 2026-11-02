@@ -242,7 +242,7 @@ in the naming table, and the completeness gate checks the row is real.
 `isNull` in Java. Same assertion, three spellings, and none of them is a
 divergence.
 
-**Every relaxation.** Three of them, named the same way.
+**Every relaxation.** Four of them, named the same way.
 
 **Every type a caller touches**, and every member on it. The seats, the
 scrubbers, the benchmark contract, the machine and the task scheduler.
@@ -294,7 +294,7 @@ Java, Kotlin and Rust run threads on more than one core. The validator
 requires each of their overlays to state a limit on `history`.
 
 **A relaxation the language does not offer.** Rust offers none of the
-three:
+four:
 
 - `equate-empty`, because its types keep an absent container and an empty
   one apart.
@@ -302,6 +302,8 @@ three:
   as the standard states by default.
 - `by-identity`, because its assertions compare through `PartialEq`, which
   compares values and states no identity.
+- `equate-by`, because a type states its own equality in `PartialEq`, as a
+  prost message does over its fields.
 
 **The artifact that contains the call records.** A language's `records`
 entry states what its runner writes for a run. It also states where

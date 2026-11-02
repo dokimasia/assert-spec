@@ -19,7 +19,7 @@
 # as its positive does. Each of these names takes the auxiliary that its
 # word takes in an English sentence: is before an adjective, has before a
 # noun and does before a verb.
-version: "14.0.0"
+version: "14.1.0"
 
 languages: [go, java, kotlin, php, python, rust, typescript]
 
@@ -550,6 +550,14 @@ relaxations:
     kotlin: "Option.BY_IDENTITY"
     python: "by_identity"
     typescript: "byIdentity"
+  # equate-by takes the transform, so Java and Kotlin name a function where
+  # they name a constant for the other three.
+  "equate-by":
+    go: "EquateBy"
+    java: "Option.equateBy"
+    kotlin: "Option.equateBy"
+    python: "equate_by"
+    typescript: "equateBy"
 
 # The rest of what a caller touches: the seam, the seats, and the types
 # and helpers beside the assertions. Same rules as the assertion names,

@@ -86,16 +86,18 @@ The stance vocabulary is not closed. `blocked` is the one in use.
 ## Relaxations
 
 A relaxation changes what counts as equal for one call. The definition
-states three. `equate-empty` and `equate-nans` widen equality, and
+states four. `equate-empty` and `equate-nans` widen equality, and
 fourteen assertions accept them. `by-identity` narrows it for references,
-and six of those fourteen accept it.
+and six of those fourteen accept it. `equate-by` compares the values of
+one type by a transform, and all fourteen accept it.
 
 A language may have nothing to relax. Rust's types keep an absent
 container and an empty one apart, and its `==` already says NaN is
 unequal to itself, so both relaxations would widen nothing. Rust's
 assertions compare through `PartialEq`, which states no identity, so
-Rust declines `by-identity` as well. An overlay records each the same way
-it records anything else absent:
+Rust declines `by-identity` as well. A Rust type states its own equality
+in `PartialEq`, so Rust declines `equate-by` too. An overlay records each
+the same way it records anything else absent:
 
 ```json
 {

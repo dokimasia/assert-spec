@@ -165,6 +165,8 @@ Each option is the id of a relaxation that the assertion accepts, named
 once. The runner passes each as the language's relaxation for this call.
 A case whose options name a relaxation that a language's overlay
 declines does not apply to that language, as a declared skip does not.
+No case names `equate-by`, because no typed literal states its transform.
+Each language checks the modifier in its own tests.
 
 ## Skips
 

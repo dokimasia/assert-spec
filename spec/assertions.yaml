@@ -20,16 +20,18 @@
 # assertion carries exactly these. got is what the assertion observed
 # and want is what it required, so an assertion whose failure holds
 # neither states no fields and reports the caller's message alone.
-version: "14.0.0"
+version: "14.1.0"
 
 # What a caller may change about equality, for one call.
 #
 # equate-empty and equate-nans widen it, because a dynamically typed
 # language cannot tell two cases apart that a statically typed one keeps
-# separate. by-identity narrows it for references. A language whose types
-# already settle the question, or that cannot offer a modifier, declares
-# the modifier absent in its overlay with the reason, rather than shipping
-# one that does nothing.
+# separate. by-identity narrows it for references. equate-by compares the
+# values of one type by a transform that the caller states, such as the
+# text of a message whose implementation keeps state of its own. A
+# language whose types already settle the question, or that cannot offer a
+# modifier, declares the modifier absent in its overlay with the reason,
+# rather than shipping one that does nothing.
 relaxations:
   "equate-empty":
     summary: >
@@ -50,6 +52,17 @@ relaxations:
       a value of a map and in a field of a record. What a reference is in
       each language is stated where the encoding states the reference
       literal.
+  "equate-by":
+    summary: >
+      A value of the type of the transform's argument compares by the
+      transform's result, under the comparison and the other modifiers of
+      the call. The modifier applies wherever the comparison meets such a
+      value: at the top, in an element of a list, in a key and a value of a
+      map and in a field of a record. At one place at most one transform
+      applies: the result compares as it is, and its parts compare under the
+      transforms again. The last transform of a call whose type matches a
+      value applies. The record of equal and of not-equal states the result
+      in place of got and want when the transform matches them.
 
 # What a corpus case may hand an assertion in place of a value.
 #
@@ -339,14 +352,14 @@ assertions:
       exactly and by value so -0 equals +0, cycles stop, functions
       compare by identity.
     detail_fields: [want, got]
-    relaxations: [equate-empty, equate-nans, by-identity]
+    relaxations: [equate-empty, equate-nans, by-identity, equate-by]
 
   "not-equal":
     arity: 3
     summary: >
       Negation of equal.
     detail_fields: [got]
-    relaxations: [equate-empty, equate-nans, by-identity]
+    relaxations: [equate-empty, equate-nans, by-identity, equate-by]
 
   "true":
     arity: 2
@@ -404,14 +417,14 @@ assertions:
       An element or a key compares as equal compares, so an int does not
       match a float.
     detail_fields: [haystack, needle]
-    relaxations: [equate-empty, equate-nans, by-identity]
+    relaxations: [equate-empty, equate-nans, by-identity, equate-by]
 
   "not-contains":
     arity: 3
     summary: >
       Negation of contains.
     detail_fields: [haystack, needle]
-    relaxations: [equate-empty, equate-nans, by-identity]
+    relaxations: [equate-empty, equate-nans, by-identity, equate-by]
 
   "contains-in-order":
     arity: 3
@@ -425,7 +438,7 @@ assertions:
       A sequence contains the same elements as another, each as often, in
       any order. Elements compare as equal compares them.
     detail_fields: [want, got]
-    relaxations: [equate-empty, equate-nans, by-identity]
+    relaxations: [equate-empty, equate-nans, by-identity, equate-by]
 
   "has-prefix":
     arity: 3
@@ -539,7 +552,7 @@ assertions:
     summary: >
       Observed state is unchanged across a call.
     detail_fields: [want, got]
-    relaxations: [equate-empty, equate-nans]
+    relaxations: [equate-empty, equate-nans, equate-by]
 
   "nil-context-safe":
     arity: 2
@@ -561,7 +574,7 @@ assertions:
       calling it once left. first is the observation after one call, and
       second after two.
     detail_fields: [first, second]
-    relaxations: [equate-empty, equate-nans]
+    relaxations: [equate-empty, equate-nans, equate-by]
 
   "accumulates":
     arity: 4
@@ -577,7 +590,7 @@ assertions:
       32 calls of a subject with one input return equal results. first is
       the first result, and second the first result that differs.
     detail_fields: [first, second]
-    relaxations: [equate-empty, equate-nans]
+    relaxations: [equate-empty, equate-nans, equate-by]
 
   "commutative":
     arity: 4
@@ -585,7 +598,7 @@ assertions:
       Combining a and b gives what combining b and a gives. first is the
       combination of a and b, and second the combination of b and a.
     detail_fields: [first, second]
-    relaxations: [equate-empty, equate-nans]
+    relaxations: [equate-empty, equate-nans, equate-by]
 
   "associative":
     arity: 5
@@ -594,7 +607,7 @@ assertions:
       with the combination of b and c gives. first is the former, and
       second the latter.
     detail_fields: [first, second]
-    relaxations: [equate-empty, equate-nans]
+    relaxations: [equate-empty, equate-nans, equate-by]
 
   "round-trip":
     arity: 4
@@ -602,7 +615,7 @@ assertions:
       The inverse conversion of the forward conversion of an input returns
       the input. want is the input, and got what came back.
     detail_fields: [want, got]
-    relaxations: [equate-empty, equate-nans]
+    relaxations: [equate-empty, equate-nans, equate-by]
 
   "stable-order":
     arity: 2
@@ -610,7 +623,7 @@ assertions:
       32 iterations of a subject yield equal sequences. first is the first
       sequence, and second the first sequence that differs.
     detail_fields: [first, second]
-    relaxations: [equate-empty, equate-nans]
+    relaxations: [equate-empty, equate-nans, equate-by]
 
   "no-duplicates":
     arity: 2
@@ -618,7 +631,7 @@ assertions:
       One iteration of a subject yields each element at most once. got is
       the first element equal to an earlier one, and index its position.
     detail_fields: [got, index]
-    relaxations: [equate-empty, equate-nans, by-identity]
+    relaxations: [equate-empty, equate-nans, by-identity, equate-by]
 
   "monotonic":
     arity: 4
@@ -642,7 +655,7 @@ assertions:
       Observed state changes across a call. got is the observation that did
       not change.
     detail_fields: [got]
-    relaxations: [equate-empty, equate-nans]
+    relaxations: [equate-empty, equate-nans, equate-by]
 
   "after-close":
     arity: 4

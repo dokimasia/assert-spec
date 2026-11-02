@@ -936,6 +936,16 @@ class Validator(unittest.TestCase):
         )
         self.assert_caught("names option 'equate-nans', which true does not accept")
 
+    def test_an_option_whose_function_no_literal_states_is_caught(self) -> None:
+        """A case cannot state the transform of equate-by."""
+        _edit(
+            self.tree / "corpus" / "equal.json",
+            lambda d: d["cases"][0].update(options=["equate-by"]),
+        )
+        self.assert_caught(
+            "names option 'equate-by', whose transform no typed literal states"
+        )
+
     def test_an_option_named_twice_is_caught(self) -> None:
         """A relaxation applies once."""
         _edit(
