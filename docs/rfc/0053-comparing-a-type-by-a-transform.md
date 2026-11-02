@@ -2,7 +2,7 @@
 rfc: 0053
 title: Comparing the values of a type by a transform
 author: Roy Klopper <roy.klopper@stealthscale.io>
-status: Draft
+status: Accepted
 created: 2026-11-02
 updated: 2026-11-02
 discussion: https://github.com/dokimasia/assert-spec/issues/29
@@ -29,14 +29,15 @@ same text. This proposal adds the modifier `equate-by(f)`:
 - `f` is a transform of the values of one type.
 - Under the modifier, a value of that type compares by its transform, with
   the comparison and the other modifiers of the call.
-- The record states the transform of each such value, so a diff lists the
-  fields that differ.
-- The modifier applies at the top, in an element of a list, in a value of a
-  map and in a field of a record, as `by-identity` does.
+- The modifier applies at the top, in an element of a list, in a key and a
+  value of a map and in a field of a record.
+- The record of `equal` and of `not-equal` states the result of the
+  transform in place of got and want when the transform matches them, so
+  the diff of a failure lists the differences of the results.
 
-A Go module of its own, `go.dokimi.dev/assert/protobuf`, supplies the
-transform of a protobuf message into its fields. The module
-`go.dokimi.dev/assert` does not depend on it.
+The caller supplies the transform, so no implementation depends on a
+serialization library. A Go caller passes `prototext.Format` of the protobuf
+runtime as the transform of its messages.
 
 ## Motivation
 
@@ -65,10 +66,12 @@ A type with a cache of its own has the same defect in every language whose
 ### Prior art
 
 - go-cmp's `cmp.Transformer` converts the values of one type into values of
-  another type before `cmp.Equal` compares them.
+  another type before `cmp.Equal` compares them. It does not apply a
+  transformer to its own result at the same place, and applies it again
+  deeper in the result.
 - `protocmp.Transform` of `google.golang.org/protobuf/testing/protocmp`
   converts each `proto.Message` into a `protocmp.Message` of its fields, so
-  `cmp.Diff` names the fields that differ.
+  `cmp.Diff` lists the fields that differ.
 - go-cmp's `cmp.Comparer` takes the equality of one type.
 - AssertJ's recursive comparison takes the equality of one type in
   `withEqualsForType`, and of named fields in `withEqualsForFields`.
@@ -84,9 +87,8 @@ relaxations:
       A value of the type of the transform's argument compares by the
       transform's result, under the comparison and the other modifiers of
       the call. The modifier applies wherever the comparison meets such a
-      value: at the top, in an element of a list, in a value of a map and
-      in a field of a record. The record states the result in place of
-      the value.
+      value: at the top, in an element of a list, in a key and a value of a
+      map and in a field of a record.
 ```
 
 The rules of the modifier:
@@ -94,27 +96,28 @@ The rules of the modifier:
 - The transform takes one value of its type and returns a value that the
   comparison can compare.
 - A value matches when its type is the type of the transform's argument. In
-  Go, a value matches an interface type when its dynamic type implements
-  the interface.
-- The comparison does not apply a transform to the result of the same
-  transform. A result that contains a value of the type compares that value
-  structurally.
-- Two transforms of one type in one call refuse the call with a fault.
-- The transform must not change its argument. An error that the transform
-  raises ends the call with that error as a fault.
+  Go, a value matches an interface type when the type of the value
+  implements the interface.
+- At one place at most one transform applies. The comparison compares the
+  result as it is, and applies the transforms again to the parts of the
+  result. Two transforms that map the types of each other do not apply in
+  turn at one place.
+- The last `equate-by` of a call whose type matches a value applies.
+- A panic or an exception of the transform passes through the call.
+- The transform must not change its argument, and its result must not
+  contain its argument.
 
-The modifier applies to `equal`, `not-equal`, `contains`, `not-contains`,
-`permutation`, `no-duplicates`, and the property forms of the first five, as
-`by-identity` applies. It combines with `equate-empty` and `equate-nans`,
-which apply inside the results. Under `by-identity`, a result compares by
-the values that it contains, because a transform creates its result.
+The modifier applies to every assertion that takes `equate-empty`, because
+each of them compares values as `equal` compares them, and to the property
+forms of those assertions. The transform applies before `by-identity`, and
+the results compare under `by-identity` as every other value does.
 
 ### The record
 
-The `want` and `got` of a failure state the result of the transform in
-place of each value that it matches, at every depth. The result of a
-transform of a message into its fields is a map, so the text writer's diff
-names the fields that differ.
+The record of `equal` states the result of the transform in place of want
+and got when the transform matches them, and the record of `not-equal` in
+place of got. The diff of a failure then lists the differences of the
+results. Every other record states its values as the call received them.
 
 ### The languages
 
@@ -142,35 +145,24 @@ Rust declines the modifier, as it declines the other three. Its assertions
 compare through `PartialEq`, and a type states its equality there.
 
 An `Option` of Go has no state today. `EquateBy` keeps its transform, so
-the doc comment of `Option` states that a transform makes an option keep
-state, and that the option remains safe for concurrent use when the
-transform is.
+the doc comment of `Option` states that the option is safe for concurrent
+use when its transform is.
 
-### The transform of a protobuf message
+Go hands a value to the transform also when the value is in an unexported
+field, as the comparison reads that field without the modifier.
 
-The module `go.dokimi.dev/assert/protobuf` requires
-`google.golang.org/protobuf`. It exports one option:
-
-```go
-// Fields makes each proto.Message compare by the fields that its schema
-// declares and that it has set, its unknown fields included, as
-// proto.Equal compares two messages.
-func Fields() assert.Option
-```
-
-`Fields` returns `assert.EquateBy` of a transform into a map from the name
-of each field to its value. A message value of a field transforms the same
-way. A list and a map of the schema transform into a Go slice and a Go map.
-The unknown fields transform into their bytes under the key `unknown`, as
-`proto.Equal` compares them.
+A Go caller compares protobuf messages by their text:
 
 ```go
-assert.Equal(t, got, want, "the stored book is the written book", protobuf.Fields())
+assert.Equal(t, got, want, "the stored book is the written book", assert.EquateBy(prototext.Format))
 ```
 
-The naming table lists the modifier. The transform of a message is a part
-of the Go library that the table does not list, so an RFC of assert-go
-decides its module and its name.
+Within one process, `prototext.Format` writes two messages with the same
+fields as the same text. It writes the fields in the order of their
+declaration, the entries of a map in the order of their keys, and the
+unknown fields too. Its output can change from one build of a program to
+the next, and both sides of a comparison come from one build. The diff of
+two texts lists the lines of the fields that differ.
 
 ### Names
 
@@ -186,12 +178,12 @@ tests:
 
 - Two values of the type that differ in private state and have the same
   result compare equal.
-- A value compares by its result at the top, in an element, in a value of a
-  map and in a field.
-- The record states the result of each value that the transform matches.
-- A result that contains a value of the type compares that value
-  structurally.
-- Two transforms of one type in one call end the call with a fault.
+- A value compares by its result at the top, in an element, in a key and a
+  value of a map and in a field.
+- At one place at most one transform applies, and the transforms apply
+  again to the parts of a result.
+- The last `equate-by` of a call whose type matches a value applies.
+- The record of `equal` states the transform of want and of got.
 
 ### Version
 
@@ -210,7 +202,16 @@ would link the protobuf runtime. The meaning of `equal` would depend on one
 serialization library. A type with a cache that is no message would still
 need a modifier.
 
-### B. The equality of one type
+### B. A module of assert-go with the transform of a message
+
+A module `go.dokimi.dev/assert/protobuf` would export the transform of a
+message into a map of its fields.
+
+**Why not:** assert would depend on the protobuf runtime, in a module of
+its own. `prototext.Format` of the runtime is already such a transform, so
+a caller passes it.
+
+### C. The equality of one type
 
 A modifier `equate-with(f)` would take the equality of one type, as
 `cmp.Comparer` and `withEqualsForType` do. A caller would pass `proto.Equal`.
@@ -219,14 +220,13 @@ A modifier `equate-with(f)` would take the equality of one type, as
 private state. Two messages whose fields differ would render a diff of the
 cached size and the message info besides the field that differs.
 
-### C. A comparison that skips the state of the protobuf runtime
+### D. A comparison that skips the state of the protobuf runtime
 
 Go's comparison would skip the unexported fields of the types of
 `google.golang.org/protobuf/internal/impl`, found by their package path.
 
 **Why not:** the rule would depend on the names of the internal package of
-another module, which a release of that module can change. It would also
-compare the unknown fields as bytes in their internal form.
+another module, which a release of that module can change.
 
 ## Drawbacks
 
@@ -234,8 +234,8 @@ compare the unknown fields as bytes in their internal form.
 - A transform that drops a field makes two values that differ in that field
   compare equal.
 - A Go `Option` keeps state for the first time.
-- The protobuf module adds a module and a dependency to assert-go, though
-  not to `go.dokimi.dev/assert`.
+- The record of `equal` states the results, so `Failure.Want` of Go returns
+  the result of the transform.
 
 ## References
 
