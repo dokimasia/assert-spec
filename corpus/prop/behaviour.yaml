@@ -117,6 +117,13 @@ cases:
   - id: behaviour/reports-a-failure-that-passes-on-replay
     body: {kind: fails-once}
     settings: {seed: "7"}
+  # The replay of the simplest case observes 2 where the case observed 1.
+  - id: behaviour/reports-a-valid-case-whose-replay-observes-another-fingerprint
+    body: {kind: observes-its-calls}
+    settings: {seed: "7", confirm: 1}
+  - id: behaviour/passes-the-same-body-without-confirm
+    body: {kind: observes-its-calls}
+    settings: {seed: "7"}
 
   - id: behaviour/skips-the-run-at-a-case-that-skips
     body:

@@ -10,11 +10,13 @@ the reason of the first ``skips`` entry whose predicate holds, and fails
 the case with the identity of the first ``fails`` entry whose predicate
 holds, in that order. The predicate module states the predicates.
 
-Four named bodies state what no predicate can:
+Five named bodies state what no predicate can:
 
 - DRAWS_NOTHING requests no input.
 - DIVERGES draws an integer in [0, 9] on its first call and a boolean on
   every later call.
+- OBSERVES_ITS_CALLS draws an integer in [0, 9] and observes the number of
+  its calls so far: 1 on its first call.
 - FAILS_ONCE draws an integer in [0, 10^9] and fails with identity
   ``once`` the first time it draws a value above 1,000.
 - FAILS_THEN_SKIPS draws an integer in [0, 10^9] and fails with identity
@@ -41,6 +43,7 @@ DRAWN: Final = "value"
 #: The named bodies.
 DRAWS_NOTHING: Final = "draws-nothing"
 DIVERGES: Final = "diverges"
+OBSERVES_ITS_CALLS: Final = "observes-its-calls"
 FAILS_ONCE: Final = "fails-once"
 FAILS_THEN_SKIPS: Final = "fails-then-skips"
 
@@ -74,6 +77,8 @@ def build_body(spec: Mapping[str, Any]) -> Body:
         return _nothing
     if kind == DIVERGES:
         return _diverging()
+    if kind == OBSERVES_ITS_CALLS:
+        return _observing_calls()
     if kind == FAILS_ONCE:
         return _failing_once()
     if kind == FAILS_THEN_SKIPS:
@@ -97,6 +102,19 @@ def _diverging() -> Body:
     def body(case: Case) -> None:
         case.draw(boolean if calls else digit, DRAWN)
         calls.append(None)
+
+    return body
+
+
+def _observing_calls() -> Body:
+    """Return a body that observes the number of its calls so far."""
+    calls: list[None] = []
+    digit = build(_DIGIT)
+
+    def body(case: Case) -> None:
+        case.draw(digit, DRAWN)
+        calls.append(None)
+        case.observe(len(calls))
 
     return body
 

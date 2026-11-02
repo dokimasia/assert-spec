@@ -42,6 +42,16 @@ cases:
       draw: {gen: integer, min: 0, max: 9}
       fails: [{identity: big, when: {kind: at-least, n: 5}}]
     settings: {seed: "7", replay: "prop1:AAc"}
+  # Confirm 5 replays the fifth and the tenth valid case, each after it.
+  - id: recording/records-the-replay-of-every-fifth-valid-case
+    body:
+      draw: {gen: integer, min: 0, max: 1000}
+    settings: {seed: "7", cases: 10, confirm: 5}
+  # The replay of the simplest case observes 2 where the case observed 1, so
+  # the run ends as flaky after the call of the replay.
+  - id: recording/records-the-replay-of-a-valid-case-that-observes-another-fingerprint
+    body: {kind: observes-its-calls}
+    settings: {seed: "7", confirm: 1}
   - id: recording/records-the-examples-then-the-stored-cases
     body:
       draw: {gen: integer, min: 0, max: 1000}

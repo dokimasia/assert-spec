@@ -19,7 +19,7 @@
 # as its positive does. Each of these names takes the auxiliary that its
 # word takes in an English sentence: is before an adjective, has before a
 # noun and does before a verb.
-version: "13.6.0"
+version: "14.0.0"
 
 languages: [go, java, kotlin, php, python, rust, typescript]
 
@@ -648,6 +648,9 @@ relaxations:
 # Python and TypeScript name the type Result. Rust and Kotlin name it
 # RunResult, because Rust's prelude declares Result and every Kotlin file
 # imports kotlin.Result. Java shares the names of Kotlin.
+#
+# prop.confirm replays every n-th valid case of a run from its choices, as a
+# run replays a failing case before shrinking.
 #
 # Java names the platform clock SystemClock because System is
 # java.lang.System, which every class in the package would otherwise
@@ -1813,6 +1816,13 @@ surface:
       typescript: "prop.onResult"
       java: "Prop.onResult"
       kotlin: "Prop.onResult"
+    "prop.confirm":
+      go: "prop.Confirm"
+      python: "prop.confirm"
+      rust: "prop::confirm"
+      typescript: "prop.confirm"
+      java: "Prop.confirm"
+      kotlin: "Prop.confirm"
     "prop.fuzz":
       go: "prop.Fuzz"
       python: "prop.fuzz"

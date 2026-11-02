@@ -21,12 +21,16 @@ accepted call restarts the scan from the first entry. The search passes
 when every ok call is linearized.
 
 A configuration is a set of linearized calls and the list of states they
-leave, with no two equal states in the list. Two configurations are the
-same when their sets are equal and their lists contain the same states in
-any order. The search stops as undecided before a step that would take
-it past the budget, and before it stores a configuration that would take
-the memo past its limit, which counts one bit per call of the partition
-for each configuration.
+leave, with no two equal states in the list. The search skips a
+configuration that the memo covers: a configuration in the memo whose list
+contains the same states in any order, whose set has the same calls with a
+completion entry, and whose other calls are among the configuration's. A
+call without a completion entry, whose outcome is unknown or which is
+pending, need not take effect. Every order that follows the configuration
+then also follows the configuration in the memo. The search stops as
+undecided before a step that would take it past the budget, and before it
+stores a configuration that would take the memo past its limit, which
+counts one bit per call of the partition for each configuration.
 
 The frontier of a search is its first configuration, in search order,
 with the most linearized calls. The record of a violated check states the
@@ -389,7 +393,14 @@ class _Search:
         self._done = 0
         self._states: list[object] = [model.init()]
         self._stack: list[tuple[int, list[object]]] = []
-        self._memo: dict[tuple[int, frozenset[object]], list[list[object]]] = {}
+        self._memo: dict[
+            tuple[int, frozenset[object]], list[tuple[int, list[object]]]
+        ] = {}
+        self._optional = sum(
+            1 << position
+            for position, completion in enumerate(self._completion)
+            if completion is None
+        )
         self._configurations = 0
         self._linearized: tuple[Call, ...] = ()
         self._frontier: list[object] = self._states
@@ -482,23 +493,33 @@ class _Search:
         return following
 
     def _remember(self, done: int, states: list[object]) -> bool:
-        """Store a configuration, and report whether the memo lacked it.
+        """Store a configuration, and report whether the memo did not cover it.
+
+        A configuration in the memo covers this one when the two have the
+        same states and the same calls with a completion entry, and its calls
+        without one are among this configuration's.
 
         Raises:
             _Stopped: the configuration would take the memo past its limit.
         """
         model = self._model
+        optional = done & self._optional
         bucket = self._memo.setdefault(
-            (done, frozenset(model.key(state) for state in states)), []
+            (done & ~self._optional, frozenset(model.key(state) for state in states)),
+            [],
         )
-        for seen in bucket:
-            if len(seen) == len(states) and all(
-                any(model.equal(state, other) for other in seen) for state in states
+        for taken, seen in bucket:
+            if (
+                taken & ~optional == 0
+                and len(seen) == len(states)
+                and all(
+                    any(model.equal(state, other) for other in seen) for state in states
+                )
             ):
                 return False
         if (self._configurations + 1) * len(self._calls) > self._memo_limit:
             raise _Stopped(Limit.MEMO)
-        bucket.append(states)
+        bucket.append((optional, states))
         self._configurations += 1
         return True
 

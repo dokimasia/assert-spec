@@ -176,6 +176,20 @@ verdict. A run that a fault ends does not call the function. The allocation
 ceilings of a run apply to a call without the option. A function is an input
 of a test, so no vector pins it. Each language checks it in its own tests.
 
+**The replay of valid cases.** The option `prop.confirm(every)` makes a run
+replay each valid case whose count is a multiple of `every`, right after the
+case, from its choices. The replay compares the requests, the fingerprints
+and the verdict as the replay of a failing case does. A replay that is
+rejected or skips does not fail. A difference ends the run as flaky, and the
+detail of the run has the replayed case as its counterexample, a null
+failure and the difference as its divergence. The replay is no case of the
+run, and the call records of the replay have the phase `confirm`. An example
+of values has no choices, so a run does not replay it. A run of the phases,
+a run of a replay token, a campaign and each call of the fuzz bridge count
+their valid cases from 1. `every` is a positive int, and each language
+refuses another value where it builds the option. The behaviour and
+recording vectors pin the replay.
+
 **What a recorded run states.** `recording.md` fixes the fields of a
 call record and their encoding, the verdicts, the phases of a property's
 cases, the opaque literal, the numbering, the switch and its values,

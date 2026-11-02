@@ -297,6 +297,100 @@ class FailureWithoutCounterexampleTest(unittest.TestCase):
         assert outcome.divergence.index == 0
 
 
+@final
+class ConfirmTest(unittest.TestCase):
+    """A replay of every n-th valid case, under the setting confirm."""
+
+    @staticmethod
+    def counting() -> Body:
+        """Return a body that draws a digit and observes the count of its calls."""
+        calls = Calls(passes)
+
+        def body(case: Case) -> None:
+            calls(case)
+            case.observe(calls.count)
+
+        return body
+
+    def test_a_body_whose_replay_records_another_fingerprint_passes_without_it(
+        self,
+    ) -> None:
+        """No case is replayed, so the fingerprints are never compared."""
+        outcome = run(self.counting(), Settings(SEED, cases=10))
+        assert (outcome.kind, outcome.cases) == (Kind.PASSED, 10)
+
+    def test_a_replay_that_records_another_fingerprint_makes_the_run_flaky(
+        self,
+    ) -> None:
+        """The replay of the simplest case observes 2 where the case observed 1."""
+        outcome = run(self.counting(), Settings(SEED, confirm=1))
+        assert (outcome.kind, outcome.cases) == (Kind.FLAKY, 1)
+        assert outcome.failing is not None
+        assert outcome.failing.status is Status.PASSED
+        assert outcome.divergence is not None
+        assert (
+            outcome.divergence.what,
+            outcome.divergence.index,
+            outcome.divergence.recorded,
+            outcome.divergence.replayed,
+        ) == ("fingerprint", 0, 1, 2)
+
+    def test_a_replay_that_fails_makes_the_run_flaky_at_the_verdict(self) -> None:
+        """The second call fails, so the replay of the simplest case fails."""
+        calls = Calls(passes)
+
+        def body(case: Case) -> None:
+            calls(case)
+            if calls.count == 2:
+                case.fail("second")
+
+        outcome = run(body, Settings(SEED, confirm=1))
+        assert outcome.kind is Kind.FLAKY
+        assert outcome.divergence is not None
+        assert (outcome.divergence.what, outcome.divergence.recorded) == (
+            "verdict",
+            None,
+        )
+
+    def test_replays_every_nth_valid_case_after_it(self) -> None:
+        """Ten valid cases and confirm 5 replay the fifth and the tenth."""
+        seen = Seen()
+        outcome = run(passes, Settings(SEED, cases=10, confirm=5), seen)
+        assert outcome.kind is Kind.PASSED
+        valid = 0
+        confirmed = []
+        for phase, status in seen.calls:
+            if phase is Phase.CONFIRM:
+                confirmed.append(valid)
+            elif status is Status.PASSED:
+                valid += 1
+        assert confirmed == [5, 10]
+
+    def test_does_not_replay_an_example_of_values(self) -> None:
+        """The example has no choices, so a replay would draw false for its true."""
+        seen = Seen()
+
+        def body(case: Case) -> None:
+            case.observe(case.draw(BOOLEAN, "flag") is True)
+
+        settings = Settings(SEED, examples=(Values((True,)),), confirm=1)
+        outcome = run(body, settings, seen)
+        assert (outcome.kind, outcome.cases) == (Kind.PASSED, 3)
+        assert seen.phases[:3] == [Phase.EXAMPLE, Phase.SIMPLEST, Phase.CONFIRM]
+
+    def test_replays_the_case_of_a_replay_token(self) -> None:
+        """The token's one case is the first valid case, so confirm 1 replays it."""
+        seen = Seen()
+        outcome = run(passes, Settings(SEED, confirm=1, replay=()), seen)
+        assert outcome.kind is Kind.PASSED
+        assert seen.phases == [Phase.TOKEN, Phase.CONFIRM]
+
+    def test_refuses_a_negative_confirm(self) -> None:
+        """0 confirms nothing, and a negative count states nothing."""
+        with pytest.raises(ValueError, match="confirm"):
+            Settings(SEED, confirm=-1)
+
+
 #: The reason that the skipping bodies of these tests skip with.
 UNSUPPORTED = "unsupported"
 

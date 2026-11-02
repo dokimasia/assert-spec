@@ -183,7 +183,7 @@ class CompletionTest(unittest.TestCase):
         read(history, 2).ok(9)
         verdict = check(history.events(), REGISTER)
         assert verdict.outcome == Outcome.VIOLATED
-        assert verdict.steps == 9
+        assert verdict.steps == 8
         assert (verdict.calls, verdict.concurrency) == (3, 3)
         assert [call.document() for call in verdict.linearized] == [
             {"call": 0, "process": 0, "operation": "write", "args": [literal(1)]},
@@ -412,6 +412,41 @@ class ConfigurationTest(unittest.TestCase):
         history.invoke(2, "c", [], ["x"]).ok(None)
         verdict = check(history.events(), model)
         assert (verdict.outcome, verdict.steps) == (Outcome.VIOLATED, 8)
+
+    def test_the_memo_skips_a_configuration_that_only_adds_unknown_calls(self) -> None:
+        """Twelve unknown writes and a read of the initial value pass in 1,325 steps.
+
+        A memo without the rule searches every set of the writes, 79,117 steps.
+        """
+        history = History()
+        for i in range(12):
+            write(history, i % 3, 1 + i % 3).unknown("crashed")
+        read(history, 0).ok(None)
+        verdict = check(history.events(), REGISTER)
+        assert (verdict.outcome, verdict.steps) == (Outcome.PASSED, 1325)
+
+    def test_the_memo_skips_a_configuration_that_only_adds_pending_calls(self) -> None:
+        """Twelve pending writes and a read of the initial value pass in 1,325 steps."""
+        history = History()
+        for i in range(12):
+            write(history, i, 1 + i % 3)
+        read(history, 12).ok(None)
+        verdict = check(history.events(), REGISTER)
+        assert (verdict.outcome, verdict.steps) == (Outcome.PASSED, 1325)
+
+    def test_a_covered_configuration_is_no_frontier(self) -> None:
+        """Two unknown writes of 1 leave one state, so the frontier has one write."""
+        history = History()
+        write(history, 0, 1).unknown("crashed")
+        write(history, 1, 1).unknown("crashed")
+        read(history, 2).ok(7)
+        verdict = check(history.events(), REGISTER)
+        assert (verdict.outcome, verdict.steps) == (Outcome.VIOLATED, 7)
+        assert [call.index for call in verdict.linearized] == [0]
+        assert (verdict.states, [call.index for call in verdict.candidates]) == (
+            (1,),
+            [4],
+        )
 
     def writes(self, value: object) -> History:
         """Return two concurrent writes of value, then a read of 5."""

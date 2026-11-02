@@ -216,17 +216,23 @@ def explain_seed(seed: int, draw: int, filling: int) -> int:
 
 
 def confirm(
-    body: Body, failing: Execution, max_choices: int, observer: Observer = unobserved
+    body: Body,
+    failing: Execution,
+    max_choices: int,
+    observer: Observer = unobserved,
+    phase: Phase = Phase.REPLAY,
 ) -> Divergence | None:
-    """Replay a failing case once, and return how the replay differed, if it did.
+    """Replay a case once, and return how the replay differed, if it did.
 
-    The comparison takes the requests' bounds first, then the observed
-    fingerprints, then the way the replay ended. A request or a fingerprint
-    that differs takes the label and the step of the replay's request or
-    fingerprint at its position. observer sees the replay.
+    The case is a failing case, or a valid case that the setting confirm
+    replays. The comparison takes the requests' bounds first, then the
+    observed fingerprints, then the way the replay ended. A request or a
+    fingerprint that differs takes the label and the step of the replay's
+    request or fingerprint at its position. observer sees the replay under
+    phase.
     """
     replay = execute(body, Replaying(failing.case.choices), max_choices)
-    observer(Phase.REPLAY, replay)
+    observer(phase, replay)
     pairs = (
         (
             "request",

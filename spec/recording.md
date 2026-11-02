@@ -204,6 +204,7 @@ A call in a property's case states the kind of its case in `phase`:
 | `prefix` | A prefix case |
 | `edge` | An edge case |
 | `coverage` | A random case after the first coverage check |
+| `confirm` | The replay of a valid case under `prop.confirm`, right after the case |
 | `replay` | The replay of the failing case before shrinking |
 | `shrink` | A candidate that the shrinker runs |
 | `explain` | A filling or a boundary step of the explain phase |

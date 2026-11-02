@@ -440,6 +440,7 @@ def run_settings(written: Mapping[str, Any]) -> Settings:
         stored=tuple(tuple(_parse_choices(s)) for s in written.get("stored", [])),
         shrink=int(written.get("shrink", DEFAULT_BUDGET)),
         replay=None if replayed is None else tuple(replay.decode(str(replayed))),
+        confirm=int(written.get("confirm", 0)),
     )
 
 

@@ -33,8 +33,10 @@ class Phase(StrEnum):
     """The part of a run that called the body: the kind of a property's case.
 
     EXAMPLE is a case whose values the caller states, through draws or
-    example. FUZZ is the case that the fuzz bridge decodes from a fuzzer's
-    input, which a fuzz target runs and a run of the phases never does.
+    example. REPLAY is the replay of a failing case before shrinking, and
+    CONFIRM the replay of a valid case under the setting confirm. FUZZ is the
+    case that the fuzz bridge decodes from a fuzzer's input, which a fuzz
+    target runs and a run of the phases never does.
     """
 
     EXAMPLE = "example"
@@ -45,6 +47,7 @@ class Phase(StrEnum):
     EDGE = "edge"
     COVERAGE = "coverage"
     REPLAY = "replay"
+    CONFIRM = "confirm"
     SHRINK = "shrink"
     EXPLAIN = "explain"
     # TOKEN is a phase name and not a password.

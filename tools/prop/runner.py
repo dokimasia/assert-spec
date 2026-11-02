@@ -35,6 +35,15 @@ first failing case:
 A valid case is one that passed and repeated no earlier case. Every
 earlier phase's valid cases count towards ``cases``.
 
+Under the setting ``confirm``, a run replays each valid case whose count is
+a multiple of ``confirm`` right after the case, from its choices, as it
+replays a failing case before shrinking. A replay that requests other
+bounds, records another fingerprint or fails ends the run as flaky, with the
+replayed case as its failing case. A replay that is rejected or skips does
+not fail. The replay counts as no case. An example of values has no
+choices, so the run does not replay it. A run of a replay token counts its
+one case too, so a ``confirm`` of 1 replays that case.
+
 A failing case is replayed, shrunk and explained, as the shrink module
 states, and the run ends as a counterexample, or as flaky when the replay
 differs. A diverging body ends the run as flaky. A shrink budget of 0
@@ -56,9 +65,9 @@ failure fails nor passes.
 
 A run's observer sees every call of the body with its phase: an example,
 a stored case, the simplest case, a random case before the first check
-and a coverage case after it, a prefix case, an edge case, the replay
-before shrinking, a shrink candidate, an explain run, or the case of a
-replay token.
+and a coverage case after it, a prefix case, an edge case, the replay of a
+valid case under confirm, the replay before shrinking, a shrink candidate,
+an explain run, or the case of a replay token.
 """
 
 from __future__ import annotations
@@ -153,7 +162,8 @@ class Settings:
     values, or its Values. shrink is the budget of runs that shrinking and
     explaining every failure may spend, and 0 turns both off. replay, when
     set, is the one case the run tries: a failure is reported as found,
-    and a pass passes.
+    and a pass passes. The run replays each valid case whose count is a
+    multiple of confirm, and a confirm of 0 replays none.
     """
 
     seed: int
@@ -166,15 +176,19 @@ class Settings:
     shrink: int = shrink.DEFAULT_BUDGET
     explain: bool = True
     replay: tuple[Choice, ...] | None = None
+    confirm: int = 0
 
     def __post_init__(self) -> None:
-        """Refuse a run that aims for no case.
+        """Refuse a run that aims for no case, or that confirms by no count.
 
         Raises:
-            ValueError: cases is below 1.
+            ValueError: cases is below 1, or confirm below 0.
         """
         if self.cases < 1:
             msg = f"prop: a run of {self.cases} cases tests nothing"
+            raise ValueError(msg)
+        if self.confirm < 0:
+            msg = f"prop: confirm({self.confirm}) states no count of cases"
             raise ValueError(msg)
 
 
@@ -302,6 +316,31 @@ def _shortfall(
     return None, met
 
 
+def _confirm(
+    body: Body,
+    settings: Settings,
+    tally: _Tally,
+    execution: Execution,
+    observer: Observer,
+) -> Outcome | None:
+    """Replay a valid case whose count is a multiple of confirm.
+
+    Return the flaky outcome of a replay that differs, and None otherwise.
+    """
+    if (
+        settings.confirm == 0
+        or execution.status is not Status.PASSED
+        or tally.valid % settings.confirm != 0
+    ):
+        return None
+    divergence = shrink.confirm(
+        body, execution, settings.max_choices, observer, Phase.CONFIRM
+    )
+    if divergence is None:
+        return None
+    return tally.outcome(Kind.FLAKY, failing=execution, divergence=divergence)
+
+
 def _conclude(
     body: Body, settings: Settings, outcome: Outcome, observer: Observer
 ) -> Outcome:
@@ -370,14 +409,20 @@ class _Phases:
 
     def attempt(self, provider: Provider, phase: Phase) -> Outcome | None:
         """Run one case of phase, count it, and return the outcome it ends with."""
-        return self.tally.take(self.call(provider, phase))
+        return self.take(self.call(provider, phase))
+
+    def take(self, execution: Execution) -> Outcome | None:
+        """Count one execution, confirm it, and return the outcome it ends with."""
+        return self.tally.take(execution) or _confirm(
+            self.body, self.settings, self.tally, execution, self.observer
+        )
 
     def random(self) -> Outcome | None:
         """Run the next random case, then its prefix case and the next edge case."""
         source = case_source(self.settings.seed, self.index)
         self.index += 1
         execution = self.call(Generating(source), self.phase)
-        if (outcome := self.tally.take(execution)) is not None:
+        if (outcome := self.take(execution)) is not None:
             return outcome
         choices = execution.case.choices
         prefixed = (
@@ -432,9 +477,14 @@ def _explore(body: Body, settings: Settings, observer: Observer) -> Outcome:
     for phase, provider in known:
         execution = execute(body, provider, settings.max_choices)
         observer(phase, execution)
+        valued = isinstance(provider, Valuing)
         if (outcome := tally.take(execution)) is not None:
-            valued = isinstance(provider, Valuing) and outcome.failing is not None
-            return replace(outcome, valued=valued)
+            return replace(outcome, valued=valued and outcome.failing is not None)
+        if valued:
+            continue
+        outcome = _confirm(body, settings, tally, execution, observer)
+        if outcome is not None:
+            return outcome
     phases = _Phases(body, settings, tally, observer)
     if (outcome := phases.attempt(Replaying(()), Phase.SIMPLEST)) is not None:
         return outcome
@@ -480,10 +530,12 @@ def _replay(
     tally = _Tally(settings.seed)
     execution = execute(body, Replaying(choices), settings.max_choices)
     observer(Phase.TOKEN, execution)
-    outcome = tally.take(execution)
+    outcome = tally.take(execution) or _confirm(
+        body, settings, tally, execution, observer
+    )
     if outcome is None:
         return tally.failure_without_counterexample() or tally.outcome(Kind.PASSED)
-    if outcome.failing is None:
+    if outcome.kind is not Kind.COUNTEREXAMPLE or outcome.failing is None:
         return outcome
     return replace(outcome, token=encode(outcome.failing.case.choices))
 

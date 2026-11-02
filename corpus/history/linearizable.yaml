@@ -239,6 +239,53 @@ cases:
       - {invoke: 1, client: 1, operation: read, args: [], keys: [{type: string, value: x}]}
       - {ok: 1, output: {type: int, value: 1}}
 
+  # The memo covers each configuration that only adds writes of unknown
+  # outcome to one with its states, so the search does not try every set of
+  # the twelve writes before the read.
+  - id: linearizable/unknown-writes-that-no-read-needs-pass-within-the-budget
+    spec: register
+    budget: 10000
+    history:
+      - {invoke: 0, client: 0, operation: write, args: [{type: int, value: 1}], keys: [{type: string, value: x}]}
+      - {unknown: 0, error: crashed}
+      - {invoke: 1, client: 1, operation: write, args: [{type: int, value: 2}], keys: [{type: string, value: x}]}
+      - {unknown: 1, error: crashed}
+      - {invoke: 2, client: 2, operation: write, args: [{type: int, value: 3}], keys: [{type: string, value: x}]}
+      - {unknown: 2, error: crashed}
+      - {invoke: 3, client: 0, operation: write, args: [{type: int, value: 1}], keys: [{type: string, value: x}]}
+      - {unknown: 3, error: crashed}
+      - {invoke: 4, client: 1, operation: write, args: [{type: int, value: 2}], keys: [{type: string, value: x}]}
+      - {unknown: 4, error: crashed}
+      - {invoke: 5, client: 2, operation: write, args: [{type: int, value: 3}], keys: [{type: string, value: x}]}
+      - {unknown: 5, error: crashed}
+      - {invoke: 6, client: 0, operation: write, args: [{type: int, value: 1}], keys: [{type: string, value: x}]}
+      - {unknown: 6, error: crashed}
+      - {invoke: 7, client: 1, operation: write, args: [{type: int, value: 2}], keys: [{type: string, value: x}]}
+      - {unknown: 7, error: crashed}
+      - {invoke: 8, client: 2, operation: write, args: [{type: int, value: 3}], keys: [{type: string, value: x}]}
+      - {unknown: 8, error: crashed}
+      - {invoke: 9, client: 0, operation: write, args: [{type: int, value: 1}], keys: [{type: string, value: x}]}
+      - {unknown: 9, error: crashed}
+      - {invoke: 10, client: 1, operation: write, args: [{type: int, value: 2}], keys: [{type: string, value: x}]}
+      - {unknown: 10, error: crashed}
+      - {invoke: 11, client: 2, operation: write, args: [{type: int, value: 3}], keys: [{type: string, value: x}]}
+      - {unknown: 11, error: crashed}
+      - {invoke: 12, client: 0, operation: read, args: [], keys: [{type: string, value: x}]}
+      - {ok: 12, output: {type: "null"}}
+
+  # Both unknown writes leave the state 1, and the memo covers the
+  # configuration of the two with the configuration of the first, so the
+  # frontier has one write.
+  - id: linearizable/a-covered-configuration-is-no-frontier
+    spec: register
+    history:
+      - {invoke: 0, client: 0, operation: write, args: [{type: int, value: 1}], keys: [{type: string, value: x}]}
+      - {unknown: 0, error: crashed}
+      - {invoke: 1, client: 1, operation: write, args: [{type: int, value: 1}], keys: [{type: string, value: x}]}
+      - {unknown: 1, error: crashed}
+      - {invoke: 2, client: 2, operation: read, args: [], keys: [{type: string, value: x}]}
+      - {ok: 2, output: {type: int, value: 7}}
+
   # The state equals from, so the compare-and-set takes effect, and an
   # output of false is wrong.
   - id: linearizable/a-compare-and-set-that-refuses-a-matching-value-is-violated
