@@ -14,7 +14,7 @@ they record why not.
 | [0001](0001-the-standardized-assertion-set.md) | The standardized assertion set | Accepted |
 | [0002](0002-the-relation-family.md) | The relation family | Accepted |
 | [0003](0003-the-observation-seams.md) | The observation seams | Accepted |
-| [0004](0004-the-history-checker.md) | The linearizability checker | Accepted |
+| [0004](0004-the-history-checker.md) | The linearizability checker | Accepted, superseded in part by [RFC-0051](0051-calls-without-a-completion-in-the-memo.md) |
 | [0005](0005-the-failure-record.md) | The failure record | Accepted |
 | [0006](0006-the-clock.md) | The clock | Accepted |
 | [0007](0007-conformance-beyond-the-corpus.md) | Conformance beyond the corpus | Accepted |
@@ -61,3 +61,6 @@ they record why not.
 | [0048](0048-writing-a-record-of-a-kind.md) | Writing a record of a kind | Accepted |
 | [0049](0049-the-seed-of-a-run.md) | The seed of a run | Accepted |
 | [0050](0050-the-result-of-a-run.md) | The result of a run | Accepted |
+| [0051](0051-calls-without-a-completion-in-the-memo.md) | Calls without a completion in the memo of the linearizability search | Accepted |
+| [0052](0052-the-replay-of-valid-cases.md) | The replay of valid cases | Accepted |
+| [0053](0053-comparing-a-type-by-a-transform.md) | Comparing the values of a type by a transform | Draft |
