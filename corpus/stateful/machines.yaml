@@ -6,8 +6,8 @@
 # its machine and its draws, and may state:
 #
 # - `setup`: the options of the subject's steps: `mean`, `max`, `swarm`,
-#   and for a subject whose clients run as tasks `clients`, `concurrent` and
-#   `strategy`, which is uniform or {pct: depth}.
+#   and for a subject whose clients run as tasks `clients`, `concurrent`,
+#   `concurrent-mean` and `strategy`, which is uniform or {pct: depth}.
 # - `settings`: the settings of the run, as a behaviour vector states them.
 # - `trace`: a trace that the run takes first, as the Draws option does. A
 #   draw entry states a label and a value, and a step entry states its
@@ -67,6 +67,13 @@ cases:
 
   - id: correct-counter/passes-with-two-clients
     subject: correct-counter
+    settings: {seed: "1"}
+
+  # A concurrent mean of 0 stops each section at its first flag outside the
+  # edge phase, so no section takes the two increments that race.
+  - id: racy-counter/a-concurrent-mean-of-0-stops-each-section-before-the-race
+    subject: racy-counter
+    setup: {concurrent-mean: 0}
     settings: {seed: "1"}
 
   # A refusal changes which actions a step lists, so a case that repeats an

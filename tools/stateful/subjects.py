@@ -99,8 +99,8 @@ KEYS: Final = Integer(IntegerBounds(0, 3))
 class Setup:
     """The options a run states for a subject, and its scheduler's strategy.
 
-    A subject without a concurrent section ignores clients, concurrent and
-    strategy.
+    A subject without a concurrent section ignores clients, concurrent,
+    concurrent_mean and strategy.
     """
 
     mean: int = 30
@@ -109,6 +109,7 @@ class Setup:
     clients: int = 2
     concurrent: int = 16
     strategy: Strategy = field(default_factory=Uniform)
+    concurrent_mean: int | None = None
 
     def sequential(self) -> Options:
         """Return the options of a machine without a concurrent section."""
@@ -118,7 +119,13 @@ class Setup:
         """Return the options of a machine whose clients run as tasks in case."""
         scheduler = Scheduler(case, self.strategy)
         return Options(
-            self.mean, self.max, self.swarm, self.clients, self.concurrent, scheduler
+            self.mean,
+            self.max,
+            self.swarm,
+            self.clients,
+            self.concurrent,
+            scheduler,
+            concurrent_mean=self.concurrent_mean,
         )
 
 

@@ -29,8 +29,9 @@ parts, in order, and records every decision as a choice of the case:
    the invariant runs.
 4. A concurrent section, with two clients or more. The section lists its
    steps before any of them runs. Each step is a continue flag by the
-   collection rule with the maximum concurrent, a client uniform over 0
-   to clients with target 0 and edge 0, and an index into the kept actions
+   collection rule with minimum 0, the maximum concurrent and the average
+   concurrent_mean, a client uniform over 0 to clients with target 0 and
+   edge 0, and an index into the kept actions
    that state no enabled. Its span covers these and its input, requested
    from the state after the sequential steps. Client 0 then runs its
    steps in order. The scheduler then runs one task for each other client
@@ -162,6 +163,9 @@ class Options:
     clients counts the clients of the concurrent section besides client 0,
     so 1 runs no section. The reference runs a section only as tasks of
     scheduler, which a machine with two clients or more must state.
+    concurrent_mean is the average of the section's continue flags. None
+    takes the average length of a collection of 0 to concurrent elements,
+    which is 5 for a maximum of 10 or more.
     """
 
     mean: int = 30
@@ -170,6 +174,7 @@ class Options:
     clients: int = 1
     concurrent: int = 16
     scheduler: Scheduler | None = None
+    concurrent_mean: int | None = None
 
     def __post_init__(self) -> None:
         """Refuse negative counts, no client, and a section without a scheduler.
@@ -178,7 +183,8 @@ class Options:
             ValueError: a count is negative, clients is below 1, or a
                 concurrent section has no scheduler.
         """
-        if min(self.mean, self.max, self.concurrent) < 0 or self.clients < 1:
+        counts = (self.mean, self.max, self.concurrent, self.concurrent_mean or 0)
+        if min(counts) < 0 or self.clients < 1:
             msg = f"stateful: {self} states a count below its minimum"
             raise ValueError(msg)
         if self.clients > 1 and self.scheduler is None:
@@ -299,7 +305,10 @@ class _Run:
             start = len(case.choices)
             if self._trace is not None:
                 self._follow_concurrent(self._trace, eligible, count)
-            if not eligible or not more(case, count, Sizes(0, options.concurrent)):
+            sizes = Sizes(0, options.concurrent)
+            if not eligible or not more(
+                case, count, sizes, average=options.concurrent_mean
+            ):
                 break
             client = self._client()
             action = eligible[self._index(eligible)]

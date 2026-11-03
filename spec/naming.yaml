@@ -19,7 +19,7 @@
 # as its positive does. Each of these names takes the auxiliary that its
 # word takes in an English sentence: is before an adjective, has before a
 # noun and does before a verb.
-version: "14.1.0"
+version: "14.2.0"
 
 languages: [go, java, kotlin, php, python, rust, typescript]
 
@@ -2006,6 +2006,13 @@ surface:
       typescript: "stateful.concurrent"
       java: "Stateful.concurrent"
       kotlin: "Stateful.concurrent"
+    "steps.concurrent-mean":
+      go: "stateful.ConcurrentMean"
+      python: "stateful.concurrent_mean"
+      rust: "stateful::concurrent_mean"
+      typescript: "stateful.concurrentMean"
+      java: "Stateful.concurrentMean"
+      kotlin: "Stateful.concurrentMean"
     "steps.scheduler":
       go: "stateful.Tasks"
       python: "stateful.tasks"

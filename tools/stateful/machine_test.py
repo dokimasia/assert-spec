@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import json
 import unittest
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import TYPE_CHECKING, final
 
 import pytest
@@ -384,6 +384,23 @@ class ConcurrentTest(unittest.TestCase):
             while len(want) < most and twin.coin(5, 6):
                 want.append(twin.below(3))
             assert [step.client for _, step in case.steps] == want, seed
+
+    def test_the_flag_continues_by_the_concurrent_mean_up_to_the_maximum(self) -> None:
+        """A mean of 12 continues on a coin of 12 in 13, and 16 steps force a stop."""
+        most = Options().concurrent
+        for seed in range(40):
+            case, twin = Case(Generating(Source(seed))), Source(seed)
+            options = replace(self.options(case), concurrent_mean=12)
+            steps(case, Machine((Log().action("a"),)), options)
+            want: list[int] = []
+            while len(want) < most and twin.coin(12, 13):
+                want.append(twin.below(3))
+            assert [step.client for _, step in case.steps] == want, seed
+
+    def test_a_negative_concurrent_mean_is_refused(self) -> None:
+        """A concurrent mean below 0 is a count below its minimum."""
+        with pytest.raises(ValueError, match="below its minimum"):
+            Options(concurrent_mean=-1)
 
     def test_the_history_is_checked_once_every_task_ends(self) -> None:
         """The settle check receives the count of every call of the section."""

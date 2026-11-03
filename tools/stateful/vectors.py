@@ -74,7 +74,13 @@ def _setup(written: Mapping[str, Any]) -> subjects.Setup:
         clients=int(written.get("clients", default.clients)),
         concurrent=int(written.get("concurrent", default.concurrent)),
         strategy=_strategy(written.get("strategy", "uniform")),
+        concurrent_mean=_count(written.get("concurrent-mean")),
     )
+
+
+def _count(written: object) -> int | None:
+    """Return the count a setup states, or None where it states none."""
+    return None if written is None else int(str(written))
 
 
 def _strategy(written: object) -> Strategy:
