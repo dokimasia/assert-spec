@@ -64,3 +64,4 @@ they record why not.
 | [0051](0051-calls-without-a-completion-in-the-memo.md) | Calls without a completion in the memo of the linearizability search | Accepted |
 | [0052](0052-the-replay-of-valid-cases.md) | The replay of valid cases | Accepted |
 | [0053](0053-comparing-a-type-by-a-transform.md) | Comparing the values of a type by a transform | Accepted |
+| [0054](0054-the-mean-number-of-steps-of-a-concurrent-section.md) | The mean number of steps of a concurrent section | Accepted |
