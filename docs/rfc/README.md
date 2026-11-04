@@ -25,7 +25,7 @@ they record why not.
 | [0012](0012-machines-simulation-and-campaigns.md) | Machines, simulation and campaigns | Accepted |
 | [0013](0013-typescript-names-free-on-vitest-expect.md) | TypeScript names that vitest's expect does not define | Accepted |
 | [0014](0014-pinning-the-answers-languages-disagree-on.md) | Pinning the answers languages disagree on | Accepted, superseded in part by [ADR-0001](../adr/0001-vendor-the-definition-with-spec.md) |
-| [0015](0015-isolation-checks-over-transaction-histories.md) | Isolation checks over transaction histories | Accepted |
+| [0015](0015-isolation-checks-over-transaction-histories.md) | Isolation checks over transaction histories | Accepted, superseded in part by [ADR-0002](../adr/0002-a-lost-update-fails-both-isolation-levels.md) |
 | [0016](0016-recording-every-assertion-call.md) | Recording every assertion call | Accepted, superseded in part by [RFC-0038](0038-a-case-that-skips-the-run-of-its-property.md) and [RFC-0040](0040-a-check-that-skips-under-rejects.md) |
 | [0017](0017-pinning-map-keys.md) | Pinning map keys | Accepted |
 | [0018](0018-warm-up-iterations-in-a-benchmark-contract.md) | Warm-up iterations in a benchmark contract | Accepted |
@@ -56,7 +56,7 @@ they record why not.
 | [0043](0043-the-kinds-of-record-in-an-artifact.md) | The kinds of record in an artifact | Accepted |
 | [0044](0044-a-seat-that-observes-every-call.md) | A seat that observes every call | Accepted |
 | [0045](0045-a-ceiling-on-the-live-heap-of-a-call.md) | A ceiling on the live heap of a call | Accepted |
-| [0046](0046-isolation-checks-over-register-histories.md) | Isolation checks over register histories | Accepted |
+| [0046](0046-isolation-checks-over-register-histories.md) | Isolation checks over register histories | Accepted, superseded in part by [ADR-0002](../adr/0002-a-lost-update-fails-both-isolation-levels.md) |
 | [0047](0047-cleanups-on-a-seat.md) | Cleanups on a seat | Accepted |
 | [0048](0048-writing-a-record-of-a-kind.md) | Writing a record of a kind | Accepted |
 | [0049](0049-the-seed-of-a-run.md) | The seed of a run | Accepted |
@@ -65,3 +65,4 @@ they record why not.
 | [0052](0052-the-replay-of-valid-cases.md) | The replay of valid cases | Accepted |
 | [0053](0053-comparing-a-type-by-a-transform.md) | Comparing the values of a type by a transform | Accepted |
 | [0054](0054-the-mean-number-of-steps-of-a-concurrent-section.md) | The mean number of steps of a concurrent section | Accepted |
+| [0055](0055-the-required-call-first.md) | The required call first and the expansion of a configuration | Draft |

@@ -7,7 +7,7 @@ created: 2026-10-28
 updated: 2026-10-28
 discussion: https://github.com/dokimasia/assert-spec/issues/27
 supersedes: none
-superseded-by: none
+superseded-by: ADR-0002, in part
 produces-adr: none
 ---
 
