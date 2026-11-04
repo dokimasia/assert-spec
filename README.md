@@ -62,7 +62,7 @@ tools/history/         the history's and the checkers' executable reference
 tools/stateful/        the machines' and the scheduler's executable reference
 tools/files/           the trees' and the file assertions' executable reference
 .spec.yaml             the files an implementation vendors with spec
-VERSION                14.2.0
+VERSION                15.0.0
 ```
 
 People edit the YAML. `make render` produces the JSON, which is
@@ -158,7 +158,7 @@ generates, the choices that produce a value, the shape each fixture type
 reads as, a passing and a failing run of every property form but
 `prop-max-allocs`, the runs of a form's examples, and the call records of
 a property's runs, and the values that `prop.values` returns for a seed.
-The history and the checkers are data in and data out too. 110 vectors under
+The history and the checkers are data in and data out too. 112 vectors under
 `corpus/history/` pin the events that calls record, the entries that the
 history refuses, the verdict, steps and record of a check against each
 named spec, and the verdict and record of each isolation check over
@@ -288,7 +288,7 @@ differently.
 | TypeScript | [assert-typescript](https://github.com/dokimasia/assert-typescript) | 104 of 111 |
 
 Each count is what the language's overlay declares against version
-14.2.0. An implementation whose copy is behind has an open pull request
+15.0.0. An implementation whose copy is behind has an open pull request
 from spec with the new copy.
 
 Java and Kotlin ship from one repository and are named identically, so

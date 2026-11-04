@@ -191,7 +191,7 @@ class PassTest(unittest.TestCase):
 
 @final
 class DirectTest(unittest.TestCase):
-    """The six kinds that the micro-operations show without a graph."""
+    """The seven kinds that the micro-operations show without a graph."""
 
     def test_reports_a_garbage_read(self) -> None:
         """A read returned a value that no call appended."""
@@ -333,6 +333,55 @@ class DirectTest(unittest.TestCase):
                 }
             ],
         )
+
+    def test_reports_a_lost_update(self) -> None:
+        """Calls 2 and 3 both read [1] from x, and both append to x."""
+        history = History()
+        run(history, 0, append("x", 1))
+        first = invoke(history, 1, read("x", None), append("x", 2))
+        second = invoke(history, 2, read("x", None), append("x", 3))
+        first.ok([read("x", [1]), append("x", 2)])
+        second.ok([read("x", [1]), append("x", 3)])
+        detail = check(history.events(), Level.SERIALIZABLE).detail()
+        assert (detail["anomaly"], detail["kinds"], detail["explanation"]) == (
+            "lost-update",
+            ["lost-update", "G2"],
+            [{"calls": [2, 3], "key": encode("x"), "read": encode([1])}],
+        )
+        assert [t["call"] for t in detail["transactions"]] == [2, 3]
+        assert outcome(history, Level.SNAPSHOT_ISOLATION) == (
+            "lost-update",
+            ["lost-update"],
+        )
+
+    def test_reports_the_first_call_whose_read_collides_with_an_earlier_one(
+        self,
+    ) -> None:
+        """Call 4 collides with call 2 on y before call 6 collides with call 0 on x."""
+        history = History()
+        run(history, 0, read("x", []), append("x", 1))
+        run(history, 1, read("y", []), append("y", 2))
+        run(history, 2, read("y", []), append("y", 3))
+        run(history, 3, read("x", []), append("x", 4))
+        detail = check(history.events(), Level.SNAPSHOT_ISOLATION).detail()
+        assert detail["explanation"] == [
+            {"calls": [2, 4], "key": encode("y"), "read": encode([])}
+        ]
+
+    def test_leaves_out_a_call_that_did_not_commit(self) -> None:
+        """Call 4 reads x before it appends 3, and it fails or completes as unknown."""
+        for completes in ("fail", "unknown"):
+            with self.subTest(completes=completes):
+                history = History()
+                run(history, 0, append("x", 1))
+                run(history, 1, read("x", [1]), append("x", 2))
+                second = invoke(history, 2, read("x", None), append("x", 3))
+                if completes == "fail":
+                    second.fail("aborted")
+                else:
+                    second.unknown("timed out")
+                for level in LEVELS:
+                    assert check(history.events(), level).passed
 
 
 @final
@@ -788,6 +837,42 @@ class RegisterDirectTest(unittest.TestCase):
         for level in LEVELS:
             assert check(history.events(), level).passed
 
+    def test_reports_a_lost_update(self) -> None:
+        """Calls 2 and 3 both read 1 from x and overwrite it.
+
+        No read orders their two writes, so their only edges are two adjacent
+        read-write edges. Snapshot isolation permits such a cycle.
+        """
+        history = History()
+        run(history, 0, write("x", 1))
+        first = invoke(history, 1, read("x", None), write("x", 2))
+        second = invoke(history, 2, read("x", None), write("x", 3))
+        first.ok([read("x", 1), write("x", 2)])
+        second.ok([read("x", 1), write("x", 3)])
+        detail = check(history.events(), Level.SERIALIZABLE).detail()
+        assert (detail["anomaly"], detail["kinds"], detail["explanation"]) == (
+            "lost-update",
+            ["lost-update", "G2"],
+            [{"calls": [2, 3], "key": encode("x"), "read": encode(1)}],
+        )
+        assert outcome(history, Level.SNAPSHOT_ISOLATION) == (
+            "lost-update",
+            ["lost-update"],
+        )
+
+    def test_reports_a_lost_update_of_the_initial_value(self) -> None:
+        """Calls 0 and 1 both read x before any write, and both write it."""
+        history = History()
+        first = invoke(history, 0, read("x", None), write("x", 1))
+        second = invoke(history, 1, read("x", None), write("x", 2))
+        first.ok([read("x", None), write("x", 1)])
+        second.ok([read("x", None), write("x", 2)])
+        detail = check(history.events(), Level.SNAPSHOT_ISOLATION).detail()
+        assert (detail["anomaly"], detail["explanation"]) == (
+            "lost-update",
+            [{"calls": [0, 1], "key": encode("x"), "read": None}],
+        )
+
 
 @final
 class RegisterCycleTest(unittest.TestCase):
@@ -861,17 +946,6 @@ class RegisterCycleTest(unittest.TestCase):
             "value": None,
             "next": encode(2),
         }
-        assert check(history.events(), Level.SNAPSHOT_ISOLATION).passed
-
-    def test_passes_a_lost_update_as_snapshot_isolation(self) -> None:
-        """Two calls read 1 and overwrite it, and no read orders their writes."""
-        history = History()
-        run(history, 0, write("x", 1))
-        first = invoke(history, 1, read("x", None), write("x", 2))
-        second = invoke(history, 2, read("x", None), write("x", 3))
-        first.ok([read("x", 1), write("x", 2)])
-        second.ok([read("x", 1), write("x", 3)])
-        assert cycle_of(history, Level.SERIALIZABLE) == ("G2", ["G2"], [2, 3])
         assert check(history.events(), Level.SNAPSHOT_ISOLATION).passed
 
     def test_reports_a_long_fork_at_both_levels(self) -> None:

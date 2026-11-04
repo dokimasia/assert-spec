@@ -66,6 +66,15 @@ cases:
       - {invoke: 1, client: 1, operation: txn, args: [{type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: "null"}]}], keys: [{type: string, value: x}]}
       - {ok: 1, output: {type: list, items: [{type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: list, of: int, value: [1]}]}]}}
 
+  - id: snapshot-isolation/two-transactions-append-to-the-list-that-both-read
+    history:
+      - {invoke: 0, client: 0, operation: txn, args: [{type: list, items: [{type: string, value: append}, {type: string, value: x}, {type: int, value: 1}]}], keys: [{type: string, value: x}]}
+      - {ok: 0, output: {type: list, items: [{type: list, items: [{type: string, value: append}, {type: string, value: x}, {type: int, value: 1}]}]}}
+      - {invoke: 1, client: 1, operation: txn, args: [{type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: "null"}]}, {type: list, items: [{type: string, value: append}, {type: string, value: x}, {type: int, value: 2}]}], keys: [{type: string, value: x}]}
+      - {invoke: 2, client: 2, operation: txn, args: [{type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: "null"}]}, {type: list, items: [{type: string, value: append}, {type: string, value: x}, {type: int, value: 3}]}], keys: [{type: string, value: x}]}
+      - {ok: 1, output: {type: list, items: [{type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: list, of: int, value: [1]}]}, {type: list, items: [{type: string, value: append}, {type: string, value: x}, {type: int, value: 2}]}]}}
+      - {ok: 2, output: {type: list, items: [{type: list, items: [{type: string, value: read}, {type: string, value: x}, {type: list, of: int, value: [1]}]}, {type: list, items: [{type: string, value: append}, {type: string, value: x}, {type: int, value: 3}]}]}}
+
   - id: snapshot-isolation/two-transactions-append-to-two-keys-in-opposite-orders
     history:
       - {invoke: 0, client: 0, operation: txn, args: [{type: list, items: [{type: string, value: append}, {type: string, value: x}, {type: int, value: 1}]}, {type: list, items: [{type: string, value: append}, {type: string, value: y}, {type: int, value: 4}]}], keys: [{type: string, value: x}, {type: string, value: y}]}
@@ -179,8 +188,7 @@ cases:
       - {ok: 2, output: {type: list, items: [{type: list, items: [{type: string, value: append}, {type: string, value: z}, {type: int, value: 3}]}, {type: list, items: [{type: string, value: read}, {type: string, value: y}, {type: list, of: int, value: [2]}]}]}}
 
   # Register histories: each kind of anomaly that a register history can
-  # exhibit, a lost update, which snapshot isolation passes, a serial history
-  # and an observed write of unknown outcome.
+  # exhibit, a serial history and an observed write of unknown outcome.
   - id: snapshot-isolation/registers-a-read-returns-a-value-that-no-transaction-wrote
     history:
       - {invoke: 0, client: 0, operation: txn, args: [{type: list, items: [{type: string, value: write}, {type: string, value: x}, {type: int, value: 1}]}], keys: [{type: string, value: x}]}

@@ -24,7 +24,7 @@ read observed after that order, and derives the write-write, write-read and
 read-write dependencies between committed transactions. For a register
 history it derives them from the version pairs that the initial value and
 the writes that follow reads reveal. It searches the graph for the five
-kinds of cycle. A level forbids a set of the eleven kinds, and the record
+kinds of cycle. A level forbids a set of the twelve kinds, and the record
 reports the first of them that the history exhibits.
 """
 
@@ -73,6 +73,7 @@ class Anomaly(StrEnum):
     INCOMPATIBLE_ORDER = "incompatible-order"
     ABORTED_READ = "aborted-read"
     INTERMEDIATE_READ = "intermediate-read"
+    LOST_UPDATE = "lost-update"
     G0 = "G0"
     G1C = "G1c"
     G_SINGLE = "G-single"
@@ -735,6 +736,7 @@ class Analysis(_Graph):
             Anomaly.INCOMPATIBLE_ORDER: lambda: self._incompatible,
             Anomaly.ABORTED_READ: self._aborted_read,
             Anomaly.INTERMEDIATE_READ: self._intermediate_read,
+            Anomaly.LOST_UPDATE: lambda: _lost_update(self._txns, self._keys, APPEND),
         }
         finder = direct.get(anomaly)
         if finder is not None:
@@ -969,6 +971,7 @@ class RegisterAnalysis(_Graph):
             Anomaly.INCOMPATIBLE_ORDER: lambda: None,
             Anomaly.ABORTED_READ: self._aborted_read,
             Anomaly.INTERMEDIATE_READ: self._intermediate_read,
+            Anomaly.LOST_UPDATE: lambda: _lost_update(self._txns, self._keys, WRITE),
         }
         finder = direct.get(anomaly)
         if finder is not None:
@@ -1109,7 +1112,10 @@ _NONE: Final = object()
 
 
 def _literal(value: object) -> object:
-    """Return a register value as a typed literal, and null for the initial value."""
+    """Return a read's list or value as a typed literal.
+
+    A register's initial value is null.
+    """
     return None if value is None else encode(value)
 
 
@@ -1146,6 +1152,38 @@ def _external_reads(txn: Transaction) -> dict[object, object]:
 def _external_writes(txn: Transaction) -> dict[object, object]:
     """Return the value of each external write of a transaction, by key."""
     return {canonical(m.key): m.value for m in txn.mops if m.function == WRITE}
+
+
+def _lost_update(
+    txns: Sequence[Transaction], keys: Mapping[object, object], write: str
+) -> Case | None:
+    """Return the first two ok transactions that read one version of a key and write it.
+
+    Each of the two has an external read of the key, both reads returned the
+    same list or value, and each appends or writes to the key after its read.
+    Whichever write the database installed second overwrote a version that
+    its transaction did not read. write is the function of the history's
+    writes. The transactions are taken in the order of their invocations, so
+    the case is the first transaction whose read matches an earlier one, and
+    that earlier one.
+    """
+    readers: dict[tuple[object, object], int] = {}
+    for txn in txns:
+        if txn.kind is not Kind.OK:
+            continue
+        written = {canonical(mop.key) for mop in txn.mops if mop.function == write}
+        for key, value in _external_reads(txn).items():
+            if key not in written:
+                continue
+            first = readers.setdefault((key, canonical(value)), txn.call)
+            if first != txn.call:
+                evidence = {
+                    "calls": [first, txn.call],
+                    "key": encode(keys[key]),
+                    "read": _literal(value),
+                }
+                return Case(Anomaly.LOST_UPDATE, (first, txn.call), None, (evidence,))
+    return None
 
 
 def _internal_register(txn: Transaction) -> Case | None:
