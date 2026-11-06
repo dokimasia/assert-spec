@@ -151,7 +151,7 @@ remaining 23 take an error value, a predicate, a callable that no subject
 describes, a golden file, a benchmark measurement, a property's body, a
 spec or a recorded history, and none of those is a typed literal
 either. The property engine
-itself is data in and data out, so 441 vectors under `corpus/prop/` pin
+itself is data in and data out, so 445 vectors under `corpus/prop/` pin
 its decoding, generation, shrinking, coverage test, fuzz bridge, replay
 token, run detail and store. They also pin the values each shape
 generates, the choices that produce a value, the shape each fixture type
@@ -163,7 +163,7 @@ The history and the checkers are data in and data out too. 112 vectors under
 history refuses, the verdict, steps and record of a check against each
 named spec, and the verdict and record of each isolation check over
 list-append and register transactions. So are
-the steps of a machine. 14 vectors under `corpus/stateful/` pin the run of
+the steps of a machine. 21 vectors under `corpus/stateful/` pin the run of
 each machine subject, the minimal steps of each fault, the traces that a
 run follows or refuses, and the step at which a replay of a subject whose
 refusals change its actions diverges. 57 vectors under `corpus/files/`

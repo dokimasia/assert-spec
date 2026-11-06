@@ -441,6 +441,7 @@ def run_settings(written: Mapping[str, Any]) -> Settings:
         shrink=int(written.get("shrink", DEFAULT_BUDGET)),
         replay=None if replayed is None else tuple(replay.decode(str(replayed))),
         confirm=int(written.get("confirm", 0)),
+        replays=int(written.get("replays", 1)),
     )
 
 
@@ -478,6 +479,8 @@ def detail(outcome: Outcome) -> Vector:
             "verdict": shortfall.verdict.value,
         },
         "reason": outcome.reason,
+        "replays": outcome.replays,
+        "reproduced": outcome.reproduced,
     }
 
 

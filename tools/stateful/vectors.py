@@ -9,7 +9,8 @@ them. The renderer writes inputs and outputs together, as it does for the
 property engine's vectors.
 
 A machines vector names a machine subject, and may state the options of
-its steps as its setup, the settings of the run, and a trace. A trace
+its steps and the limit of releases of its scheduler as its setup, the
+settings of the run, and a trace. A trace
 entry is written as the property engine's counterexample writes it: a
 draw entry, ``{"label": …, "value": …}``, or a step entry, ``{"step": …}``
 with ``"client"`` in a concurrent section and ``"drain": true`` in the
@@ -75,6 +76,7 @@ def _setup(written: Mapping[str, Any]) -> subjects.Setup:
         concurrent=int(written.get("concurrent", default.concurrent)),
         strategy=_strategy(written.get("strategy", "uniform")),
         concurrent_mean=_count(written.get("concurrent-mean")),
+        max_releases=int(written.get("max-releases", default.max_releases)),
     )
 
 

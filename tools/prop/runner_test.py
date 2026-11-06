@@ -390,6 +390,113 @@ class ConfirmTest(unittest.TestCase):
         with pytest.raises(ValueError, match="confirm"):
             Settings(SEED, confirm=-1)
 
+    def test_a_flaky_replay_of_a_valid_case_counts_no_replays(self) -> None:
+        """The replays and their reproductions count the replays of a failing case."""
+        outcome = run(self.counting(), Settings(SEED, confirm=1))
+        assert outcome.kind is Kind.FLAKY
+        assert (outcome.replays, outcome.reproduced) == (None, None)
+
+
+@final
+class ReplaysTest(unittest.TestCase):
+    """The replays of a failing case before the shrink, under the setting replays."""
+
+    @staticmethod
+    def failing_on_even_calls() -> Body:
+        """Return a body that fails above 10^6 on its even calls alone."""
+        calls: list[None] = []
+
+        def body(case: Case) -> None:
+            n = case.draw(WIDE, "n")
+            assert isinstance(n, int)
+            calls.append(None)
+            if n > MILLION and len(calls) % 2 == 0:
+                case.fail("big")
+
+        return body
+
+    def test_a_run_replays_a_failing_case_once_by_default(self) -> None:
+        """One replay before the first shrink candidate reproduces the failure."""
+        seen = Seen()
+        outcome = run(above_million, Settings(SEED), seen)
+        assert outcome.kind is Kind.COUNTEREXAMPLE
+        assert (outcome.replays, outcome.reproduced) == (1, 1)
+        first_shrink = seen.phases.index(Phase.SHRINK)
+        assert seen.phases[:first_shrink].count(Phase.REPLAY) == 1
+
+    def test_replays_a_failing_case_n_times_before_the_shrink(self) -> None:
+        """Three replays follow the failing case, and each reproduces its failure."""
+        seen = Seen()
+        outcome = run(above_million, Settings(SEED, replays=3), seen)
+        assert outcome.kind is Kind.COUNTEREXAMPLE
+        assert (outcome.replays, outcome.reproduced) == (3, 3)
+        found = [status for _, status in seen.calls].index(Status.FAILED)
+        assert seen.phases[found + 1 : found + 4] == [Phase.REPLAY] * 3
+        assert seen.phases[found + 4] is Phase.SHRINK
+
+    def test_shrinks_a_failure_that_one_replay_of_three_reproduces(self) -> None:
+        """The failing case is an even call, so its replays are odd, even and odd."""
+        outcome = run(self.failing_on_even_calls(), Settings(SEED, replays=3))
+        assert outcome.kind is Kind.COUNTEREXAMPLE
+        assert (outcome.replays, outcome.reproduced) == (3, 1)
+        assert outcome.failing is not None
+        assert outcome.failing.identity == "big"
+
+    def test_a_failure_that_no_replay_reproduces_is_flaky_at_the_first_replay(
+        self,
+    ) -> None:
+        """A body that fails once passes its three replays, and the first differs."""
+        failed: list[None] = []
+
+        def body(case: Case) -> None:
+            n = case.draw(WIDE, "n")
+            assert isinstance(n, int)
+            if n > MILLION and not failed:
+                failed.append(None)
+                case.fail("big")
+
+        seen = Seen()
+        outcome = run(body, Settings(SEED, replays=3), seen)
+        assert outcome.kind is Kind.FLAKY
+        assert (outcome.replays, outcome.reproduced) == (3, 0)
+        assert outcome.divergence is not None
+        divergence = outcome.divergence
+        assert (divergence.what, divergence.recorded, divergence.replayed) == (
+            "verdict",
+            "big",
+            None,
+        )
+        assert seen.phases.count(Phase.REPLAY) == 3
+        assert Phase.SHRINK not in seen.phases
+
+    def test_a_run_without_a_shrink_replays_nothing(self) -> None:
+        """A shrink budget of 0 reports the failing case as found."""
+        seen = Seen()
+        outcome = run(above_million, Settings(SEED, shrink=0, replays=3), seen)
+        assert outcome.kind is Kind.COUNTEREXAMPLE
+        assert (outcome.replays, outcome.reproduced) == (None, None)
+        assert Phase.REPLAY not in seen.phases
+
+    def test_a_replay_token_runs_no_replay(self) -> None:
+        """The one case of a token fails, and the run reports it as found."""
+        seen = Seen()
+        replayed = (Choice("integer", MILLION + 1),)
+        outcome = run(above_million, Settings(SEED, replay=replayed, replays=3), seen)
+        assert outcome.kind is Kind.COUNTEREXAMPLE
+        assert (outcome.replays, outcome.reproduced) == (None, None)
+        assert seen.phases == [Phase.TOKEN]
+
+    def test_a_passing_run_counts_no_replays(self) -> None:
+        """No case fails, so no case is replayed."""
+        outcome = run(passes, Settings(SEED, replays=3))
+        assert outcome.kind is Kind.PASSED
+        assert (outcome.replays, outcome.reproduced) == (None, None)
+
+    def test_refuses_a_count_of_replays_below_1(self) -> None:
+        """A run replays a failing case at least once."""
+        with pytest.raises(ValueError, match="replays"):
+            Settings(SEED, replays=0)
+
 
 #: The reason that the skipping bodies of these tests skip with.
 UNSUPPORTED = "unsupported"

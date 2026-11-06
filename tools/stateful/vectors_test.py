@@ -77,6 +77,17 @@ class MachinesTest(unittest.TestCase):
         on, off = (len(replay.decode(token)) for token in tokens)
         assert on - off == 2
 
+    def test_the_setup_states_the_limit_of_releases(self) -> None:
+        """A spin past a limit of 50 fails the case, and a limit of 0 states none."""
+        detail = machines("spins-until-a-flag", setup={"max-releases": 50})["detail"]
+        assert (detail["outcome"], detail["failure"]) == (
+            "counterexample",
+            "max-releases",
+        )
+        assert detail["counterexample"] == [{"step": "spin"}]
+        with pytest.raises(ValueError, match="releases"):
+            machines("spins-until-a-flag", setup={"max-releases": 0})
+
     def test_a_strategy_is_uniform_or_a_pct_depth(self) -> None:
         """PCT finds the race too, refuses a depth of 0, and nothing else reads."""
         assert (

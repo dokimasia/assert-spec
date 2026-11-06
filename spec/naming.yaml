@@ -19,7 +19,7 @@
 # as its positive does. Each of these names takes the auxiliary that its
 # word takes in an English sentence: is before an adjective, has before a
 # noun and does before a verb.
-version: "15.0.0"
+version: "16.0.0"
 
 languages: [go, java, kotlin, php, python, rust, typescript]
 
@@ -660,6 +660,10 @@ relaxations:
 # prop.confirm replays every n-th valid case of a run from its choices, as a
 # run replays a failing case before shrinking.
 #
+# prop.replays sets how often a run replays a failing case before it shrinks
+# the case. The members replays and reproduced of a run-result count those
+# replays and the replays that reproduced the failure.
+#
 # Java names the platform clock SystemClock because System is
 # java.lang.System, which every class in the package would otherwise
 # have to qualify. The same reason throws became throwsException.
@@ -707,6 +711,16 @@ relaxations:
 # keyword. Python and Kotlin decline it: an await in an asyncio task, and
 # yield() in a coroutine, already suspend the task at a point the
 # scheduler sees.
+#
+# The scheduler's wait parks the running task until its condition is true,
+# clock returns the clock of the scheduler, whose sleep parks the running
+# task until a deadline, and advance moves that clock from deadline to
+# deadline. Java names wait await, because Object.wait is a final method of
+# each Java object, and java.util.concurrent.locks.Condition names its wait
+# await. Python and Kotlin decline wait, as they decline yield: an asyncio
+# task parks on an asyncio.Event or an asyncio.Condition, and a coroutine on
+# a Channel or a Mutex, at a point the scheduler sees. max-releases is an
+# option of the scheduler, named in stateful beside the strategies.
 #
 # TypeScript declines repeat, the number of runs of a case whose concurrent
 # section runs on real threads, because it runs a section only as tasks of
@@ -1519,6 +1533,20 @@ surface:
       typescript: "reason"
       java: "reason"
       kotlin: "reason"
+    "run-result.replays":
+      go: "Replays"
+      python: "replays"
+      rust: "replays"
+      typescript: "replays"
+      java: "replays"
+      kotlin: "replays"
+    "run-result.reproduced":
+      go: "Reproduced"
+      python: "reproduced"
+      rust: "reproduced"
+      typescript: "reproduced"
+      java: "reproduced"
+      kotlin: "reproduced"
     "scheduler.spawn":
       go: "Spawn"
       python: "spawn"
@@ -1538,6 +1566,25 @@ surface:
       typescript: "run"
       java: "run"
       kotlin: "run"
+    "scheduler.wait":
+      go: "Wait"
+      rust: "wait"
+      typescript: "wait"
+      java: "await"
+    "scheduler.clock":
+      go: "Clock"
+      python: "clock"
+      rust: "clock"
+      typescript: "clock"
+      java: "clock"
+      kotlin: "clock"
+    "scheduler.advance":
+      go: "Advance"
+      python: "advance"
+      rust: "advance"
+      typescript: "advance"
+      java: "advance"
+      kotlin: "advance"
     "entry.with-mode":
       go: "WithMode"
       python: "with_mode"
@@ -1831,6 +1878,13 @@ surface:
       typescript: "prop.confirm"
       java: "Prop.confirm"
       kotlin: "Prop.confirm"
+    "prop.replays":
+      go: "prop.Replays"
+      python: "prop.replays"
+      rust: "prop::replays"
+      typescript: "prop.replays"
+      java: "Prop.replays"
+      kotlin: "Prop.replays"
     "prop.fuzz":
       go: "prop.Fuzz"
       python: "prop.fuzz"
@@ -2047,6 +2101,13 @@ surface:
       typescript: "stateful.pct"
       java: "Stateful.pct"
       kotlin: "Stateful.pct"
+    "scheduler.max-releases":
+      go: "stateful.MaxReleases"
+      python: "stateful.max_releases"
+      rust: "stateful::max_releases"
+      typescript: "stateful.maxReleases"
+      java: "Stateful.maxReleases"
+      kotlin: "Stateful.maxReleases"
     "files.workspace":
       go: "files.Workspace"
       python: "files.workspace"

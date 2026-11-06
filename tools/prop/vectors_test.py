@@ -148,10 +148,23 @@ class ComputeTest(unittest.TestCase):
                 "divergence",
                 "coverage",
                 "reason",
+                "replays",
+                "reproduced",
             ]
         )
         assert (detail["outcome"], detail["cases"]) == ("vacuous", 1)
         assert (detail["counterexample"], detail["reason"]) == (None, None)
+        assert (detail["replays"], detail["reproduced"]) == (None, None)
+
+    def test_behaviour_states_the_replays_of_a_failing_case(self) -> None:
+        """Three replays of a body that fails once reproduce nothing."""
+        got = compute(
+            "behaviour",
+            {"body": {"kind": "fails-once"}, "settings": {"seed": "7", "replays": 3}},
+        )
+        detail = got["detail"]
+        stated = (detail["outcome"], detail["replays"], detail["reproduced"])
+        assert stated == ("flaky", 3, 0)
 
     def test_a_skipped_run_states_its_reason(self) -> None:
         """A body that skips every case skips at the simplest case."""

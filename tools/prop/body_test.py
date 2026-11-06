@@ -156,6 +156,21 @@ class NamedBodyTest(unittest.TestCase):
         recorded = [Choice("integer", 1000)]
         assert execute(body, Replaying(recorded), 8192).status is Status.PASSED
 
+    def test_fails_on_even_calls_fails_above_1000_on_its_even_calls(self) -> None:
+        """The same value passes on the first and the third call, and fails between."""
+        body = build_body({"kind": "fails-on-even-calls"})
+        recorded = [Choice("integer", 5000)]
+        statuses = [execute(body, Replaying(recorded), 8192).status for _ in range(3)]
+        assert statuses == [Status.PASSED, Status.FAILED, Status.PASSED]
+        assert execute(body, Replaying(recorded), 8192).identity == "even"
+
+    def test_fails_on_even_calls_passes_1000_on_an_even_call(self) -> None:
+        """1000 is not above 1000, and the second call counts."""
+        body = build_body({"kind": "fails-on-even-calls"})
+        execute(body, Replaying([Choice("integer", 1000)]), 8192)
+        again = execute(body, Replaying([Choice("integer", 1000)]), 8192)
+        assert again.status is Status.PASSED
+
     def test_each_build_starts_fresh(self) -> None:
         """A second body of fails-once fails again."""
         recorded = [Choice("integer", 5000)]

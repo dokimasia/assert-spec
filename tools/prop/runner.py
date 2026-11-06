@@ -44,10 +44,12 @@ not fail. The replay counts as no case. An example of values has no
 choices, so the run does not replay it. A run of a replay token counts its
 one case too, so a ``confirm`` of 1 replays that case.
 
-A failing case is replayed, shrunk and explained, as the shrink module
-states, and the run ends as a counterexample, or as flaky when the replay
-differs. A diverging body ends the run as flaky. A shrink budget of 0
-reports the first failing case as found, without replay or explanation.
+A failing case is replayed ``replays`` times, then shrunk and explained, as
+the shrink module states. The run ends as a counterexample when one or more
+replays reproduce the failure, and as flaky with the difference of the
+first replay when none does. A diverging body ends the run as flaky. A
+shrink budget of 0 reports the first failing case as found, without replay
+or explanation.
 A failing example of values has no choices, so the run reports it as
 found, without replay, explanation or token.
 
@@ -163,7 +165,8 @@ class Settings:
     explaining every failure may spend, and 0 turns both off. replay, when
     set, is the one case the run tries: a failure is reported as found,
     and a pass passes. The run replays each valid case whose count is a
-    multiple of confirm, and a confirm of 0 replays none.
+    multiple of confirm, and a confirm of 0 replays none. replays is the
+    number of replays of a failing case before the shrink.
     """
 
     seed: int
@@ -177,18 +180,22 @@ class Settings:
     explain: bool = True
     replay: tuple[Choice, ...] | None = None
     confirm: int = 0
+    replays: int = 1
 
     def __post_init__(self) -> None:
-        """Refuse a run that aims for no case, or that confirms by no count.
+        """Refuse a run that aims for no case, or that counts by no count.
 
         Raises:
-            ValueError: cases is below 1, or confirm below 0.
+            ValueError: cases is below 1, confirm below 0, or replays below 1.
         """
         if self.cases < 1:
             msg = f"prop: a run of {self.cases} cases tests nothing"
             raise ValueError(msg)
         if self.confirm < 0:
             msg = f"prop: confirm({self.confirm}) states no count of cases"
+            raise ValueError(msg)
+        if self.replays < 1:
+            msg = f"prop: replays({self.replays}) states no count of replays"
             raise ValueError(msg)
 
 
@@ -214,7 +221,9 @@ class Outcome:
     run missed. runs counts the runs that shrinking and explaining spent.
     valued is set for a counterexample that an example of values found,
     which has no choices and so no token. reason is the reason of a skipped
-    run.
+    run. replays counts the replays of the failing case before the shrink,
+    and reproduced the replays that reproduced its failure. Both are None
+    for a run that replayed no failing case.
     """
 
     kind: Kind
@@ -230,6 +239,8 @@ class Outcome:
     runs: int = 0
     valued: bool = False
     reason: str | None = None
+    replays: int | None = None
+    reproduced: int | None = None
 
 
 def rejects_too_many(valid: int, rejected: int) -> bool:
@@ -346,16 +357,23 @@ def _conclude(
 ) -> Outcome:
     """Replay, shrink and explain the failing case of a counterexample.
 
-    A counterexample of values is reported as found.
+    The replays run one after the other, and every one runs. The case
+    shrinks when one or more of them reproduce the failure. A counterexample
+    of values is reported as found.
     """
     failing = outcome.failing
     if outcome.kind is not Kind.COUNTEREXAMPLE or failing is None or outcome.valued:
         return outcome
     if settings.shrink == 0:
         return replace(outcome, token=encode(failing.case.choices))
-    divergence = shrink.confirm(body, failing, settings.max_choices, observer)
-    if divergence is not None:
-        return replace(outcome, kind=Kind.FLAKY, divergence=divergence)
+    divergences = [
+        shrink.confirm(body, failing, settings.max_choices, observer)
+        for _ in range(settings.replays)
+    ]
+    reproduced = sum(divergence is None for divergence in divergences)
+    outcome = replace(outcome, replays=settings.replays, reproduced=reproduced)
+    if reproduced == 0:
+        return replace(outcome, kind=Kind.FLAKY, divergence=divergences[0])
     shrinker = shrink.Shrinker(
         body, failing, settings.max_choices, settings.shrink, observer
     )

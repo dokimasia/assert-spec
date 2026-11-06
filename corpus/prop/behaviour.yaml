@@ -125,6 +125,20 @@ cases:
     body: {kind: observes-its-calls}
     settings: {seed: "7"}
 
+  # The failing case is an even call, so its replays are an odd, an even and
+  # an odd call, and the one even replay reproduces the failure.
+  - id: behaviour/shrinks-a-failure-that-one-replay-of-three-reproduces
+    body: {kind: fails-on-even-calls}
+    settings: {seed: "7", replays: 3}
+  - id: behaviour/reports-a-failure-that-no-replay-of-three-reproduces
+    body: {kind: fails-once}
+    settings: {seed: "7", replays: 3}
+  - id: behaviour/counts-a-reproduction-in-each-of-three-replays
+    body:
+      draw: {gen: integer, min: 0, max: 10000}
+      fails: [{identity: big, when: {kind: at-least, n: 1001}}]
+    settings: {seed: "7", replays: 3}
+
   - id: behaviour/skips-the-run-at-a-case-that-skips
     body:
       draw: {gen: integer, min: 0, max: 1000}

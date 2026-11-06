@@ -43,9 +43,32 @@ an empty list of keys, and completes it as ok with its output.
   below LIMIT, and read. Its model is a counter that reads. The enabled
   list of a step depends on the refusals, so a case that repeats an
   earlier case's choices can request other bounds, and the run is flaky.
+- register-flushes-in-two-parts: a register of a buffer and a durable
+  value. write sets the buffer to its value and returns null. read returns
+  the buffer when it is set, and the durable value otherwise. A flusher
+  task of the subject waits until the buffer is set, takes the value and
+  clears the buffer, yields, and then sets the durable value to the value
+  it took. The actions are write, whose input is drawn under "v" from
+  [0, 1000], and read. The model is a register, and the clients and the
+  flusher run as tasks of one scheduler.
+- register-flushes: the same machine over a flusher that sets the durable
+  value to the buffer and then clears the buffer, without a yield between.
+- ticker-skips-its-first-tick: a ticker task that sleeps PERIOD on the
+  clock of its scheduler and adds one to its count, TICKS times, and skips
+  the first addition. The actions are advance, which advances the
+  scheduler by a number of milliseconds drawn under "ms" from [0, 10],
+  and read, which returns the count. The model counts the ticks of the
+  advances.
+- ticker: the same machine over a ticker that adds one at each tick.
+- spins-until-a-flag: a subject whose action spin spawns a task that
+  yields until a flag is set, and runs the scheduler. No action sets the
+  flag, and the machine has no model.
 
 Each subject is built anew for every run, so a subject that counts over
-the cases of a run starts each run at 0.
+the cases of a run starts each run at 0. A subject that spawns tasks of
+its own spawns them on a scheduler of the case with the setup's strategy
+and limit of releases, and the clients of its concurrent section run on
+the same scheduler.
 """
 
 from __future__ import annotations
@@ -63,7 +86,7 @@ from prop.generator import Integer
 from prop.value import as_type
 
 from .machine import Action, Machine, Options, steps
-from .scheduler import Scheduler, Strategy, Uniform
+from .scheduler import MAX_RELEASES, Scheduler, Strategy, Uniform, Yielded
 
 #: The names of the subjects.
 QUEUE_LOSES_ON_WRAP: Final = "queue-loses-on-wrap"
@@ -73,6 +96,11 @@ STORE_LOSES_ON_CRASH: Final = "store-loses-on-crash"
 RACY_COUNTER: Final = "racy-counter"
 CORRECT_COUNTER: Final = "correct-counter"
 COUNTER_REFUSES_EVERY_THIRD: Final = "counter-refuses-every-third"
+REGISTER_FLUSHES_IN_TWO_PARTS: Final = "register-flushes-in-two-parts"
+REGISTER_FLUSHES: Final = "register-flushes"
+TICKER_SKIPS_ITS_FIRST_TICK: Final = "ticker-skips-its-first-tick"
+TICKER: Final = "ticker"
+SPINS_UNTIL_A_FLAG: Final = "spins-until-a-flag"
 
 #: The identity of store-loses-on-crash's settle failure.
 LOST: Final = "lost-write"
@@ -89,18 +117,26 @@ REFUSED: Final = "refused"
 #: below LIMIT.
 LIMIT: Final = 3
 
+#: The ticker sleeps PERIOD_MS milliseconds before each of its TICKS ticks.
+PERIOD_MS: Final = 4
+TICKS: Final = 4
+
+#: A millisecond, in the nanoseconds of the clock of a scheduler.
+MILLISECOND: Final = 1_000_000
+
 #: The draws of the subjects.
 CAPACITIES: Final = Integer(IntegerBounds(1, 8))
 VALUES: Final = Integer(IntegerBounds(0, 1000))
 KEYS: Final = Integer(IntegerBounds(0, 3))
+MILLISECONDS: Final = Integer(IntegerBounds(0, 10))
 
 
 @dataclass(frozen=True)
 class Setup:
-    """The options a run states for a subject, and its scheduler's strategy.
+    """The options a run states for a subject, and its scheduler's strategy and limit.
 
-    A subject without a concurrent section ignores clients, concurrent,
-    concurrent_mean and strategy.
+    A subject without a concurrent section and without tasks of its own
+    ignores clients, concurrent, concurrent_mean, strategy and max_releases.
     """
 
     mean: int = 30
@@ -110,14 +146,18 @@ class Setup:
     concurrent: int = 16
     strategy: Strategy = field(default_factory=Uniform)
     concurrent_mean: int | None = None
+    max_releases: int = MAX_RELEASES
 
     def sequential(self) -> Options:
         """Return the options of a machine without a concurrent section."""
         return Options(self.mean, self.max, self.swarm)
 
-    def concurrent_in(self, case: Case) -> Options:
-        """Return the options of a machine whose clients run as tasks in case."""
-        scheduler = Scheduler(case, self.strategy)
+    def scheduler_in(self, case: Case) -> Scheduler:
+        """Return a scheduler of case with the setup's strategy and release limit."""
+        return Scheduler(case, self.strategy, self.max_releases)
+
+    def concurrent_on(self, scheduler: Scheduler) -> Options:
+        """Return the options of a machine whose clients run as tasks of scheduler."""
         return Options(
             self.mean,
             self.max,
@@ -127,6 +167,10 @@ class Setup:
             scheduler,
             concurrent_mean=self.concurrent_mean,
         )
+
+    def concurrent_in(self, case: Case) -> Options:
+        """Return the options of a machine whose clients run as tasks in case."""
+        return self.concurrent_on(self.scheduler_in(case))
 
 
 #: A subject: it builds its subject and runs its machine in a case.
@@ -217,6 +261,35 @@ def reading_counter() -> Model[int]:
         if op.known and not equality.equal(op.output, state + 1):
             return []
         return [state + 1]
+
+    return Model(lambda: 0, step)
+
+
+def register() -> Model[object]:
+    """Return the model of a register: write leaves its value, read returns it."""
+
+    def step(state: object, op: Op) -> list[object]:
+        if op.operation == "write":
+            return [op.args[0]]
+        if op.known and not equality.equal(op.output, state):
+            return []
+        return [state]
+
+    return Model(lambda: None, step)
+
+
+def ticks() -> Model[int]:
+    """Return the model of the ticker: the milliseconds that the advances add.
+
+    read returns the elapsed milliseconds divided by PERIOD_MS, at most TICKS.
+    """
+
+    def step(state: int, op: Op) -> list[int]:
+        if op.operation == "advance":
+            return [state + as_type(op.args[0], int)]
+        if op.known and not equality.equal(op.output, min(TICKS, state // PERIOD_MS)):
+            return []
+        return [state]
 
     return Model(lambda: 0, step)
 
@@ -368,6 +441,97 @@ def _refusing_counter() -> Subject:
     return subject
 
 
+def _flushed_register(case: Case, setup: Setup, *, in_two_parts: bool) -> None:
+    """Run the register machine with clients, over a buffer that a flusher moves."""
+    scheduler = setup.scheduler_in(case)
+    buffer: list[object] = [None]
+    durable: list[object] = [None]
+
+    def flusher() -> Iterator[Yielded]:
+        while True:
+            yield scheduler.wait(lambda: buffer[0] is not None)
+            if in_two_parts:
+                taken = buffer[0]
+                buffer[0] = None
+                yield None
+                durable[0] = taken
+            else:
+                durable[0] = buffer[0]
+                buffer[0] = None
+
+    def write(case: Case, client: int, value: object) -> None:
+        stored = as_type(value, int)
+        call = case.history.invoke(client, "write", (stored,), ())
+        buffer[0] = stored
+        call.ok(None)
+
+    def read(case: Case, client: int, value: object) -> None:
+        del value
+        call = case.history.invoke(client, "read", (), ())
+        call.ok(durable[0] if buffer[0] is None else buffer[0])
+
+    scheduler.spawn(flusher())
+    machine = Machine(
+        (
+            Action("write", write, input=lambda case, _: case.draw(VALUES, "v")),
+            Action("read", read),
+        ),
+        register(),
+    )
+    steps(case, machine, setup.concurrent_on(scheduler))
+
+
+def _ticker(case: Case, setup: Setup, *, skips_first: bool) -> None:
+    """Run the ticker machine, whose advance moves the clock of the scheduler."""
+    scheduler = setup.scheduler_in(case)
+    count = [0]
+
+    def ticking() -> Iterator[Yielded]:
+        for tick in range(TICKS):
+            yield scheduler.clock().sleep(PERIOD_MS * MILLISECOND)
+            if tick > 0 or not skips_first:
+                count[0] += 1
+
+    def advance(case: Case, client: int, value: object) -> None:
+        milliseconds = as_type(value, int)
+        call = case.history.invoke(client, "advance", (milliseconds,), ())
+        scheduler.advance(milliseconds * MILLISECOND)
+        call.ok(None)
+
+    def read(case: Case, client: int, value: object) -> None:
+        del value
+        case.history.invoke(client, "read", (), ()).ok(count[0])
+
+    scheduler.spawn(ticking())
+    machine = Machine(
+        (
+            Action(
+                "advance", advance, input=lambda case, _: case.draw(MILLISECONDS, "ms")
+            ),
+            Action("read", read),
+        ),
+        ticks(),
+    )
+    steps(case, machine, setup.sequential())
+
+
+def _spinner(case: Case, setup: Setup) -> None:
+    """Run the machine whose one action spawns a task that yields without an end."""
+    scheduler = setup.scheduler_in(case)
+    flag = [False]
+
+    def spinning() -> Iterator[None]:
+        while not flag[0]:
+            yield
+
+    def spin(case: Case, client: int, value: object) -> None:
+        del case, client, value
+        scheduler.spawn(spinning())
+        scheduler.run()
+
+    steps(case, Machine((Action("spin", spin),)), setup.sequential())
+
+
 #: The subjects, keyed by name. Each entry returns a subject for one run.
 SUBJECTS: Final[dict[str, Callable[[], Subject]]] = {
     QUEUE_LOSES_ON_WRAP: lambda: (
@@ -381,6 +545,17 @@ SUBJECTS: Final[dict[str, Callable[[], Subject]]] = {
         lambda case, setup: _shared_counter(case, setup, racy=False)
     ),
     COUNTER_REFUSES_EVERY_THIRD: _refusing_counter,
+    REGISTER_FLUSHES_IN_TWO_PARTS: lambda: (
+        lambda case, setup: _flushed_register(case, setup, in_two_parts=True)
+    ),
+    REGISTER_FLUSHES: lambda: (
+        lambda case, setup: _flushed_register(case, setup, in_two_parts=False)
+    ),
+    TICKER_SKIPS_ITS_FIRST_TICK: lambda: (
+        lambda case, setup: _ticker(case, setup, skips_first=True)
+    ),
+    TICKER: lambda: lambda case, setup: _ticker(case, setup, skips_first=False),
+    SPINS_UNTIL_A_FLAG: lambda: _spinner,
 }
 
 

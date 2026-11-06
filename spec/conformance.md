@@ -190,6 +190,19 @@ their valid cases from 1. `every` is a positive int, and each language
 refuses another value where it builds the option. The behaviour and
 recording vectors pin the replay.
 
+**The replays of a failing case.** The option `prop.replays(n)` makes a run
+replay a failing case `n` times before it shrinks the case, once by default,
+from its choices. A replay reproduces the failure when it requests the same
+bounds, observes the same fingerprints and fails with the same identity.
+The run shrinks the case when one or more replays reproduce the failure,
+and ends as flaky with the difference of the first replay when none does.
+The detail of the run states the replays in `replays` and the replays that
+reproduced the failure in `reproduced`. A run that replayed no failing case
+states null for both. A run with a shrink budget of 0, a run of a replay
+token and a failing example of values replay nothing. `n` is a positive
+int, and each language refuses another value where it builds the option.
+The behaviour and recording vectors pin the replays.
+
 **What a recorded run states.** `recording.md` fixes the fields of a
 call record and their encoding, the verdicts, the phases of a property's
 cases, the opaque literal, the numbering, the switch and its values,
@@ -227,11 +240,19 @@ case declares them.
 tasks.** Every decision of a machine is a choice of the case: the swarm
 choices, the continue flags, the indices by weight, the clients of a
 concurrent section, and the drain's indices. The task scheduler takes each
-release from a choice, under one of two strategies. The machines vectors
-pin the run of each machine subject, the minimal steps of each fault, and
-the traces that a run follows or refuses. One seed then gives one sequence
-of steps in every language, and one schedule wherever a concurrent section
-runs as tasks.
+release from a choice, under one of two strategies. A task that waits or
+sleeps is parked. The scheduler makes it ready, after every ready task,
+once its condition is true or its clock has passed its deadline: the sleeps
+by deadline and then in the order of the sleeps, then the waits in their
+order. The clock of each scheduler starts at midnight UTC 2000-01-01, and
+only its advance moves it, from deadline to deadline. A run or an advance
+that has released its limit of tasks, 1,000,000 by default, while a task is
+still ready fails the case with the message `the task scheduler released n
+tasks in one run, and a task is still ready`. The machines vectors name
+that failure `max-releases`. They pin the run of each machine subject, the
+minimal steps of each fault, and the traces that a run follows or refuses.
+One seed then gives one sequence of steps in every language, and one
+schedule wherever a concurrent section or a subject runs as tasks.
 
 ## Named
 

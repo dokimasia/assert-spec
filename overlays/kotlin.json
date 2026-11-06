@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@15.0.0",
+  "extends": "spec://assertions@16.0.0",
   "language": "kotlin",
   "diverge": [
     {
@@ -84,6 +84,10 @@
     {
       "id": "scheduler.yield",
       "why": "A task of the scheduler is a coroutine on its test dispatcher, and kotlinx.coroutines.yield() suspends the coroutine at a point the dispatcher sees, so the scheduler needs no member of its own for it."
+    },
+    {
+      "id": "scheduler.wait",
+      "why": "A task of the scheduler is a coroutine on its test dispatcher, and it parks on a Channel or a Mutex, which the dispatcher does not resume until another coroutine releases it, so the scheduler needs no member of its own for it."
     }
   ],
   "sections": ["tasks", "threads"],

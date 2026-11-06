@@ -10,7 +10,7 @@ the reason of the first ``skips`` entry whose predicate holds, and fails
 the case with the identity of the first ``fails`` entry whose predicate
 holds, in that order. The predicate module states the predicates.
 
-Five named bodies state what no predicate can:
+Six named bodies state what no predicate can:
 
 - DRAWS_NOTHING requests no input.
 - DIVERGES draws an integer in [0, 9] on its first call and a boolean on
@@ -22,6 +22,9 @@ Five named bodies state what no predicate can:
 - FAILS_THEN_SKIPS draws an integer in [0, 10^9] and fails with identity
   ``once`` the first time it draws a value above 1,000. Every later call
   draws its value and then skips with the reason ``after``.
+- FAILS_ON_EVEN_CALLS draws an integer in [0, 10^9] and fails with
+  identity ``even`` when the value is above 1,000 and the call is even,
+  counting the calls of the body from 1.
 """
 
 from __future__ import annotations
@@ -34,6 +37,8 @@ from .predicate import Predicate, predicate
 from .value import as_type
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from .case import Case
     from .execution import Body
 
@@ -46,10 +51,15 @@ DIVERGES: Final = "diverges"
 OBSERVES_ITS_CALLS: Final = "observes-its-calls"
 FAILS_ONCE: Final = "fails-once"
 FAILS_THEN_SKIPS: Final = "fails-then-skips"
+FAILS_ON_EVEN_CALLS: Final = "fails-on-even-calls"
 
-#: The identity and the threshold of FAILS_ONCE and FAILS_THEN_SKIPS.
+#: The identity and the threshold of FAILS_ONCE and FAILS_THEN_SKIPS, and the
+#: threshold of FAILS_ON_EVEN_CALLS.
 ONCE: Final = "once"
 ONCE_ABOVE: Final = 1000
+
+#: The identity of FAILS_ON_EVEN_CALLS.
+EVEN: Final = "even"
 
 #: The reason of the skips of FAILS_THEN_SKIPS.
 AFTER: Final = "after"
@@ -73,20 +83,13 @@ def build_body(spec: Mapping[str, Any]) -> Body:
         SpecError: the draw names no generator of the vocabulary.
     """
     kind = spec.get("kind")
-    if kind == DRAWS_NOTHING:
-        return _nothing
-    if kind == DIVERGES:
-        return _diverging()
-    if kind == OBSERVES_ITS_CALLS:
-        return _observing_calls()
-    if kind == FAILS_ONCE:
-        return _failing_once()
-    if kind == FAILS_THEN_SKIPS:
-        return _failing_then_skipping()
-    if kind is not None:
+    if kind is None:
+        return _drawing(spec)
+    named = _NAMED.get(kind)
+    if named is None:
         msg = f"prop: {kind!r} names no body"
         raise BodyError(msg)
-    return _drawing(spec)
+    return named()
 
 
 def _nothing(case: Case) -> None:
@@ -147,6 +150,31 @@ def _failing_then_skipping() -> Body:
             case.fail(ONCE)
 
     return body
+
+
+def _failing_on_even_calls() -> Body:
+    """Return a body that fails above ONCE_ABOVE on each of its even calls."""
+    calls: list[None] = []
+    wide = build(_WIDE)
+
+    def body(case: Case) -> None:
+        value = as_type(case.draw(wide, DRAWN), int)
+        calls.append(None)
+        if value > ONCE_ABOVE and len(calls) % 2 == 0:
+            case.fail(EVEN)
+
+    return body
+
+
+#: The named bodies, each with the function that returns a fresh body.
+_NAMED: Final[dict[str, Callable[[], Body]]] = {
+    DRAWS_NOTHING: lambda: _nothing,
+    DIVERGES: _diverging,
+    OBSERVES_ITS_CALLS: _observing_calls,
+    FAILS_ONCE: _failing_once,
+    FAILS_THEN_SKIPS: _failing_then_skipping,
+    FAILS_ON_EVEN_CALLS: _failing_on_even_calls,
+}
 
 
 def _drawing(spec: Mapping[str, Any]) -> Body:

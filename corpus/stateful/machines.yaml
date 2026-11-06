@@ -6,8 +6,9 @@
 # its machine and its draws, and may state:
 #
 # - `setup`: the options of the subject's steps: `mean`, `max`, `swarm`,
-#   and for a subject whose clients run as tasks `clients`, `concurrent`,
-#   `concurrent-mean` and `strategy`, which is uniform or {pct: depth}.
+#   and for a subject whose clients or tasks run on a scheduler `clients`,
+#   `concurrent`, `concurrent-mean`, `strategy`, which is uniform or
+#   {pct: depth}, and `max-releases`.
 # - `settings`: the settings of the run, as a behaviour vector states them.
 # - `trace`: a trace that the run takes first, as the Draws option does. A
 #   draw entry states a label and a value, and a step entry states its
@@ -82,6 +83,42 @@ cases:
   - id: counter-refuses-every-third/a-refusal-changes-the-actions-a-step-lists
     subject: counter-refuses-every-third
     setup: {swarm: false}
+    settings: {seed: "1"}
+
+  # A flusher task waits until the buffer is set. Its first release in the
+  # concurrent section takes a value that client 0 wrote and yields before
+  # it stores the value, so a read on client 1 returns null. The same race
+  # under pct pins the priority that a woken task keeps.
+  - id: register-flushes-in-two-parts/a-read-between-the-two-parts-of-a-flush-returns-null
+    subject: register-flushes-in-two-parts
+    settings: {seed: "1"}
+
+  - id: register-flushes-in-two-parts/keeps-the-priority-of-a-woken-task-under-pct-3
+    subject: register-flushes-in-two-parts
+    setup: {strategy: {pct: 3}}
+    settings: {seed: "1"}
+
+  - id: register-flushes/passes-with-two-clients
+    subject: register-flushes
+    settings: {seed: "1"}
+
+  # A ticker sleeps 4 ms before each tick. Under pct a release records no
+  # choice, so the choices of a case do not depend on the deadlines that an
+  # advance passes, and the shrink lowers the milliseconds alone.
+  - id: ticker-skips-its-first-tick/an-advance-of-4-ms-and-a-read-return-0
+    subject: ticker-skips-its-first-tick
+    setup: {strategy: {pct: 1}}
+    settings: {seed: "1"}
+
+  - id: ticker/passes-when-each-tick-runs-at-its-deadline
+    subject: ticker
+    setup: {strategy: {pct: 1}}
+    settings: {seed: "1"}
+
+  # A spin keeps a task ready, so the run fails at the limit of releases.
+  - id: spins-until-a-flag/fails-the-case-at-the-release-limit
+    subject: spins-until-a-flag
+    setup: {max-releases: 50}
     settings: {seed: "1"}
 
   # Traces: the minimal steps of a failure fail again, a step that is not

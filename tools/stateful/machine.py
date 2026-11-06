@@ -36,7 +36,8 @@ parts, in order, and records every decision as a choice of the case:
    from the state after the sequential steps. Client 0 then runs its
    steps in order. The scheduler then runs one task for each other client
    that has a step, spawned in client order, which runs that client's
-   steps in order. The machine checks the history once every task ends.
+   steps in order. The machine checks the history once run() returns. A
+   client whose task waits or sleeps at that point leaves its call open.
 5. The drain. The actions with drain set, whether or not swarm kept them,
    take steps until none is enabled or max steps have run. A drain step
    is a sequential step without its flag: an index, its span, its input
@@ -51,9 +52,10 @@ a call ends with a check, so the last check has read the whole history
 when settle runs.
 
 An action's run returns None, or a generator when the subject yields to
-the task scheduler. On client 0 the machine runs the generator to its
-end, and each yield continues at once. In a concurrent section the
-client's task yields where the generator yields.
+the task scheduler or parks on it. On client 0 the machine runs the
+generator to its end, and each yield continues at once: the scheduler
+refuses a wait or a sleep there that would park the body. In a concurrent
+section the client's task yields and parks where the generator does.
 
 A case whose provider is a Tracing follows its trace: the swarm keeps the
 actions that the step entries name, and each step entry becomes the
@@ -86,6 +88,8 @@ from prop.collection import Sizes, more
 from prop.trace import Tracing
 from prop.value import as_type
 
+from .scheduler import Yielded
+
 if TYPE_CHECKING:
     from history.model import Model
 
@@ -98,8 +102,9 @@ CHECK: Final = "linearizable"
 #: conditions the choices on keeping one.
 SWARM: Final = Fraction(1, 2)
 
-#: What an action's run returns when its subject yields to the scheduler.
-Task = Iterator[None]
+#: What an action's run returns when its subject yields to the scheduler or
+#: parks on it.
+Task = Iterator[Yielded]
 
 
 @dataclass(frozen=True)

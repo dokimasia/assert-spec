@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@15.0.0",
+  "extends": "spec://assertions@16.0.0",
   "language": "python",
   "diverge": [
     {
@@ -107,6 +107,10 @@
     {
       "id": "scheduler.yield",
       "why": "A task of the scheduler is an asyncio coroutine on the scheduler's event loop, and an await suspends the coroutine at a point the loop sees, so the scheduler needs no member of its own for it."
+    },
+    {
+      "id": "scheduler.wait",
+      "why": "A task of the scheduler is an asyncio coroutine on the scheduler's event loop, and it parks on an asyncio.Event or an asyncio.Condition, which the loop does not run until another task sets it, so the scheduler needs no member of its own for it."
     }
   ],
   "sections": ["tasks", "threads"],

@@ -8,9 +8,11 @@ equally long and smaller in the first choice where the two differ. Choices
 of one kind compare by their sort keys, and choices of different kinds by
 kind: integer, then float, then sequence.
 
-Before shrinking, the failing case is replayed once from its choices. A
-replay that requests another choice, observes another fingerprint, or ends
-another way makes the run flaky.
+Before shrinking, the runner replays the failing case from its choices as
+often as its setting replays states, once by default. A replay reproduces
+the failure when it requests the same choices, observes the same
+fingerprints and ends the same way. A run in which no replay reproduces the
+failure is flaky.
 
 The shrinker runs its passes over the best case of one failure, in the
 order Shrinker.shrink() lists them, until a whole round accepts no
