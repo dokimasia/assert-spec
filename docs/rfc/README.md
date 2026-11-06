@@ -66,3 +66,5 @@ they record why not.
 | [0053](0053-comparing-a-type-by-a-transform.md) | Comparing the values of a type by a transform | Accepted |
 | [0054](0054-the-mean-number-of-steps-of-a-concurrent-section.md) | The mean number of steps of a concurrent section | Accepted |
 | [0055](0055-the-required-call-first.md) | The required call first and the expansion of a configuration | Draft |
+| [0056](0056-tasks-that-wait-and-sleep.md) | Tasks that wait and sleep under the task scheduler | Accepted |
+| [0057](0057-the-replays-of-a-failing-case.md) | The replays of a failing case | Accepted |
