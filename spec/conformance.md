@@ -109,6 +109,13 @@ seat. A seat without the member receives nothing, and the test runs on.
 A skip is an input of a test, so no corpus case pins it. Each language
 checks it in its own tests.
 
+**How a helper skips its test.** The helper `skip` skips the test of its
+seat through `seat.skip`, as the rule of how a seat skips its test states.
+On a seat without the member it ends the call with a fault, and the test
+does not skip. Languages that give the member a default on every seat
+decline the helper. A skip is an input of a test, so no vector pins the
+helper. Each language checks it in its own tests.
+
 **How a seat observes a call.** The first seat of a test's chain that
 states `seat.observe-call` receives an `assertion-call`, with the assertion's
 id and the contract, for each call that a recorded run records, whatever

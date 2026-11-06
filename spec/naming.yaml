@@ -19,7 +19,7 @@
 # as its positive does. Each of these names takes the auxiliary that its
 # word takes in an English sentence: is before an adjective, has before a
 # noun and does before a verb.
-version: "16.0.0"
+version: "16.1.0"
 
 languages: [go, java, kotlin, php, python, rust, typescript]
 
@@ -618,6 +618,14 @@ relaxations:
 # interface Skipper, as they state report-fault on FaultReporter. Python and
 # TypeScript state it as an optional member of the seat, and Rust gives it
 # a default on the trait, so the three decline Skipper.
+#
+# The helper skip skips the test of any seat through the member, and ends
+# the call with a fault on a seat without it, as the helper cleanup does. Go
+# names the helper Skipf after the member and finds the member along the
+# seats that Unwrap returns. Java and Kotlin name it Check.skip beside
+# Check.fault, because a seat of theirs may not be a Skipper. Rust gives the
+# member a default on the trait, so a helper calls the member and Rust
+# declines the helper.
 #
 # A seat observes each assertion call through observe-call, which receives
 # an assertion-call of the assertion's id and the contract. The member is not
@@ -1605,6 +1613,12 @@ surface:
       go: "Cleanup"
       python: "cleanup"
       typescript: "cleanup"
+    "skip":
+      go: "Skipf"
+      python: "skip"
+      typescript: "skip"
+      java: "Check.skip"
+      kotlin: "Check.skip"
     "fault":
       go: "Fault"
       python: "fault"
