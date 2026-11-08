@@ -6,6 +6,7 @@
 # its machine and its draws, and may state:
 #
 # - `setup`: the options of the subject's steps: `mean`, `max`, `swarm`,
+#   `keep`, which lists the names of the actions that every case keeps,
 #   and for a subject whose clients or tasks run on a scheduler `clients`,
 #   `concurrent`, `concurrent-mean`, `strategy`, which is uniform or
 #   {pct: depth}, and `max-releases`.
@@ -58,6 +59,13 @@ cases:
   - id: correct-queue/passes-without-swarm
     subject: correct-queue
     setup: {swarm: false}
+    settings: {seed: "1"}
+
+  # Every case keeps put without a swarm choice, so a case makes one swarm
+  # choice, for get. The run fails as the run without the setup fails.
+  - id: queue-loses-on-wrap/a-kept-put-takes-no-swarm-choice
+    subject: queue-loses-on-wrap
+    setup: {keep: [put]}
     settings: {seed: "1"}
 
   # Two clients under the task scheduler: the racy counter fails, and the

@@ -7,11 +7,13 @@ A machine has actions in a fixed order, and optionally a model, an
 invariant and a settle check. steps() runs a machine inside a body in six
 parts, in order, and records every decision as a choice of the case:
 
-1. Swarm. With swarm on, one choice per action, in order, decides whether
-   the case keeps the action, drawn as draw.keep draws with probability
-   SWARM: 1 keeps it and 0 disables it, with target 0 and edge 1. While
-   no earlier action is kept, the last choice has the bounds [1, 1]. A
-   disabled action takes no step of the case outside the drain.
+1. Swarm. With swarm on, one choice per action without keep, in order,
+   decides whether the case keeps the action, drawn as draw.keep draws
+   with probability SWARM: 1 keeps it and 0 disables it, with target 0 and
+   edge 1. The case keeps an action with keep set without a choice, and
+   such an action counts as kept before the first choice. While no earlier
+   action is kept, the last choice has the bounds [1, 1]. A disabled action
+   takes no step of the case outside the drain.
 2. Setup. A machine with a model checks the history the case recorded,
    as after every step. Its state is the first of the model states after
    the order the check found. A machine without a model has the absent
@@ -58,9 +60,10 @@ refuses a wait or a sleep there that would park the body. In a concurrent
 section the client's task yields and parks where the generator does.
 
 A case whose provider is a Tracing follows its trace: the swarm keeps the
-actions that the step entries name, and each step entry becomes the
-choices of one step. A step entry that the machine cannot take at its
-position raises TraceError: an action that the step's list lacks, a step
+actions that the step entries name and every action with keep set, and
+each step entry becomes the choices of one step. A step entry that the
+machine cannot take at its position raises TraceError: an action that the
+step's list lacks, a step
 past the section's maximum, a client outside the clients, a concurrent
 step for a machine with one client, and a drain step after the drain.
 
@@ -114,7 +117,8 @@ class Action:
     run calls the subject with the case, the client and the input, and
     records each call in the case's history. enabled, when stated, removes
     the action from a sequential step's list in a state where it is false.
-    A drain action also takes the steps of the drain.
+    A drain action also takes the steps of the drain. Every case keeps an
+    action with keep set, and the swarm makes no choice for it.
     """
 
     name: str
@@ -123,6 +127,7 @@ class Action:
     enabled: Callable[[object], bool] | None = None
     drain: bool = False
     input: Callable[[Case, object], object] | None = None
+    keep: bool = False
 
     def __post_init__(self) -> None:
         """Refuse a weight below 1.
@@ -254,19 +259,30 @@ class _Run:
             case.place = before
 
     def _swarm(self) -> list[Action]:
-        """Return the actions the case keeps, in order."""
+        """Return the actions the case keeps, in order.
+
+        An action with keep set is kept without a choice. It counts as kept
+        before the first choice, so remaining counts the actions without
+        keep alone.
+        """
         actions = self._machine.actions
         if not self._options.swarm:
             return list(actions)
         trace = self._trace
         named = frozenset[str]() if trace is None else trace.actions()
+        marked = any(action.keep for action in actions)
+        remaining = len([action for action in actions if not action.keep])
         kept: list[Action] = []
         for position, action in enumerate(actions):
+            if action.keep:
+                kept.append(action)
+                continue
             self._case.place = Place("swarm", position, action.name)
             if trace is not None:
                 trace.prepare(1 if action.name in named else 0)
-            if self._case.choose(_keep(len(actions) - position, kept=bool(kept))):
+            if self._case.choose(_keep(remaining, kept=marked or bool(kept))):
                 kept.append(action)
+            remaining -= 1
         return kept
 
     def _sequential(self, kept: list[Action]) -> None:

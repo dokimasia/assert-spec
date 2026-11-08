@@ -246,7 +246,9 @@ case declares them.
 **How a machine takes its steps, and how the task scheduler releases
 tasks.** Every decision of a machine is a choice of the case: the swarm
 choices, the continue flags, the indices by weight, the clients of a
-concurrent section, and the drain's indices. The task scheduler takes each
+concurrent section, and the drain's indices. The swarm makes its choices
+for the actions without `keep`, and every case keeps an action with `keep`
+set. The task scheduler takes each
 release from a choice, under one of two strategies. A task that waits or
 sleeps is parked. The scheduler makes it ready, after every ready task,
 once its condition is true or its clock has passed its deadline: the sleeps

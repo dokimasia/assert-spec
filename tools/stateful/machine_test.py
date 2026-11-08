@@ -74,6 +74,10 @@ class Log:
 
         return Action(name, run, weight, enabled, drain, given)
 
+    def kept(self, name: str) -> Action:
+        """Return the action of name with keep set, which every case keeps."""
+        return replace(self.action(name), keep=True)
+
 
 @final
 class SwarmTest(unittest.TestCase):
@@ -132,6 +136,37 @@ class SwarmTest(unittest.TestCase):
         case = replay(1, 0, 0)
         steps(case, machine)
         assert case.steps == [(0, Step("d", drain=True))]
+
+    def test_a_kept_action_takes_no_choice_and_every_step_lists_it(self) -> None:
+        """Swarm disables b and c, so the step takes the kept action a."""
+        log = Log()
+        case = replay(0, 0, 1, 0)
+        machine = Machine((log.kept("a"), log.action("b"), log.action("c")))
+        steps(case, machine, Options(max=1))
+        assert [where.place for where in case.wheres[:2]] == [
+            Place("swarm", 1, "b"),
+            Place("swarm", 2, "c"),
+        ]
+        assert [r.bounds for r in case.requests[:2]] == [BINARY, BINARY]
+        assert case.steps == [(0, Step("a"))]
+
+    def test_a_kept_action_counts_as_kept_before_the_first_choice(self) -> None:
+        """The last choice, for b, keeps the bounds [0, 1] beside the kept c."""
+        log = Log()
+        case = replay(0, 0, 1, 0)
+        machine = Machine((log.action("a"), log.action("b"), log.kept("c")))
+        steps(case, machine, Options(max=1))
+        assert case.requests[1].bounds == BINARY
+        assert case.steps == [(0, Step("c"))]
+
+    def test_a_machine_whose_actions_are_all_kept_makes_no_swarm_choice(self) -> None:
+        """The first request is the first flag."""
+        log = Log()
+        case = replay(1, 1, 0)
+        machine = Machine((log.kept("a"), log.kept("b")))
+        steps(case, machine)
+        assert case.wheres[0].place == Place("sequential", 0)
+        assert [step.action for _, step in case.steps] == ["b"]
 
 
 @final
@@ -513,6 +548,15 @@ class TraceTest(unittest.TestCase):
         case = Case(Tracing([Step("b")]))
         steps(case, Machine(tuple(log.action(name) for name in "abc")))
         assert [c.value for c in case.choices] == [0, 1, 0, 1, 0, 0]
+        assert case.steps == [(0, Step("b"))]
+
+    def test_swarm_keeps_a_kept_action_that_no_step_names(self) -> None:
+        """The trace names b alone, so swarm disables c and keeps a and b."""
+        log = Log()
+        case = Case(Tracing([Step("b")]))
+        machine = Machine((log.kept("a"), log.action("b"), log.action("c")))
+        steps(case, machine)
+        assert [c.value for c in case.choices] == [1, 0, 1, 1, 0]
         assert case.steps == [(0, Step("b"))]
 
     def test_a_trace_names_the_draws_of_each_step(self) -> None:

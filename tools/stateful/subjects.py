@@ -68,14 +68,15 @@ Each subject is built anew for every run, so a subject that counts over
 the cases of a run starts each run at 0. A subject that spawns tasks of
 its own spawns them on a scheduler of the case with the setup's strategy
 and limit of releases, and the clients of its concurrent section run on
-the same scheduler.
+the same scheduler. Each subject sets keep on the actions that the setup
+names.
 """
 
 from __future__ import annotations
 
 import itertools
 from collections.abc import Callable, Generator, Iterator
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Final
 
 from history import equality
@@ -137,6 +138,7 @@ class Setup:
 
     A subject without a concurrent section and without tasks of its own
     ignores clients, concurrent, concurrent_mean, strategy and max_releases.
+    keep names the actions of the subject that every case keeps.
     """
 
     mean: int = 30
@@ -147,6 +149,15 @@ class Setup:
     strategy: Strategy = field(default_factory=Uniform)
     concurrent_mean: int | None = None
     max_releases: int = MAX_RELEASES
+    keep: frozenset[str] = frozenset()
+
+    def marked(self, machine: Machine) -> Machine:
+        """Return machine with keep set on each action that the setup names."""
+        actions = tuple(
+            replace(action, keep=True) if action.name in self.keep else action
+            for action in machine.actions
+        )
+        return replace(machine, actions=actions)
 
     def sequential(self) -> Options:
         """Return the options of a machine without a concurrent section."""
@@ -316,7 +327,7 @@ def _queue(case: Case, setup: Setup, *, loses_on_wrap: bool) -> None:
         ),
         bounded_queue(capacity),
     )
-    steps(case, machine, setup.sequential())
+    steps(case, setup.marked(machine), setup.sequential())
 
 
 def _counter_overflows(case: Case, setup: Setup) -> None:
@@ -338,7 +349,7 @@ def _counter_overflows(case: Case, setup: Setup) -> None:
     machine = Machine(
         (Action("increment", increment), Action("reset", reset)), counter()
     )
-    steps(case, machine, setup.sequential())
+    steps(case, setup.marked(machine), setup.sequential())
 
 
 def _store_loses_on_crash(case: Case, setup: Setup) -> None:
@@ -382,7 +393,7 @@ def _store_loses_on_crash(case: Case, setup: Setup) -> None:
         ),
         settle=settle,
     )
-    steps(case, machine, setup.sequential())
+    steps(case, setup.marked(machine), setup.sequential())
 
 
 def _shared_counter(case: Case, setup: Setup, *, racy: bool) -> None:
@@ -402,7 +413,7 @@ def _shared_counter(case: Case, setup: Setup, *, racy: bool) -> None:
         call.ok((yield from add()))
 
     machine = Machine((Action("increment", increment),), counter())
-    steps(case, machine, setup.concurrent_in(case))
+    steps(case, setup.marked(machine), setup.concurrent_in(case))
 
 
 def _refusing_counter() -> Subject:
@@ -436,7 +447,7 @@ def _refusing_counter() -> Subject:
             ),
             reading_counter(),
         )
-        steps(case, machine, setup.sequential())
+        steps(case, setup.marked(machine), setup.sequential())
 
     return subject
 
@@ -478,7 +489,7 @@ def _flushed_register(case: Case, setup: Setup, *, in_two_parts: bool) -> None:
         ),
         register(),
     )
-    steps(case, machine, setup.concurrent_on(scheduler))
+    steps(case, setup.marked(machine), setup.concurrent_on(scheduler))
 
 
 def _ticker(case: Case, setup: Setup, *, skips_first: bool) -> None:
@@ -512,7 +523,7 @@ def _ticker(case: Case, setup: Setup, *, skips_first: bool) -> None:
         ),
         ticks(),
     )
-    steps(case, machine, setup.sequential())
+    steps(case, setup.marked(machine), setup.sequential())
 
 
 def _spinner(case: Case, setup: Setup) -> None:
@@ -529,7 +540,7 @@ def _spinner(case: Case, setup: Setup) -> None:
         scheduler.spawn(spinning())
         scheduler.run()
 
-    steps(case, Machine((Action("spin", spin),)), setup.sequential())
+    steps(case, setup.marked(Machine((Action("spin", spin),))), setup.sequential())
 
 
 #: The subjects, keyed by name. Each entry returns a subject for one run.

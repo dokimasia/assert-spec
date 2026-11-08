@@ -9,8 +9,8 @@ them. The renderer writes inputs and outputs together, as it does for the
 property engine's vectors.
 
 A machines vector names a machine subject, and may state the options of
-its steps and the limit of releases of its scheduler as its setup, the
-settings of the run, and a trace. A trace
+its steps, the actions that every case keeps and the limit of releases of
+its scheduler as its setup, the settings of the run, and a trace. A trace
 entry is written as the property engine's counterexample writes it: a
 draw entry, ``{"label": …, "value": …}``, or a step entry, ``{"step": …}``
 with ``"client"`` in a concurrent section and ``"drain": true`` in the
@@ -65,7 +65,8 @@ def _setup(written: Mapping[str, Any]) -> subjects.Setup:
     """Return the options a machines vector states, with the defaults for the rest.
 
     Raises:
-        VectorError: the strategy is neither uniform nor a pct depth.
+        VectorError: the strategy is neither uniform nor a pct depth, or
+            keep is no list of names.
     """
     default = subjects.Setup()
     return subjects.Setup(
@@ -77,7 +78,20 @@ def _setup(written: Mapping[str, Any]) -> subjects.Setup:
         strategy=_strategy(written.get("strategy", "uniform")),
         concurrent_mean=_count(written.get("concurrent-mean")),
         max_releases=int(written.get("max-releases", default.max_releases)),
+        keep=_names(written.get("keep", [])),
     )
+
+
+def _names(written: object) -> frozenset[str]:
+    """Return the names of the actions that a setup keeps in every case.
+
+    Raises:
+        VectorError: keep is no list of names.
+    """
+    if not isinstance(written, list) or not all(isinstance(n, str) for n in written):
+        msg = f"stateful: keep is {written!r}, not a list of names"
+        raise VectorError(msg)
+    return frozenset(written)
 
 
 def _count(written: object) -> int | None:

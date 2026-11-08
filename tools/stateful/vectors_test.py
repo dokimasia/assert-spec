@@ -77,6 +77,20 @@ class MachinesTest(unittest.TestCase):
         on, off = (len(replay.decode(token)) for token in tokens)
         assert on - off == 2
 
+    def test_keep_removes_the_swarm_choice_of_each_action_it_names(self) -> None:
+        """The minimal case of counter-overflows makes one swarm choice, for reset."""
+        tokens = [
+            machines("counter-overflows", setup=setup)["detail"]["choices"]
+            for setup in ({}, {"keep": ["increment"]})
+        ]
+        swarmed, kept = (len(replay.decode(token)) for token in tokens)
+        assert swarmed - kept == 1
+
+    def test_keep_is_a_list_of_names(self) -> None:
+        """A name outside a list is refused."""
+        with pytest.raises(VectorError, match="keep is 'increment', not a list"):
+            machines("counter-overflows", setup={"keep": "increment"})
+
     def test_the_setup_states_the_limit_of_releases(self) -> None:
         """A spin past a limit of 50 fails the case, and a limit of 0 states none."""
         detail = machines("spins-until-a-flag", setup={"max-releases": 50})["detail"]
