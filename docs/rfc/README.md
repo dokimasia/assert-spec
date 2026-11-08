@@ -69,3 +69,4 @@ they record why not.
 | [0056](0056-tasks-that-wait-and-sleep.md) | Tasks that wait and sleep under the task scheduler | Accepted |
 | [0057](0057-the-replays-of-a-failing-case.md) | The replays of a failing case | Accepted |
 | [0058](0058-a-helper-that-skips-its-test.md) | A helper that skips its test | Accepted |
+| [0059](0059-an-action-that-every-case-keeps.md) | An action that every case keeps | Accepted |
