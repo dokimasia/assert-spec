@@ -79,7 +79,24 @@ cases:
     body:
       draw: {gen: integer, min: 0, max: 1000}
       fails: [{identity: big, when: {kind: at-least, n: 900}}]
-    settings: {seed: "7", stored: [[950]]}
+    settings:
+      seed: "7"
+      stored:
+        - choices: [950]
+          counterexample: [{label: value, value: {type: int, value: 950}}]
+  # The choices of the stored case decode to 3, and its entry records 950.
+  # The run replays the recorded value, which fails, where a run of one case
+  # does not draw 950.
+  - id: behaviour/replays-the-recorded-value-of-a-stored-case-of-other-choices
+    body:
+      draw: {gen: integer, min: 0, max: 1000}
+      fails: [{identity: exact, when: {kind: equals, value: {type: int, value: 950}}}]
+    settings:
+      seed: "7"
+      cases: 1
+      stored:
+        - choices: [3]
+          counterexample: [{label: value, value: {type: int, value: 950}}]
 
   - id: behaviour/replays-a-failing-token-and-nothing-else
     body:
@@ -158,7 +175,11 @@ cases:
       draw: {gen: integer, min: 0, max: 1000}
       skips: [{reason: unsupported, when: {kind: equals, value: {type: int, value: 0}}}]
       fails: [{identity: big, when: {kind: at-least, n: 101}}]
-    settings: {seed: "7", stored: [[500]]}
+    settings:
+      seed: "7"
+      stored:
+        - choices: [500]
+          counterexample: [{label: value, value: {type: int, value: 500}}]
   - id: behaviour/reports-a-failure-that-skips-on-replay
     body: {kind: fails-then-skips}
     settings: {seed: "7"}

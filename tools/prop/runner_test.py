@@ -10,7 +10,7 @@ from typing import Any, final
 
 import pytest
 
-from .case import Case, Generating
+from .case import Case, Generating, Step
 from .choice import Choice
 from .coverage import Verdict
 from .execution import Body, Execution, Phase, Status, execute
@@ -19,6 +19,7 @@ from .runner import (
     Kind,
     Requirement,
     Settings,
+    Stored,
     Values,
     prefix_cases,
     rejects_too_many,
@@ -192,7 +193,7 @@ class CounterexampleTest(unittest.TestCase):
             if case.draw(build(DIGIT), "n") == SEVEN:
                 case.fail("seven")
 
-        stored = ((Choice("integer", SEVEN),),)
+        stored = (Stored((Choice("integer", SEVEN),)),)
         outcome = run(body, Settings(SEED, stored=stored))
         assert (outcome.kind, outcome.cases) == (Kind.COUNTEREXAMPLE, 0)
 
@@ -547,7 +548,7 @@ class SkippedRunTest(unittest.TestCase):
             if n > hundred:
                 case.fail("big")
 
-        stored = ((Choice("integer", 500),),)
+        stored = (Stored((Choice("integer", 500),)),)
         outcome = run(body, Settings(SEED, stored=stored))
         assert outcome.kind is Kind.COUNTEREXAMPLE
         assert outcome.failing is not None
@@ -678,7 +679,7 @@ class ObserverTest(unittest.TestCase):
         """An example, two stored cases, then the simplest case."""
         seen = Seen()
         examples = ((Choice("integer", 5),),)
-        stored = ((Choice("integer", 3),), (Choice("integer", 4),))
+        stored = (Stored((Choice("integer", 3),)), Stored((Choice("integer", 4),)))
         settings = Settings(SEED, cases=1, examples=examples, stored=stored)
         body = Calls(lambda case: case.draw(WIDE, "n"))
         run(body, settings, seen)
@@ -788,6 +789,79 @@ class ObserverTest(unittest.TestCase):
         replayed = (Choice("integer", MILLION + 1),)
         run(above_million, Settings(SEED, replay=replayed), seen)
         assert seen.calls == [(Phase.TOKEN, Status.FAILED)]
+
+
+def fails_at_seven(case: Case) -> None:
+    """Draw a digit labelled n and fail at 7."""
+    if case.draw(build(DIGIT), "n") == SEVEN:
+        case.fail("seven")
+
+
+def _stored(choice: int, *recorded: Draw | Step) -> tuple[Stored, ...]:
+    """Return one stored case of one choice and the counterexample recorded."""
+    return (Stored((Choice("integer", choice),), recorded),)
+
+
+@final
+class StoredTest(unittest.TestCase):
+    """A stored case runs its choices, or the counterexample of its entry."""
+
+    def test_a_case_of_other_values_replays_its_counterexample(self) -> None:
+        """The choices decode to 3, the entry records 7, and 7 fails."""
+        seen = Seen()
+        settings = Settings(SEED, stored=_stored(3, Draw("n", SEVEN)), shrink=0)
+        outcome = run(fails_at_seven, settings, seen)
+        assert outcome.kind is Kind.COUNTEREXAMPLE
+        assert seen.calls == [
+            (Phase.STORED, Status.PASSED),
+            (Phase.STORED, Status.FAILED),
+        ]
+
+    def test_a_case_that_states_its_counterexample_runs_once(self) -> None:
+        """The choices decode to 3, and the entry records 3."""
+        seen = Seen()
+        run(
+            fails_at_seven,
+            Settings(SEED, cases=1, stored=_stored(3, Draw("n", 3))),
+            seen,
+        )
+        assert seen.phases[:2] == [Phase.STORED, Phase.SIMPLEST]
+
+    def test_a_failing_case_counts_whatever_it_decodes_to(self) -> None:
+        """The choices decode to 7, which fails, and the entry records 3."""
+        seen = Seen()
+        settings = Settings(SEED, stored=_stored(SEVEN, Draw("n", 3)), shrink=0)
+        outcome = run(fails_at_seven, settings, seen)
+        assert outcome.kind is Kind.COUNTEREXAMPLE
+        assert seen.calls == [(Phase.STORED, Status.FAILED)]
+
+    def test_a_refused_entry_leaves_the_case_of_the_choices(self) -> None:
+        """The entry records the label m, which the body does not draw."""
+        seen = Seen()
+        run(
+            fails_at_seven,
+            Settings(SEED, cases=1, stored=_stored(3, Draw("m", 7))),
+            seen,
+        )
+        assert seen.phases[:2] == [Phase.STORED, Phase.SIMPLEST]
+
+    def test_an_untaken_entry_leaves_the_case_of_the_choices(self) -> None:
+        """The case of the trace passes, and leaves the step entry untaken."""
+        seen = Seen()
+        stored = _stored(3, Draw("n", 4), Step("put"))
+        run(fails_at_seven, Settings(SEED, cases=1, stored=stored), seen)
+        assert seen.phases[:2] == [Phase.STORED, Phase.SIMPLEST]
+
+    def test_a_passing_trace_that_takes_every_entry_counts(self) -> None:
+        """The choices decode to 3, the entry records 4, and 4 passes."""
+        seen = Seen()
+        outcome = run(
+            fails_at_seven,
+            Settings(SEED, cases=1, stored=_stored(3, Draw("n", 4))),
+            seen,
+        )
+        assert seen.phases[:3] == [Phase.STORED, Phase.STORED, Phase.SIMPLEST]
+        assert outcome.kind is Kind.PASSED
 
 
 @final

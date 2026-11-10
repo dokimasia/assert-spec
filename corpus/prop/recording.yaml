@@ -62,7 +62,15 @@ cases:
     body:
       draw: {gen: integer, min: 0, max: 1000}
       fails: [{identity: big, when: {kind: at-least, n: 900}}]
-    settings: {seed: "7", examples: [[5]], stored: [[3], [950]], shrink: 0}
+    settings:
+      seed: "7"
+      examples: [[5]]
+      stored:
+        - choices: [3]
+          counterexample: [{label: value, value: {type: int, value: 3}}]
+        - choices: [950]
+          counterexample: [{label: value, value: {type: int, value: 950}}]
+      shrink: 0
 
   # The edge case at the maximum skips, so the property's verdict is skip.
   - id: recording/records-the-cases-before-a-case-that-skips

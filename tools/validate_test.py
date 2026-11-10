@@ -1412,6 +1412,26 @@ class Validator(unittest.TestCase):
         self._machines(lambda c: c["error"] is None)
         self.assert_caught("has no vector that covers 'refused:step'")
 
+    def test_stored_cases_that_never_fail_are_caught(self) -> None:
+        """A stored case replays its counterexample and fails in a vector."""
+        self._machines(
+            lambda c: (
+                "stored" not in c.get("settings", {})
+                or c["detail"]["outcome"] != "counterexample"
+            )
+        )
+        self.assert_caught("has no vector that covers 'stored:counterexample'")
+
+    def test_stored_cases_that_never_pass_are_caught(self) -> None:
+        """A stored case runs its choices and passes in a vector."""
+        self._machines(
+            lambda c: (
+                "stored" not in c.get("settings", {})
+                or c["detail"]["outcome"] != "passed"
+            )
+        )
+        self.assert_caught("has no vector that covers 'stored:passed'")
+
     def _files(self, kind: str, change: Callable[[dict[str, Any]], object]) -> None:
         """Edit the vectors of one file assertion in the scratch tree."""
         _edit(self.tree / "corpus" / "files" / f"{kind}.json", change)

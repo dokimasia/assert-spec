@@ -62,7 +62,7 @@ tools/history/         the history's and the checkers' executable reference
 tools/stateful/        the machines' and the scheduler's executable reference
 tools/files/           the trees' and the file assertions' executable reference
 .spec.yaml             the files an implementation vendors with spec
-VERSION                16.2.0
+VERSION                16.3.0
 ```
 
 People edit the YAML. `make render` produces the JSON, which is
@@ -151,7 +151,7 @@ remaining 23 take an error value, a predicate, a callable that no subject
 describes, a golden file, a benchmark measurement, a property's body, a
 spec or a recorded history, and none of those is a typed literal
 either. The property engine
-itself is data in and data out, so 445 vectors under `corpus/prop/` pin
+itself is data in and data out, so 452 vectors under `corpus/prop/` pin
 its decoding, generation, shrinking, coverage test, fuzz bridge, replay
 token, run detail and store. They also pin the values each shape
 generates, the choices that produce a value, the shape each fixture type
@@ -163,10 +163,11 @@ The history and the checkers are data in and data out too. 112 vectors under
 history refuses, the verdict, steps and record of a check against each
 named spec, and the verdict and record of each isolation check over
 list-append and register transactions. So are
-the steps of a machine. 21 vectors under `corpus/stateful/` pin the run of
+the steps of a machine. 25 vectors under `corpus/stateful/` pin the run of
 each machine subject, the minimal steps of each fault, the traces that a
 run follows or refuses, and the step at which a replay of a subject whose
-refusals change its actions diverges. 57 vectors under `corpus/files/`
+refusals change its actions diverges. They also pin the stored cases that
+replay their steps or run their choices. 57 vectors under `corpus/files/`
 pin the verdict and the record of the ten assertions that read files:
 the comparison of two trees, its bound of 64 paths and its digest of a
 large file, a golden tree and its update, and the kind, the target, the
@@ -288,7 +289,7 @@ differently.
 | TypeScript | [assert-typescript](https://github.com/dokimasia/assert-typescript) | 104 of 111 |
 
 Each count is what the language's overlay declares against version
-16.2.0. An implementation whose copy is behind has an open pull request
+16.3.0. An implementation whose copy is behind has an open pull request
 from spec with the new copy.
 
 Java and Kotlin ship from one repository and are named identically, so

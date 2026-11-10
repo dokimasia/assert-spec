@@ -24,6 +24,16 @@ DIGIT: dict[str, Any] = {"gen": "integer", "min": 0, "max": 9}
 DIGITS: dict[str, Any] = {"gen": "list", "of": DIGIT, "max_size": 3}
 
 
+def _stored(value: int) -> dict[str, Any]:
+    """Return the stored case of the choice value of a draw labelled value.
+
+    Its entry records the value that the choice decodes to under an integer
+    of minimum 0.
+    """
+    recorded = {"label": "value", "value": {"type": "int", "value": value}}
+    return {"choices": [value], "counterexample": [recorded]}
+
+
 @final
 class NotationTest(unittest.TestCase):
     """Choices in corpus form."""
@@ -230,9 +240,46 @@ class ComputeTest(unittest.TestCase):
             "draw": {"gen": "integer", "min": 0, "max": 1000},
             "fails": [{"identity": "big", "when": {"kind": "at-least", "n": 900}}],
         }
-        stored = {"seed": "7", "stored": [[950]]}
+        stored = {"seed": "7", "stored": [_stored(950)]}
         got = compute("behaviour", {"body": body, "settings": stored})
         assert got["detail"]["cases"] == 0
+
+    def test_a_stored_case_of_other_choices_replays_its_counterexample(self) -> None:
+        """The choices decode to 3, and the entry records 950, which fails."""
+        body = {
+            "draw": {"gen": "integer", "min": 0, "max": 1000},
+            "fails": [{"identity": "big", "when": {"kind": "at-least", "n": 900}}],
+        }
+        recorded = [{"label": "value", "value": {"type": "int", "value": 950}}]
+        settings = {
+            "seed": "7",
+            "shrink": 0,
+            "stored": [{"choices": [3], "counterexample": recorded}],
+        }
+        got = compute("behaviour", {"body": body, "settings": settings})
+        assert got["detail"]["outcome"] == "counterexample"
+        assert got["detail"]["counterexample"][0]["value"] == recorded[0]["value"]
+
+    def test_a_stored_case_states_choices_and_a_counterexample(self) -> None:
+        """Choices alone and an object of other keys are no stored case."""
+        body = {"draw": DIGIT}
+        for stored in ([3], {"choices": [3]}):
+            settings = {"seed": "7", "stored": [stored]}
+            with pytest.raises(
+                VectorError, match="states no choices and counterexample"
+            ):
+                compute("behaviour", {"body": body, "settings": settings})
+
+    def test_a_stored_draw_entry_may_leave_out_its_value(self) -> None:
+        """The run cannot follow the entry, and tests the choices."""
+        body = {"draw": DIGIT}
+        settings = {
+            "seed": "7",
+            "cases": 1,
+            "stored": [{"choices": [3], "counterexample": [{"label": "conn"}]}],
+        }
+        got = compute("behaviour", {"body": body, "settings": settings})
+        assert got["detail"]["outcome"] == "passed"
 
     def test_max_choices_rejects_a_larger_case(self) -> None:
         """A list of at least three digits needs seven choices."""
@@ -439,7 +486,12 @@ class ComputeTest(unittest.TestCase):
             "draw": {"gen": "integer", "min": 0, "max": 1000},
             "fails": [{"identity": "big", "when": {"kind": "at-least", "n": 900}}],
         }
-        settings = {"seed": "7", "examples": [[5]], "stored": [[3], [950]], "shrink": 0}
+        settings = {
+            "seed": "7",
+            "examples": [[5]],
+            "stored": [_stored(3), _stored(950)],
+            "shrink": 0,
+        }
         got = compute("recording", {"body": body, "settings": settings})
         assert got["calls"] == [
             {"run": 1, "phase": "example", "verdict": "pass"},
@@ -470,7 +522,7 @@ class ComputeTest(unittest.TestCase):
                 }
             ],
         }
-        settings = {"seed": "7", "stored": [[5]]}
+        settings = {"seed": "7", "stored": [_stored(5)]}
         got = compute("recording", {"body": body, "settings": settings})
         call = {"run": 1, "phase": "stored", "verdict": "pass"}
         assert got == {"verdict": "skip", "reason": "unsupported", "calls": [call]}

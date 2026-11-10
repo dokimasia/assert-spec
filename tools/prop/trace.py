@@ -25,20 +25,40 @@ entry: a draw entry with another label, a value that the generator cannot
 produce, or a step entry that the machine cannot take at its position.
 The error is not a failure of the case: it ends the run before any case
 runs.
+
+The counterexample of a stored case is a trace too. A draw entry of it
+records UNSTATED where no typed literal states the value, and the body
+refuses such an entry. states() reports whether a case decodes to the
+entries of such a counterexample.
 """
 
 from __future__ import annotations
 
 from collections import deque
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, NoReturn, final
+from typing import TYPE_CHECKING, Final, NoReturn, final, override
 
+from . import literal
 from .case import Case, Generator, Request, Step
 from .choice import Choice, Value
 from .inverse import CannotInvert, invert
 
 if TYPE_CHECKING:
     from collections.abc import Sequence
+
+
+@final
+class _Unstated:
+    """The value of a recorded draw entry that no typed literal states."""
+
+    @override
+    def __repr__(self) -> str:
+        """Name the value."""
+        return "UNSTATED"
+
+
+#: The value of a recorded draw entry that no typed literal states.
+UNSTATED: Final = _Unstated()
 
 
 @dataclass(frozen=True)
@@ -88,6 +108,34 @@ def entries(case: Case) -> list[Entry]:
     return trace
 
 
+def states(recorded: Sequence[Entry], case: Case) -> bool:
+    """Report whether case decodes to the entries of recorded, in order.
+
+    Each draw entry has the label of its recorded entry, and the value where
+    the recorded entry states one, as two typed literals compare. Each step
+    entry has the action, the client and the drain mark of its recorded
+    entry. A recorded counterexample without a step entry records the draws
+    alone, so the steps of case do not count against it.
+    """
+    replayed = entries(case)
+    if not any(isinstance(entry, Step) for entry in recorded):
+        replayed = [entry for entry in replayed if isinstance(entry, Draw)]
+    return len(replayed) == len(recorded) and all(
+        _same(r, p) for r, p in zip(recorded, replayed, strict=True)
+    )
+
+
+def _same(recorded: Entry, replayed: Entry) -> bool:
+    """Report whether replayed is the entry that recorded records."""
+    if isinstance(recorded, Step) or isinstance(replayed, Step):
+        return recorded == replayed
+    if recorded.label != replayed.label:
+        return False
+    return recorded.value is UNSTATED or literal.encode(
+        recorded.value
+    ) == literal.encode(replayed.value)
+
+
 @final
 class Tracing:
     """A provider that serves the values of a trace's entries."""
@@ -109,14 +157,16 @@ class Tracing:
         """Prepare the choices of the next entry for a draw under label.
 
         Raises:
-            TraceError: the next entry is not a draw entry with label, or
-                generator cannot produce its value.
+            TraceError: the next entry is not a draw entry with label, it
+                states no value, or generator cannot produce its value.
         """
         if self._at == len(self._entries):
             return
         entry = self._entries[self._at]
         if not isinstance(entry, Draw) or entry.label != label:
             raise TraceError(self._at, label, "label")
+        if entry.value is UNSTATED:
+            raise TraceError(self._at, label, "value")
         try:
             self._queue.extend(invert(generator, entry.value))
         except CannotInvert as bad:
@@ -143,6 +193,10 @@ class Tracing:
         """Take the next entry, a step entry, and serve the values of its choices."""
         self.prepare(*values)
         self._at += 1
+
+    def finished(self) -> bool:
+        """Report whether the draws and the steps took every entry."""
+        return self._at == len(self._entries)
 
     def refuse(self) -> NoReturn:
         """Fail on the next entry, a step entry the machine cannot take.

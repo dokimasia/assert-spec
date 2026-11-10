@@ -24,10 +24,9 @@ from dataclasses import replace
 from typing import Any, Final
 
 from prop import literal
-from prop.case import Step
 from prop.runner import run
-from prop.trace import Draw, Entry, TraceError
-from prop.vectors import Vector, VectorError, detail, run_settings
+from prop.trace import Entry, TraceError
+from prop.vectors import Vector, VectorError, detail, parse_entries, run_settings
 
 from . import subjects
 from .scheduler import Pct, Strategy, Uniform
@@ -114,31 +113,12 @@ def _strategy(written: object) -> Strategy:
 
 
 def _trace(written: object) -> tuple[Entry, ...]:
-    """Return the trace a vector states, as entries.
+    """Return the trace a vector states, as entries with a value for each draw.
 
     Raises:
         VectorError: the trace is no list of draw and step entries.
     """
-    if not isinstance(written, list):
-        msg = f"stateful: a trace is {written!r}, not a list"
-        raise VectorError(msg)
-    trace: list[Entry] = []
-    for entry in written:
-        if isinstance(entry, Mapping) and set(entry) == {"label", "value"}:
-            trace.append(Draw(str(entry["label"]), literal.decode(entry["value"])))
-        elif isinstance(entry, Mapping) and "step" in entry:
-            client = entry.get("client")
-            trace.append(
-                Step(
-                    str(entry["step"]),
-                    None if client is None else literal.integer(client),
-                    entry.get("drain") is True,
-                )
-            )
-        else:
-            msg = f"stateful: {entry!r} is no trace entry"
-            raise VectorError(msg)
-    return tuple(trace)
+    return parse_entries(written, values=True)
 
 
 #: The function that computes each kind's outputs.

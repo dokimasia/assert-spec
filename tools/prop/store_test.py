@@ -15,10 +15,12 @@ from . import replay
 from .choice import Choice
 from .source import mix
 from .store import (
+    CLIENT_MAX,
     FIELDS,
     FORMAT,
     LINE_MAX,
     MAX_DEPTH,
+    STEPS_FORMAT,
     TOKEN_VERSION,
     Failure,
     Verdict,
@@ -57,9 +59,27 @@ PINNED_NAME: Final = "ccc741d57d7f920d.json"
 DEEPEST_VALUE: Final = MAX_DEPTH - 3
 
 
+#: The steps and the draws of a queue that loses a value on wrap: a put of
+#: 0, a put of 1 on client 1, and a drain step of deliver.
+STEPPED: Final = (
+    {"label": "capacity", "value": {"type": "int", "value": 2}},
+    {"step": "put"},
+    {"label": "v", "value": {"type": "int", "value": 0}},
+    {"step": "put", "client": 1},
+    {"label": "v", "value": {"type": "int", "value": 1}},
+    {"step": "deliver", "drain": True},
+)
+
+
 def _written() -> dict[str, Any]:
     """Return FAILURE's entry as definition 1.2.0 writes it on 1 October 2026."""
     return entry(FAILURE, "1.2.0", dt.date(2026, 10, 1))
+
+
+def _stepped() -> dict[str, Any]:
+    """Return the entry of FAILURE with the steps of STEPPED, as 16.3.0 writes it."""
+    failure = Failure(CONTRACT, CHOICES, FAILURE.identity, STEPPED)
+    return entry(failure, "16.3.0", dt.date(2026, 11, 10))
 
 
 def _verdict(document: object) -> Verdict:
@@ -136,9 +156,21 @@ class EntryTest(unittest.TestCase):
         assert written["counterexample"] == [{"label": "v"}]
 
     def test_the_format_and_the_token_version_are_pinned(self) -> None:
-        """Format 1, and the tokens of prop1."""
-        assert FORMAT == 1
+        """Formats 1 and 2, and the tokens of prop1."""
+        assert (FORMAT, STEPS_FORMAT) == (1, 2)
         assert f"prop{TOKEN_VERSION}:" == replay.PREFIX
+
+    def test_an_entry_of_steps_is_of_the_steps_format(self) -> None:
+        """The counterexample keeps its steps among its draws, in order."""
+        written = _stepped()
+        assert written["store"] == STEPS_FORMAT
+        assert written["counterexample"] == list(STEPPED)
+
+    def test_an_entry_of_steps_reads_back_as_a_replay_of_its_choices(self) -> None:
+        """What a runner writes for a machine, the next run replays."""
+        got = read(json.dumps(_stepped()), CONTRACT)
+        assert got.verdict == Verdict.REPLAY
+        assert got.choices == CHOICES
 
 
 @final
@@ -157,8 +189,42 @@ class ReadTest(unittest.TestCase):
 
     def test_an_entry_of_a_later_format_is_skipped(self) -> None:
         """Whatever its other fields state, at any later format."""
-        for version in (2, 10**30):
+        for version in (3, 10**30):
             assert _verdict({"store": version}) == Verdict.SKIP, version
+
+    def test_an_entry_of_the_steps_format_of_draws_alone_replays(self) -> None:
+        """A writer writes format 1 for it, and a reader accepts format 2."""
+        written = {**_written(), "store": STEPS_FORMAT}
+        assert _verdict(written) == Verdict.REPLAY
+
+    def test_a_step_entry_of_format_1_is_damaged(self) -> None:
+        """Format 1 records draws alone."""
+        written = {**_stepped(), "store": FORMAT}
+        assert _verdict(written) == Verdict.DAMAGED
+
+    def test_a_step_entry_out_of_its_form_is_damaged(self) -> None:
+        """Each key of a step entry, each out of its form once."""
+        steps: list[dict[str, object]] = [
+            {"step": 5},
+            {"step": "put", "client": -1},
+            {"step": "put", "client": CLIENT_MAX + 1},
+            {"step": "put", "client": True},
+            {"step": "put", "client": 1.0},
+            {"step": "put", "drain": False},
+            {"step": "put", "client": 1, "drain": True},
+            {"step": "put", "label": "v"},
+        ]
+        for step in steps:
+            written = {**_stepped(), "counterexample": [step]}
+            assert _verdict(written) == Verdict.DAMAGED, step
+
+    def test_a_step_entry_at_the_largest_client_replays(self) -> None:
+        """A client of 2^31 - 1."""
+        written = {
+            **_stepped(),
+            "counterexample": [{"step": "put", "client": CLIENT_MAX}],
+        }
+        assert _verdict(written) == Verdict.REPLAY
 
     def test_an_entry_whose_token_is_of_a_later_version_is_skipped(self) -> None:
         """prop2 is a later token version."""

@@ -169,13 +169,16 @@ ISOLATION_ENDS = {
 
 #: What the machines vectors cover between them: a counterexample and a
 #: pass, a trace that fails, a trace whose step entries state their
-#: clients, and a step entry that a run refuses.
+#: clients, a step entry that a run refuses, and a run of a stored case with
+#: a counterexample that fails and one that passes.
 MACHINE_ENDS = (
     "counterexample",
     "passed",
     "trace:counterexample",
     "trace:client",
     "refused:step",
+    "stored:counterexample",
+    "stored:passed",
 )
 
 #: How a language may run the concurrent section of a machine: as tasks of
@@ -1299,18 +1302,24 @@ def _machine_covers(case: dict[str, Any]) -> list[str]:
 
     A vector covers the outcome of its run, or the reason of the error that
     ends the run. A vector with a trace also covers that end as the end of a
-    trace, and covers the clients when a step entry states one.
+    trace, and covers the clients when a step entry states one. A vector with
+    a stored case that states its counterexample covers the end as the end
+    of a stored case.
     """
     error, detail = case.get("error"), case.get("detail")
     if isinstance(error, dict):
         end = f"refused:{error.get('reason')}"
     else:
         end = str(detail.get("outcome")) if isinstance(detail, dict) else "none"
+    settings = case.get("settings")
+    stored = settings.get("stored", []) if isinstance(settings, dict) else []
+    recorded = any(isinstance(s, dict) and "counterexample" in s for s in stored)
+    covered = [end, *([f"stored:{end}"] if recorded else [])]
     trace = case.get("trace")
     if not isinstance(trace, list):
-        return [end]
+        return covered
     clients = any(isinstance(entry, dict) and "client" in entry for entry in trace)
-    return [end, f"trace:{end}", *(["trace:client"] if clients else [])]
+    return [*covered, f"trace:{end}", *(["trace:client"] if clients else [])]
 
 
 def check_files(

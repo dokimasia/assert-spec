@@ -16,6 +16,10 @@
 #   action, with `client` in a concurrent section and `drain: true` in the
 #   drain.
 #
+# A stored case in the settings states its choices and the counterexample
+# that its entry records. A run replays the counterexample as a trace when
+# the choices decode to another counterexample.
+#
 # `detail` is the detail of the run. A machine's counterexample lists its
 # steps among its draws, in request order. `error` states the entry, the
 # name and the reason of a trace that the run cannot follow, and the
@@ -156,3 +160,53 @@ cases:
     trace:
       - {step: increment, client: 1}
       - {step: increment, client: 2}
+
+  # Stored cases. The choices are those of the minimal steps of a machine
+  # whose actions are get and put. Under the actions put and get the choices
+  # decode to a capacity of 2 and one get. That case passes, and a run of one
+  # case finds no failure. The first case replays the counterexample by its
+  # step entries and fails. The last step of the second case is pop. The
+  # machine lacks that action, so the run tests the choices. The third case
+  # records the draws alone, as format 1 does. Its trace takes no step and
+  # leaves the draws of v untaken, so the run tests the choices.
+  - id: queue-loses-on-wrap/a-stored-case-of-other-actions-replays-its-steps
+    subject: queue-loses-on-wrap
+    settings:
+      seed: "1"
+      cases: 1
+      stored:
+        - choices: [2, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0]
+          counterexample:
+            - {label: capacity, value: {type: int, value: 2}}
+            - {step: put}
+            - {label: v, value: {type: int, value: 0}}
+            - {step: put}
+            - {label: v, value: {type: int, value: 1}}
+            - {step: get}
+
+  - id: queue-loses-on-wrap/a-stored-case-of-an-action-the-machine-lacks-runs-its-choices
+    subject: queue-loses-on-wrap
+    settings:
+      seed: "1"
+      cases: 1
+      stored:
+        - choices: [2, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0]
+          counterexample:
+            - {label: capacity, value: {type: int, value: 2}}
+            - {step: put}
+            - {label: v, value: {type: int, value: 0}}
+            - {step: put}
+            - {label: v, value: {type: int, value: 1}}
+            - {step: pop}
+
+  - id: queue-loses-on-wrap/a-stored-case-of-draws-alone-runs-its-choices
+    subject: queue-loses-on-wrap
+    settings:
+      seed: "1"
+      cases: 1
+      stored:
+        - choices: [2, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0]
+          counterexample:
+            - {label: capacity, value: {type: int, value: 2}}
+            - {label: v, value: {type: int, value: 0}}
+            - {label: v, value: {type: int, value: 1}}

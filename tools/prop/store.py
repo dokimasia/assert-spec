@@ -14,9 +14,10 @@ zero byte and the replay token's bytes, as 16 lowercase hexadecimal digits
 followed by NAME_SUFFIX. The same failure, shrunk to the same choices, has
 the same name in every language.
 
-An entry of FORMAT is an object with exactly the fields of FIELDS:
+An entry of a format of FORMATS is an object with exactly the fields of
+FIELDS:
 
-- ``store``: FORMAT.
+- ``store``: the format, FORMAT or STEPS_FORMAT.
 - ``definition``: the definition version that wrote the entry, as
   MAJOR.MINOR.PATCH.
 - ``property``: the property's contract.
@@ -24,21 +25,26 @@ An entry of FORMAT is an object with exactly the fields of FIELDS:
   ``line`` is an integer in [1, LINE_MAX], ``file`` a non-empty base name,
   and every other key a non-empty string.
 - ``choices``: the replay token of the minimal case.
-- ``counterexample``: one object per draw, with the draw's ``label`` and,
-  when the value has a typed literal, its ``value``. A reader checks the
-  label and leaves the value unread, because only the choices replay.
+- ``counterexample``: one object per entry of the case's counterexample, in
+  request order. A draw entry has the draw's ``label`` and, when the value
+  has a typed literal, its ``value``. A reader checks the label and leaves
+  the value unread. An entry of STEPS_FORMAT also has step entries, with
+  the keys of one of STEPS: the action's name as ``step``, a ``client``
+  in [0, CLIENT_MAX] in a concurrent section, and ``drain`` as true in the
+  drain.
 - ``found``: the UTC date on which the runner wrote the entry, as
   YYYY-MM-DD.
 
-A file nests objects and arrays at most MAX_DEPTH levels deep, the root
-object being the first level. A writer records a value whose literal would
-nest deeper by its label alone.
+A writer writes STEPS_FORMAT for a counterexample with a step entry, and
+FORMAT for every other counterexample. A file nests objects and arrays at
+most MAX_DEPTH levels deep, the root object being the first level. A writer
+records a value whose literal would nest deeper by its label alone.
 
 A runner gives each file one verdict:
 
-- REPLAY: an entry of FORMAT for the property, whose token is of the
-  version replay encodes. The runner tries its choices first.
-- OTHER: an entry of FORMAT for another property of the test.
+- REPLAY: an entry of a format of FORMATS for the property, whose token is
+  of the version replay encodes. The runner tries its choices first.
+- OTHER: an entry of a format of FORMATS for another property of the test.
 - SKIP: an entry of a later format, or whose token is of a later version.
   The runner notes it and goes on.
 - DAMAGED: any other file, including JSON that repeats a name within an
@@ -63,8 +69,15 @@ if TYPE_CHECKING:
 
     from .choice import Choice
 
-#: The format of the entries this module writes and replays.
+#: The format of an entry whose counterexample states draws alone.
 FORMAT: Final = 1
+
+#: The format of an entry whose counterexample states the steps of a
+#: machine among its draws.
+STEPS_FORMAT: Final = 2
+
+#: The formats this module writes and replays.
+FORMATS: Final = (FORMAT, STEPS_FORMAT)
 
 #: The version of the tokens replay encodes, the number in its PREFIX.
 TOKEN_VERSION: Final = 1
@@ -74,6 +87,9 @@ NAME_SUFFIX: Final = ".json"
 
 #: The largest line of an identity, the largest signed 32-bit integer.
 LINE_MAX: Final = 2**31 - 1
+
+#: The largest client of a step entry, the largest signed 32-bit integer.
+CLIENT_MAX: Final = 2**31 - 1
 
 #: The most levels of objects and arrays a file nests, the root included.
 #: JSON readers stop at different depths, and Rust's serde_json refuses a
@@ -109,6 +125,14 @@ IDENTITIES: Final = (
 
 #: The keys of a draw of the counterexample, without and with a value.
 DRAWS: Final = (frozenset({"label"}), frozenset({"label", "value"}))
+
+#: The keys of a step of the counterexample: a sequential step, a step of a
+#: concurrent section, and a step of the drain.
+STEPS: Final = (
+    frozenset({"step"}),
+    frozenset({"step", "client"}),
+    frozenset({"step", "drain"}),
+)
 
 #: The start of a token, which states the token's version.
 _TOKEN: Final = re.compile(r"prop([1-9][0-9]*):")
@@ -148,8 +172,9 @@ class Read:
 class Failure:
     """A property's minimal failing case, as an entry records it.
 
-    identity has the keys of one of IDENTITIES, and each draw of
-    counterexample the keys of one of DRAWS.
+    identity has the keys of one of IDENTITIES. Each entry of
+    counterexample has the keys of one of DRAWS, or of one of STEPS for a
+    step of a machine.
     """
 
     contract: str
@@ -168,11 +193,13 @@ def name(contract: str, choices: Sequence[Choice]) -> str:
 def entry(failure: Failure, definition: str, found: dt.date) -> dict[str, object]:
     """Return the entry a runner of definition writes on the date found.
 
-    A draw whose value would nest the entry past MAX_DEPTH is recorded by
-    its label alone.
+    The entry is of STEPS_FORMAT for a counterexample with a step entry, and
+    of FORMAT otherwise. A draw whose value would nest the entry past
+    MAX_DEPTH is recorded by its label alone.
     """
+    steps = any(_is_step(item) for item in failure.counterexample)
     return {
-        "store": FORMAT,
+        "store": STEPS_FORMAT if steps else FORMAT,
         "definition": definition,
         "property": failure.contract,
         "identity": dict(failure.identity),
@@ -205,10 +232,18 @@ def depth(node: object) -> int:
 
 
 def _recorded(draw: Mapping[str, object]) -> dict[str, object]:
-    """Return a draw as an entry records it, without a value nested too deep."""
+    """Return an entry of the counterexample as an entry of the store records it.
+
+    A draw loses a value nested too deep, and a step stays as it is.
+    """
     if "value" in draw and depth(draw["value"]) > MAX_DEPTH - _ABOVE_VALUE:
         return {"label": draw["label"]}
     return dict(draw)
+
+
+def _is_step(item: Mapping[str, object]) -> bool:
+    """Report whether an entry of a counterexample is a step entry."""
+    return "step" in item
 
 
 def _parse(text: str) -> tuple[str, list[Choice]]:
@@ -217,7 +252,7 @@ def _parse(text: str) -> tuple[str, list[Choice]]:
     Raises:
         _Later: the entry is of a later format, or its token of a later
             version.
-        ValueError: text is no entry of FORMAT.
+        ValueError: text is no entry of a format of FORMATS.
         RecursionError: text nests deeper than the parser reads.
     """
     document = json.loads(text, object_pairs_hook=_unique, parse_constant=_no_constant)
@@ -228,9 +263,9 @@ def _parse(text: str) -> tuple[str, list[Choice]]:
     if not _is_int(version) or version < FORMAT:
         msg = f"prop: store is {version!r}, which names no format"
         raise ValueError(msg)
-    if version > FORMAT:
+    if version > STEPS_FORMAT:
         raise _Later
-    if frozenset(document) != FIELDS or not _well_formed(document):
+    if frozenset(document) != FIELDS or not _well_formed(document, version):
         msg = "prop: the entry's fields are not those of its format"
         raise ValueError(msg)
     token = document["choices"]
@@ -271,8 +306,8 @@ def _is_int(value: object) -> TypeGuard[int]:
     return isinstance(value, int) and not isinstance(value, bool)
 
 
-def _well_formed(document: Mapping[str, Any]) -> bool:
-    """Report whether every field of an entry of FORMAT has its form.
+def _well_formed(document: Mapping[str, Any], version: int) -> bool:
+    """Report whether every field of an entry of format version has its form.
 
     The token's own form is checked by read().
     """
@@ -282,7 +317,7 @@ def _well_formed(document: Mapping[str, Any]) -> bool:
         and isinstance(document["property"], str)
         and _identity(document["identity"])
         and isinstance(document["choices"], str)
-        and _counterexample(document["counterexample"])
+        and _counterexample(document["counterexample"], steps=version == STEPS_FORMAT)
         and _date(document["found"])
     )
 
@@ -307,15 +342,36 @@ def _identity_value(key: str, value: object) -> bool:
     return key != "file" or not any(s in value for s in _SEPARATORS)
 
 
-def _counterexample(draws: object) -> bool:
-    """Report whether draws is a list of draws with a label each."""
-    if not isinstance(draws, list):
+def _counterexample(items: object, *, steps: bool) -> bool:
+    """Report whether items is a list of draws with a label each.
+
+    With steps, an item may also be a step entry of its form.
+    """
+    if not isinstance(items, list):
         return False
     return all(
-        isinstance(draw, dict)
-        and frozenset(draw) in DRAWS
-        and isinstance(draw["label"], str)
-        for draw in draws
+        isinstance(item, dict) and (_draw(item) or (steps and _step(item)))
+        for item in items
+    )
+
+
+def _draw(item: Mapping[str, object]) -> bool:
+    """Report whether item is a draw entry with a label."""
+    return frozenset(item) in DRAWS and isinstance(item["label"], str)
+
+
+def _step(item: Mapping[str, object]) -> bool:
+    """Report whether item is a step entry of its form.
+
+    step is a string, client an integer in [0, CLIENT_MAX], and drain true.
+    """
+    if frozenset(item) not in STEPS or not isinstance(item["step"], str):
+        return False
+    client = item.get("client", 0)
+    return (
+        _is_int(client)
+        and 0 <= client <= CLIENT_MAX
+        and item.get("drain", True) is True
     )
 
 

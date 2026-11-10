@@ -46,6 +46,21 @@ cases:
       - {label: ttl, value: {type: int, value: 7}}
     definition: "1.2.0"
     found: "2026-10-01"
+  # A counterexample with a step entry is written as format 2, with its steps
+  # among its draws in request order.
+  - id: store/writes-format-2-for-a-counterexample-with-steps
+    contract: the queue behaves like a slice
+    choices: [2, 1, 1, 1, 1, 0, 1, 1, 1, 1, 0]
+    identity: {assertion: linearizable, file: queue_test.go, line: 31}
+    counterexample:
+      - {label: capacity, value: {type: int, value: 2}}
+      - {step: put}
+      - {label: v, value: {type: int, value: 0}}
+      - {step: put, client: 1}
+      - {label: v, value: {type: int, value: 1}}
+      - {step: get, drain: true}
+    definition: "16.3.0"
+    found: "2026-11-10"
 
   - id: store/replays-an-entry-of-the-property
     contract: decoding undoes encoding
@@ -65,9 +80,17 @@ cases:
       {"store": 1, "definition": "1.2.0", "property": "encoding is deterministic",
        "identity": {"assertion": "equal", "file": "codec_test.go", "line": 31},
        "choices": "prop1:AAc", "counterexample": [], "found": "2026-10-01"}
+  - id: store/replays-an-entry-of-format-2
+    contract: decoding undoes encoding
+    text: |
+      {"store": 2, "definition": "16.3.0", "property": "decoding undoes encoding",
+       "identity": {"assertion": "equal", "file": "codec_test.go", "line": 18},
+       "choices": "prop1:AAc", "found": "2026-11-10", "counterexample": [
+       {"step": "put"}, {"label": "v"}, {"step": "get", "client": 1},
+       {"step": "deliver", "drain": true}]}
   - id: store/skips-an-entry-of-a-later-format
     contract: decoding undoes encoding
-    text: '{"store": 2, "layout": "unknown to format 1"}'
+    text: '{"store": 3, "layout": "unknown to format 2"}'
   - id: store/skips-an-entry-of-a-format-beyond-64-bits
     contract: decoding undoes encoding
     text: '{"store": 100000000000000000000}'
@@ -106,6 +129,33 @@ cases:
       {"store": 1, "definition": "1.2.0", "property": "decoding undoes encoding",
        "identity": {"assertion": "equal", "file": "codec_test.go", "line": 18},
        "choices": "prop1:AAc=", "counterexample": [], "found": "2026-10-01"}
+  - id: store/rejects-a-step-entry-in-format-1
+    contract: decoding undoes encoding
+    text: |
+      {"store": 1, "definition": "16.3.0", "property": "decoding undoes encoding",
+       "identity": {"assertion": "equal", "file": "codec_test.go", "line": 18},
+       "choices": "prop1:AAc", "counterexample": [{"step": "put"}], "found": "2026-11-10"}
+  - id: store/rejects-a-step-entry-of-a-client-and-the-drain
+    contract: decoding undoes encoding
+    text: |
+      {"store": 2, "definition": "16.3.0", "property": "decoding undoes encoding",
+       "identity": {"assertion": "equal", "file": "codec_test.go", "line": 18},
+       "choices": "prop1:AAc", "counterexample": [{"step": "put", "client": 1, "drain": true}],
+       "found": "2026-11-10"}
+  - id: store/rejects-a-drain-mark-that-is-not-true
+    contract: decoding undoes encoding
+    text: |
+      {"store": 2, "definition": "16.3.0", "property": "decoding undoes encoding",
+       "identity": {"assertion": "equal", "file": "codec_test.go", "line": 18},
+       "choices": "prop1:AAc", "counterexample": [{"step": "put", "drain": false}],
+       "found": "2026-11-10"}
+  - id: store/rejects-a-client-below-0
+    contract: decoding undoes encoding
+    text: |
+      {"store": 2, "definition": "16.3.0", "property": "decoding undoes encoding",
+       "identity": {"assertion": "equal", "file": "codec_test.go", "line": 18},
+       "choices": "prop1:AAc", "counterexample": [{"step": "put", "client": -1}],
+       "found": "2026-11-10"}
   - id: store/rejects-an-identity-of-no-stated-shape
     contract: decoding undoes encoding
     text: |

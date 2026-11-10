@@ -16,6 +16,11 @@ A trace entry is written as a draw entry, ``{"label": …, "value": …}``, or
 as a step entry, ``{"step": …}`` with ``"client"`` in a concurrent
 section and ``"drain": true`` in the drain. A machine's counterexample
 lists its steps among its draws in that form.
+
+A stored case is written as an object of its ``choices`` and the
+``counterexample`` that its entry records. A draw entry of that
+counterexample may leave out its value, as an entry records a value that
+no typed literal states.
 """
 
 from __future__ import annotations
@@ -40,12 +45,12 @@ from .choice import (
 from .forms import FormError, run_form
 from .generator import build
 from .inverse import CannotInvert, invert
-from .runner import Kind, Outcome, Requirement, Settings, run
+from .runner import Kind, Outcome, Requirement, Settings, Stored, run
 from .shape import ShapeError
 from .shape import read as read_shape
 from .shrink import DEFAULT_BUDGET, Explained
 from .source import case_source
-from .trace import entries
+from .trace import UNSTATED, Draw, Entry, entries
 from .value import as_type
 
 if TYPE_CHECKING:
@@ -437,12 +442,66 @@ def run_settings(written: Mapping[str, Any]) -> Settings:
             for r in written.get("requirements", [])
         ),
         examples=tuple(tuple(_parse_choices(e)) for e in written.get("examples", [])),
-        stored=tuple(tuple(_parse_choices(s)) for s in written.get("stored", [])),
+        stored=tuple(_stored(s) for s in written.get("stored", [])),
         shrink=int(written.get("shrink", DEFAULT_BUDGET)),
         replay=None if replayed is None else tuple(replay.decode(str(replayed))),
         confirm=int(written.get("confirm", 0)),
         replays=int(written.get("replays", 1)),
     )
+
+
+def _stored(written: object) -> Stored:
+    """Return a stored case a vector states: its choices, and its counterexample.
+
+    The counterexample is the one that the case's entry records, as every
+    entry of a store records one.
+
+    Raises:
+        VectorError: the case is no object of choices and a counterexample.
+    """
+    if not isinstance(written, Mapping) or set(written) != {
+        "choices",
+        "counterexample",
+    }:
+        msg = f"prop: a stored case {written!r} states no choices and counterexample"
+        raise VectorError(msg)
+    recorded = parse_entries(written["counterexample"], values=False)
+    return Stored(tuple(_parse_choices(written["choices"])), recorded)
+
+
+def parse_entries(written: object, *, values: bool) -> tuple[Entry, ...]:
+    """Return the trace entries a vector states, in order.
+
+    A draw entry states a label and a value, and a step entry its action,
+    with its client or its drain mark. Without values, a draw entry may leave
+    out its value, as a stored counterexample records a value that no typed
+    literal states, and its value is UNSTATED.
+
+    Raises:
+        VectorError: written is no list of draw and step entries.
+    """
+    if not isinstance(written, list):
+        msg = f"prop: a trace is {written!r}, not a list"
+        raise VectorError(msg)
+    parsed: list[Entry] = []
+    for entry in written:
+        if isinstance(entry, Mapping) and set(entry) == {"label", "value"}:
+            parsed.append(Draw(str(entry["label"]), literal.decode(entry["value"])))
+        elif isinstance(entry, Mapping) and set(entry) == {"label"} and not values:
+            parsed.append(Draw(str(entry["label"]), UNSTATED))
+        elif isinstance(entry, Mapping) and "step" in entry:
+            client = entry.get("client")
+            parsed.append(
+                Step(
+                    str(entry["step"]),
+                    None if client is None else literal.integer(client),
+                    entry.get("drain") is True,
+                )
+            )
+        else:
+            msg = f"prop: {entry!r} is no trace entry"
+            raise VectorError(msg)
+    return tuple(parsed)
 
 
 def detail(outcome: Outcome) -> Vector:

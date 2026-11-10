@@ -8,11 +8,18 @@ first failing case:
 
 1. Traces, examples and stored: each trace of a case whose draws and
    steps the caller states, then each example of a case whose values the
-   caller states, in order, then each stored choice sequence, oldest
-   first. An example is a choice sequence, or the values of its draws
-   when its generator has no inverse. These cases do not enter the case
-   tree. A trace that the body cannot follow raises TraceError, which
-   ends the run before any other case runs.
+   caller states, in order, then each stored case, oldest first. An
+   example is a choice sequence, or the values of its draws when its
+   generator has no inverse. These cases do not enter the case tree. A
+   trace that the body cannot follow raises TraceError, which ends the
+   run before any other case runs.
+
+   A stored case runs its choices. A case of the choices that does not
+   fail and does not state the counterexample that its entry records
+   gives way to that counterexample, run as a trace. The case of the trace
+   counts when it fails or takes every entry. The case of the choices
+   counts when the body refuses an entry of the trace or leaves one
+   untaken, and the refusal does not end the run.
 2. Simplest: one case whose every choice is its target.
 3. Random: case i of the seed, for i = 0, 1, 2, ..., until ``cases``
    valid cases have run, the domain is exhausted, or GENERATION_FACTOR
@@ -94,7 +101,7 @@ from .execution import (
 )
 from .replay import encode
 from .source import case_source
-from .trace import Entry, Tracing
+from .trace import Entry, TraceError, Tracing, states
 from .tree import Tree
 
 if TYPE_CHECKING:
@@ -155,13 +162,26 @@ class Values:
 
 
 @dataclass(frozen=True)
+class Stored:
+    """A stored case: the choices of its entry, and the counterexample that it records.
+
+    counterexample is None for an entry whose counterexample the caller does
+    not state, and the case of its choices then always counts.
+    """
+
+    choices: tuple[Choice, ...]
+    counterexample: tuple[Entry, ...] | None = None
+
+
+@dataclass(frozen=True)
 class Settings:
     """What a run is asked to do.
 
     traces are the cases whose draws and machine steps the caller states,
     which run first, and examples the cases whose values the caller
     states, which run next: each the choice sequence that decodes to its
-    values, or its Values. shrink is the budget of runs that shrinking and
+    values, or its Values. stored are the cases of the store, which run
+    after them, oldest first. shrink is the budget of runs that shrinking and
     explaining every failure may spend, and 0 turns both off. replay, when
     set, is the one case the run tries: a failure is reported as found,
     and a pass passes. The run replays each valid case whose count is a
@@ -175,7 +195,7 @@ class Settings:
     requirements: tuple[Requirement, ...] = ()
     traces: tuple[tuple[Entry, ...], ...] = ()
     examples: tuple[tuple[Choice, ...] | Values, ...] = ()
-    stored: tuple[tuple[Choice, ...], ...] = ()
+    stored: tuple[Stored, ...] = ()
     shrink: int = shrink.DEFAULT_BUDGET
     explain: bool = True
     replay: tuple[Choice, ...] | None = None
@@ -487,14 +507,17 @@ def _explore(body: Body, settings: Settings, observer: Observer) -> Outcome:
         TraceError: a trace states an entry that the body cannot follow.
     """
     tally = _Tally(settings.seed)
-    known: list[tuple[Phase, Provider]] = [
+    known: list[tuple[Phase, Provider | Stored]] = [
         (Phase.EXAMPLE, Tracing(trace)) for trace in settings.traces
     ]
     known += [(Phase.EXAMPLE, _example(example)) for example in settings.examples]
-    known += [(Phase.STORED, Replaying(stored)) for stored in settings.stored]
+    known += [(Phase.STORED, stored) for stored in settings.stored]
     for phase, provider in known:
-        execution = execute(body, provider, settings.max_choices)
-        observer(phase, execution)
+        if isinstance(provider, Stored):
+            execution = _stored(body, provider, settings.max_choices, observer)
+        else:
+            execution = execute(body, provider, settings.max_choices)
+            observer(phase, execution)
         valued = isinstance(provider, Valuing)
         if (outcome := tally.take(execution)) is not None:
             return replace(outcome, valued=valued and outcome.failing is not None)
@@ -514,6 +537,39 @@ def _example(example: tuple[Choice, ...] | Values) -> Provider:
     if isinstance(example, Values):
         return Valuing(example.values)
     return Replaying(example)
+
+
+def _stored(
+    body: Body, stored: Stored, max_choices: int, observer: Observer
+) -> Execution:
+    """Run a stored case, and return the case that counts for it.
+
+    The case of the choices counts when it fails, when the entry records no
+    counterexample, and when it states the counterexample. After any other
+    case of the choices, the run follows the counterexample as a trace. The
+    case of the trace counts when it fails or takes every entry, and the case
+    of the choices counts when the body refuses an entry or leaves one
+    untaken. The observer sees the case of the choices, and the case of the
+    trace when that case counts.
+    """
+    execution = execute(body, Replaying(stored.choices), max_choices)
+    observer(Phase.STORED, execution)
+    recorded = stored.counterexample
+    if (
+        recorded is None
+        or execution.status is Status.FAILED
+        or states(recorded, execution.case)
+    ):
+        return execution
+    tracing = Tracing(recorded)
+    try:
+        traced = execute(body, tracing, max_choices)
+    except TraceError:
+        return execution
+    if traced.status is not Status.FAILED and not tracing.finished():
+        return execution
+    observer(Phase.STORED, traced)
+    return traced
 
 
 def _checks(phases: _Phases) -> Outcome | None:
