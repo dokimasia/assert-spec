@@ -7,7 +7,7 @@ created: 2026-11-10
 updated: 2026-11-10
 discussion: https://github.com/dokimasia/assert-go/issues/98
 supersedes: RFC-0010, in part
-superseded-by: none
+superseded-by: RFC-0061, in part
 produces-adr: none
 ---
 

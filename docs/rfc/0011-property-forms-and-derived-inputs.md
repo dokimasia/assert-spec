@@ -7,7 +7,7 @@ created: 2026-10-01
 updated: 2026-10-02
 discussion: none
 supersedes: none
-superseded-by: RFC-0041, in part
+superseded-by: RFC-0041 and RFC-0061, in part
 produces-adr: none
 ---
 
