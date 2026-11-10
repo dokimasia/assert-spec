@@ -210,3 +210,58 @@ cases:
             - {label: capacity, value: {type: int, value: 2}}
             - {label: v, value: {type: int, value: 0}}
             - {label: v, value: {type: int, value: 1}}
+
+  # A composite. The input of put is a composite, and a case records the
+  # draws of a and b before the draw of the pair. The runs report the
+  # failing case as found. The stored choices are those of the minimal steps
+  # of a machine whose only action is put. Under noop and put they decode to
+  # one noop, which passes.
+  - id: pair-fails-at-7-and-3/a-trace-of-a-composite-replays-its-draws
+    subject: pair-fails-at-7-and-3
+    setup: {swarm: false}
+    settings: {seed: "1", shrink: 0}
+    trace:
+      - {step: put}
+      - {label: a, value: {type: int, value: 7}}
+      - {label: b, value: {type: int, value: 3}}
+      - {label: pair, value: {type: list, of: int, value: [7, 3]}}
+
+  - id: pair-fails-at-7-and-3/a-trace-of-another-label-at-the-end-of-a-composite-is-refused
+    subject: pair-fails-at-7-and-3
+    setup: {swarm: false}
+    settings: {seed: "1", shrink: 0}
+    trace:
+      - {step: put}
+      - {label: a, value: {type: int, value: 7}}
+      - {label: b, value: {type: int, value: 3}}
+      - {label: other, value: {type: list, of: int, value: [7, 3]}}
+
+  - id: pair-fails-at-7-and-3/a-stored-case-of-other-actions-replays-its-composite
+    subject: pair-fails-at-7-and-3
+    setup: {swarm: false}
+    settings:
+      seed: "1"
+      cases: 1
+      shrink: 0
+      stored:
+        - choices: [1, 0, 7, 3]
+          counterexample:
+            - {step: put}
+            - {label: a, value: {type: int, value: 7}}
+            - {label: b, value: {type: int, value: 3}}
+            - {label: pair, value: {type: list, of: int, value: [7, 3]}}
+
+  - id: pair-fails-at-7-and-3/a-stored-composite-without-a-value-replays-its-draws
+    subject: pair-fails-at-7-and-3
+    setup: {swarm: false}
+    settings:
+      seed: "1"
+      cases: 1
+      shrink: 0
+      stored:
+        - choices: [1, 0, 7, 3]
+          counterexample:
+            - {step: put}
+            - {label: a, value: {type: int, value: 7}}
+            - {label: b, value: {type: int, value: 3}}
+            - {label: pair}

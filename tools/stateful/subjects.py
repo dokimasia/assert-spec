@@ -63,6 +63,11 @@ an empty list of keys, and completes it as ok with its output.
 - spins-until-a-flag: a subject whose action spin spawns a task that
   yields until a flag is set, and runs the scheduler. No action sets the
   flag, and the machine has no model.
+- pair-fails-at-7-and-3: a machine without a model. Its actions are noop,
+  which does nothing, and put, whose input is a composite drawn under
+  "pair". The composite draws an integer under "a" and then one under
+  "b", each from [0, 9], and returns the list of the two. put fails with
+  the identity pair for the list [7, 3]. Neither action records a call.
 
 Each subject is built anew for every run, so a subject that counts over
 the cases of a run starts each run at 0. A subject that spawns tasks of
@@ -83,7 +88,7 @@ from history import equality
 from history.model import Model, Op
 from prop.case import Case
 from prop.choice import IntegerBounds
-from prop.generator import Integer
+from prop.generator import Composite, Integer
 from prop.value import as_type
 
 from .machine import Action, Machine, Options, steps
@@ -102,9 +107,15 @@ REGISTER_FLUSHES: Final = "register-flushes"
 TICKER_SKIPS_ITS_FIRST_TICK: Final = "ticker-skips-its-first-tick"
 TICKER: Final = "ticker"
 SPINS_UNTIL_A_FLAG: Final = "spins-until-a-flag"
+PAIR_FAILS_AT_7_AND_3: Final = "pair-fails-at-7-and-3"
 
 #: The identity of store-loses-on-crash's settle failure.
 LOST: Final = "lost-write"
+
+#: The identity of the failure of pair-fails-at-7-and-3, and the pair that
+#: its put fails for.
+PAIR_FAILURE: Final = "pair"
+FAILING_PAIR: Final = (7, 3)
 
 #: The count at which counter-overflows sets its count to 0.
 OVERFLOW: Final = 3
@@ -130,6 +141,8 @@ CAPACITIES: Final = Integer(IntegerBounds(1, 8))
 VALUES: Final = Integer(IntegerBounds(0, 1000))
 KEYS: Final = Integer(IntegerBounds(0, 3))
 MILLISECONDS: Final = Integer(IntegerBounds(0, 10))
+DIGITS: Final = Integer(IntegerBounds(0, 9))
+PAIRS: Final = Composite(lambda case: [case.draw(DIGITS, "a"), case.draw(DIGITS, "b")])
 
 
 @dataclass(frozen=True)
@@ -396,6 +409,26 @@ def _store_loses_on_crash(case: Case, setup: Setup) -> None:
     steps(case, setup.marked(machine), setup.sequential())
 
 
+def _pair_fails(case: Case, setup: Setup) -> None:
+    """Run the machine whose put fails for the composite pair 7 and 3."""
+
+    def noop(case: Case, client: int, value: object) -> None:
+        del case, client, value
+
+    def put(case: Case, client: int, value: object) -> None:
+        del client
+        if tuple(as_type(value, list)) == FAILING_PAIR:
+            case.fail(PAIR_FAILURE, f"put of the pair {list(FAILING_PAIR)}")
+
+    machine = Machine(
+        (
+            Action("noop", noop),
+            Action("put", put, input=lambda case, _: case.draw(PAIRS, "pair")),
+        )
+    )
+    steps(case, setup.marked(machine), setup.sequential())
+
+
 def _shared_counter(case: Case, setup: Setup, *, racy: bool) -> None:
     """Run the counter machine with clients, over an increment that may yield."""
     count = [0]
@@ -567,6 +600,7 @@ SUBJECTS: Final[dict[str, Callable[[], Subject]]] = {
     ),
     TICKER: lambda: lambda case, setup: _ticker(case, setup, skips_first=False),
     SPINS_UNTIL_A_FLAG: lambda: _spinner,
+    PAIR_FAILS_AT_7_AND_3: lambda: _pair_fails,
 }
 
 

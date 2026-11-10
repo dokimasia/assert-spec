@@ -14,7 +14,7 @@ import pytest
 from . import draw
 from .case import Case, Generating, Generator, Rejected, Replaying, Request, Span
 from .choice import Choice, IntegerBounds, Value
-from .generator import DEFAULT_MAX_LEAVES, IDS, SpecError, build
+from .generator import DEFAULT_MAX_LEAVES, IDS, Composite, SpecError, build
 from .source import Source
 from .value import Pairs, canonical
 
@@ -214,6 +214,22 @@ class JustTest(unittest.TestCase):
         assert value == "x"
         assert case.choices == []
         assert case.spans == [Span("just", 0, 0, 0, None)]
+
+
+@final
+class CompositeTest(unittest.TestCase):
+    """composite: the value that a function returns from its own draws."""
+
+    def test_the_draws_decode_inside_one_span_and_record_before_the_composite(
+        self,
+    ) -> None:
+        """The draws of a and b, then the draw of the pair."""
+        digit = build(DIGIT)
+        pair = Composite(lambda case: [case.draw(digit, "a"), case.draw(digit, "b")])
+        case = Case(Replaying([Choice("integer", 7), Choice("integer", 3)]))
+        assert case.draw(pair, "pair") == [7, 3]
+        assert [d.label for d in case.draws] == ["a", "b", "pair"]
+        assert case.spans[0] == Span("composite", 0, 2, 0, None)
 
 
 @final

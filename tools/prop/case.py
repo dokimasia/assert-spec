@@ -133,10 +133,14 @@ class Generator(Protocol):
 
 @runtime_checkable
 class Tracer(Protocol):
-    """A provider that serves a trace, which each draw consults before it decodes."""
+    """A provider that serves a trace, which a draw consults around its decode."""
 
     def drawing(self, generator: Generator, label: str) -> None:
         """Prepare the values of the draw of generator under label."""
+        ...
+
+    def drawn(self, generator: Generator, label: str) -> None:
+        """Take what the draw of generator under label takes once it decodes."""
         ...
 
 
@@ -465,9 +469,10 @@ class Case:
 
         The draw's span is the first span the generator opens. Two draws
         may share a label. A case with a tracer lets it prepare the draw's
-        values first. A case with a valuer takes the value that it states,
-        and the draw makes no choice and opens no span. Every request of the
-        draw is made under its label.
+        values first, and lets it take what the draw takes once it decodes.
+        A case with a valuer takes the value that it states, and the draw
+        makes no choice and opens no span. Every request of the draw is made
+        under its label.
         """
         if self.valuer is not None:
             stated, value = self.valuer.valued()
@@ -482,6 +487,8 @@ class Case:
             value = generator.decode(self)
         finally:
             self._drawing.pop()
+        if self.tracer is not None:
+            self.tracer.drawn(generator, label)
         self.draws.append(Drawn(label, value, span, generator))
         return value
 

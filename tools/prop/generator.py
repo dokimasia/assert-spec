@@ -371,6 +371,26 @@ class Map:
         return FUNCTIONS[self.subject](self.of.decode(case))
 
 
+@dataclass(frozen=True)
+class Composite:
+    """The value that a function returns from the draws that it makes on the case.
+
+    The draws decode inside a span labelled composite, and each records its
+    value before the composite records its own. It has no inverse, because
+    the engine cannot run the function backwards. The corpus states no
+    composite, because a spec does not state a function, and a machine
+    subject draws through one.
+    """
+
+    ID: ClassVar[str] = "composite"
+    build: Callable[[Case], object]
+
+    def decode(self, case: Case) -> object:
+        """Return the value that the function returns from its draws."""
+        with case.span(self.ID):
+            return self.build(case)
+
+
 @dataclass(eq=False)
 class Recursive:
     """A base value, or an extension whose positions are recursive values.

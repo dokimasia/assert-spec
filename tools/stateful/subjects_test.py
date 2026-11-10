@@ -22,6 +22,8 @@ from .subjects import (
     COUNTER_OVERFLOWS,
     COUNTER_REFUSES_EVERY_THIRD,
     LOST,
+    PAIR_FAILS_AT_7_AND_3,
+    PAIR_FAILURE,
     QUEUE_LOSES_ON_WRAP,
     RACY_COUNTER,
     REGISTER_FLUSHES,
@@ -65,6 +67,10 @@ MINIMAL: dict[str, tuple[str, list[Entry]]] = {
     REGISTER_FLUSHES_IN_TWO_PARTS: (
         CHECK,
         [Step("write"), Draw("v", 0), Step("read", client=1)],
+    ),
+    PAIR_FAILS_AT_7_AND_3: (
+        PAIR_FAILURE,
+        [Step("put"), Draw("a", 7), Draw("b", 3), Draw("pair", [7, 3])],
     ),
 }
 

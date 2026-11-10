@@ -15,6 +15,9 @@ the entries:
   label. Its value runs backwards through the draw's generator, and the
   draw decodes the choices that result. A draw past the last entry takes
   its targets.
+- A draw of a composite takes no entry when it starts, and its own draws
+  take theirs. Once it decodes, it takes the next entry by its label and
+  does not read the value, as a case records a composite after its draws.
 - A machine turns each step entry into the choices of one step, which
   Tracing serves as they are requested: the continue flag, the client and
   the index of the named action among the actions the step lists.
@@ -41,6 +44,7 @@ from typing import TYPE_CHECKING, Final, NoReturn, final, override
 from . import literal
 from .case import Case, Generator, Request, Step
 from .choice import Choice, Value
+from .generator import Composite
 from .inverse import CannotInvert, invert
 
 if TYPE_CHECKING:
@@ -156,22 +160,45 @@ class Tracing:
     def drawing(self, generator: Generator, label: str) -> None:
         """Prepare the choices of the next entry for a draw under label.
 
+        A composite takes no entry here. Its draws take theirs, and it takes
+        its own entry once it decodes.
+
         Raises:
             TraceError: the next entry is not a draw entry with label, it
                 states no value, or generator cannot produce its value.
         """
-        if self._at == len(self._entries):
+        if isinstance(generator, Composite) or self._at == len(self._entries):
             return
-        entry = self._entries[self._at]
-        if not isinstance(entry, Draw) or entry.label != label:
-            raise TraceError(self._at, label, "label")
+        entry = self._take(label)
         if entry.value is UNSTATED:
-            raise TraceError(self._at, label, "value")
+            raise TraceError(self._at - 1, label, "value")
         try:
             self._queue.extend(invert(generator, entry.value))
         except CannotInvert as bad:
-            raise TraceError(self._at, label, "value") from bad
+            raise TraceError(self._at - 1, label, "value") from bad
+
+    def drawn(self, generator: Generator, label: str) -> None:
+        """Take the next entry for a composite drawn under label, by its label alone.
+
+        Every other draw has taken its entry before it decoded.
+
+        Raises:
+            TraceError: the next entry is not a draw entry with label.
+        """
+        if isinstance(generator, Composite) and self._at < len(self._entries):
+            self._take(label)
+
+    def _take(self, label: str) -> Draw:
+        """Take the next entry, a draw entry with label.
+
+        Raises:
+            TraceError: the next entry is not a draw entry with label.
+        """
+        entry = self._entries[self._at]
+        if not isinstance(entry, Draw) or entry.label != label:
+            raise TraceError(self._at, label, "label")
         self._at += 1
+        return entry
 
     def next_step(self) -> Step | None:
         """Return the next entry when it is a step entry."""

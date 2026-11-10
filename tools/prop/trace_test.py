@@ -12,11 +12,14 @@ import pytest
 
 from .case import Case, Replaying, Step
 from .choice import Choice, IntegerBounds
-from .generator import Integer, Optional
+from .generator import Composite, Integer, Optional
 from .trace import UNSTATED, Draw, TraceError, Tracing, entries, states
 
 #: The generator most draws here use.
 DIGIT = Integer(IntegerBounds(0, 9))
+
+#: A composite of two digits drawn under a and b, whose value is their list.
+PAIR = Composite(lambda case: [case.draw(DIGIT, "a"), case.draw(DIGIT, "b")])
 
 
 @final
@@ -153,6 +156,44 @@ class TracingTest(unittest.TestCase):
             case.draw(DIGIT, "conn")
         error = caught.value
         assert (error.entry, error.name, error.reason) == (0, "conn", "value")
+
+    def test_a_composite_takes_its_entry_after_the_entries_of_its_draws(self) -> None:
+        """Its draws decode their values, and it takes its entry by its label."""
+        trace = Tracing([Draw("a", 7), Draw("b", 3), Draw("pair", UNSTATED)])
+        case = Case(trace)
+        assert case.draw(PAIR, "pair") == [7, 3]
+        assert trace.finished()
+        assert case.choices == [Choice("integer", 7), Choice("integer", 3)]
+
+    def test_a_composite_inside_a_composite_takes_its_entry_first(self) -> None:
+        """The inner pair takes its entry before the draw of c and the outer one."""
+        outer = Composite(lambda case: [case.draw(PAIR, "pair"), case.draw(DIGIT, "c")])
+        trace = Tracing(
+            [
+                Draw("a", 1),
+                Draw("b", 2),
+                Draw("pair", [1, 2]),
+                Draw("c", 5),
+                Draw("outer", UNSTATED),
+            ]
+        )
+        assert Case(trace).draw(outer, "outer") == [[1, 2], 5]
+        assert trace.finished()
+
+    def test_a_composite_past_the_last_entry_takes_no_entry(self) -> None:
+        """Its second draw takes its target."""
+        trace = Tracing([Draw("a", 7)])
+        assert Case(trace).draw(PAIR, "pair") == [7, 0]
+        assert trace.finished()
+
+    def test_a_composite_where_another_entry_is_next_raises(self) -> None:
+        """An entry of another label, and a step entry, at the end of the pair."""
+        for last in (Draw("other", [7, 3]), Step("put")):
+            case = Case(Tracing([Draw("a", 7), Draw("b", 3), last]))
+            with pytest.raises(TraceError) as caught:
+                case.draw(PAIR, "pair")
+            error = caught.value
+            assert (error.entry, error.name, error.reason) == (2, "pair", "label")
 
     def test_finished_reports_whether_every_entry_is_taken(self) -> None:
         """The draw takes the first entry, and the step the second."""

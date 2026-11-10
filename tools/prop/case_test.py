@@ -114,6 +114,11 @@ class _Announced:
         del generator
         self.heard.append((label, self.served))
 
+    def drawn(self, generator: Generator, label: str) -> None:
+        """Keep the label of the draw that decoded, with the number of values served."""
+        del generator
+        self.heard.append((f"{label} drawn", self.served))
+
 
 @final
 class _Steps:
@@ -440,12 +445,12 @@ class RecordTest(unittest.TestCase):
         assert case.steps == [(0, Step("put")), (1, Step("get", client=1))]
 
     def test_a_provider_that_hears_of_draws_is_the_tracer(self) -> None:
-        """Each draw tells the tracer its label before it decodes."""
+        """Each draw tells the tracer its label before and after it decodes."""
         provider = _Announced()
         case = Case(provider)
         assert case.tracer is provider
         assert [case.draw(_Digit(), label) for label in "ab"] == [4, 5]
-        assert provider.heard == [("a", 0), ("b", 1)]
+        assert provider.heard == [("a", 0), ("a drawn", 1), ("b", 1), ("b drawn", 2)]
 
     def test_a_provider_that_hears_of_no_draw_is_no_tracer(self) -> None:
         """A replaying case has no tracer."""

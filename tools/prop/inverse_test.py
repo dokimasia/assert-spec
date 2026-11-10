@@ -12,7 +12,7 @@ import pytest
 
 from .case import Case, Generating, Generator, Rejected, Replaying
 from .choice import Choice
-from .generator import build
+from .generator import Composite, build
 from .generator_test import DIGIT, EVERY
 from .inverse import CannotInvert, NoInverse, invert, no_draw
 from .shape import BUDGET, read
@@ -343,6 +343,8 @@ class NoInverseTest(unittest.TestCase):
             invert(Mapped(), 0)
         with pytest.raises(NoInverse, match="Map does not run backwards"):
             invert(build(EVERY["map"]), [1, 2])
+        with pytest.raises(NoInverse, match="Composite does not run backwards"):
+            invert(Composite(lambda case: case.draw(build(DIGIT), "a")), 3)
 
     def test_a_generator_around_one_without_an_inverse_has_none(self) -> None:
         """A list, an optional and a filter pass on the refusal inside them."""
