@@ -20,7 +20,7 @@ they record why not.
 | [0007](0007-conformance-beyond-the-corpus.md) | Conformance beyond the corpus | Accepted |
 | [0008](0008-what-a-benchmark-measures.md) | What a benchmark measures | Accepted |
 | [0009](0009-an-allocation-ceiling-in-a-test.md) | An allocation ceiling in a test | Accepted |
-| [0010](0010-properties-over-generated-inputs.md) | Properties over generated inputs | Accepted, superseded in part by [RFC-0038](0038-a-case-that-skips-the-run-of-its-property.md) and [RFC-0042](0042-a-case-that-ends-with-a-fault.md) |
+| [0010](0010-properties-over-generated-inputs.md) | Properties over generated inputs | Accepted, superseded in part by [RFC-0038](0038-a-case-that-skips-the-run-of-its-property.md), [RFC-0042](0042-a-case-that-ends-with-a-fault.md) and [RFC-0060](0060-the-steps-of-a-stored-case.md) |
 | [0011](0011-property-forms-and-derived-inputs.md) | Property forms and inputs derived from types | Accepted, superseded in part by [RFC-0041](0041-complex-numbers-fractions-and-uintptr.md) |
 | [0012](0012-machines-simulation-and-campaigns.md) | Machines, simulation and campaigns | Accepted |
 | [0013](0013-typescript-names-free-on-vitest-expect.md) | TypeScript names that vitest's expect does not define | Accepted |
@@ -70,3 +70,4 @@ they record why not.
 | [0057](0057-the-replays-of-a-failing-case.md) | The replays of a failing case | Accepted |
 | [0058](0058-a-helper-that-skips-its-test.md) | A helper that skips its test | Accepted |
 | [0059](0059-an-action-that-every-case-keeps.md) | An action that every case keeps | Accepted |
+| [0060](0060-the-steps-of-a-stored-case.md) | The steps of a stored case | Accepted |
