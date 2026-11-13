@@ -21,8 +21,8 @@ they record why not.
 | [0008](0008-what-a-benchmark-measures.md) | What a benchmark measures | Accepted |
 | [0009](0009-an-allocation-ceiling-in-a-test.md) | An allocation ceiling in a test | Accepted |
 | [0010](0010-properties-over-generated-inputs.md) | Properties over generated inputs | Accepted, superseded in part by [RFC-0038](0038-a-case-that-skips-the-run-of-its-property.md), [RFC-0042](0042-a-case-that-ends-with-a-fault.md) and [RFC-0060](0060-the-steps-of-a-stored-case.md) |
-| [0011](0011-property-forms-and-derived-inputs.md) | Property forms and inputs derived from types | Accepted, superseded in part by [RFC-0041](0041-complex-numbers-fractions-and-uintptr.md) and [RFC-0061](0061-a-composite-in-a-trace.md) |
-| [0012](0012-machines-simulation-and-campaigns.md) | Machines, simulation and campaigns | Accepted, superseded in part by [RFC-0061](0061-a-composite-in-a-trace.md) |
+| [0011](0011-property-forms-and-derived-inputs.md) | Property forms and inputs derived from types | Accepted, superseded in part by [RFC-0041](0041-complex-numbers-fractions-and-uintptr.md), [RFC-0061](0061-a-composite-in-a-trace.md) and [RFC-0062](0062-a-draw-through-a-composite-in-a-trace.md) |
+| [0012](0012-machines-simulation-and-campaigns.md) | Machines, simulation and campaigns | Accepted, superseded in part by [RFC-0061](0061-a-composite-in-a-trace.md) and [RFC-0062](0062-a-draw-through-a-composite-in-a-trace.md) |
 | [0013](0013-typescript-names-free-on-vitest-expect.md) | TypeScript names that vitest's expect does not define | Accepted |
 | [0014](0014-pinning-the-answers-languages-disagree-on.md) | Pinning the answers languages disagree on | Accepted, superseded in part by [ADR-0001](../adr/0001-vendor-the-definition-with-spec.md) |
 | [0015](0015-isolation-checks-over-transaction-histories.md) | Isolation checks over transaction histories | Accepted, superseded in part by [ADR-0002](../adr/0002-a-lost-update-fails-both-isolation-levels.md) |
@@ -71,4 +71,5 @@ they record why not.
 | [0058](0058-a-helper-that-skips-its-test.md) | A helper that skips its test | Accepted |
 | [0059](0059-an-action-that-every-case-keeps.md) | An action that every case keeps | Accepted |
 | [0060](0060-the-steps-of-a-stored-case.md) | The steps of a stored case | Accepted, superseded in part by [RFC-0061](0061-a-composite-in-a-trace.md) |
-| [0061](0061-a-composite-in-a-trace.md) | A composite in a trace | Accepted |
+| [0061](0061-a-composite-in-a-trace.md) | A composite in a trace | Accepted, superseded in part by [RFC-0062](0062-a-draw-through-a-composite-in-a-trace.md) |
+| [0062](0062-a-draw-through-a-composite-in-a-trace.md) | A draw through a composite in a trace | Accepted |
