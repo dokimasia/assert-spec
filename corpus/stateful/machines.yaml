@@ -265,3 +265,85 @@ cases:
             - {label: a, value: {type: int, value: 7}}
             - {label: b, value: {type: int, value: 3}}
             - {label: pair}
+
+  # A draw through a composite. The input of put comes from a one-of of an
+  # integer and the composite pair, or from a list of pairs. A case records
+  # the draws of each pair before the draw of the one-of or the list, and a
+  # trace replays them in that order. The integer alternative takes its
+  # entry when the draw starts. The stored choices are those of the minimal
+  # steps of a machine whose only action is put, and under noop and put they
+  # decode to other values.
+  - id: one-of-pair-fails-at-7-and-3/a-run-shrinks-to-the-integer-7
+    subject: one-of-pair-fails-at-7-and-3
+    setup: {swarm: false}
+    settings: {seed: "1"}
+
+  - id: one-of-pair-fails-at-7-and-3/a-trace-through-the-composite-replays-its-draws
+    subject: one-of-pair-fails-at-7-and-3
+    setup: {swarm: false}
+    settings: {seed: "1", shrink: 0}
+    trace:
+      - {step: put}
+      - {label: a, value: {type: int, value: 7}}
+      - {label: b, value: {type: int, value: 3}}
+      - {label: pair, value: {type: list, of: int, value: [7, 3]}}
+
+  - id: one-of-pair-fails-at-7-and-3/a-trace-of-the-integer-takes-its-entry-first
+    subject: one-of-pair-fails-at-7-and-3
+    setup: {swarm: false}
+    settings: {seed: "1", shrink: 0}
+    trace:
+      - {step: put}
+      - {label: pair, value: {type: int, value: 7}}
+
+  - id: one-of-pair-fails-at-7-and-3/a-trace-whose-composite-leaves-an-entry-is-refused
+    subject: one-of-pair-fails-at-7-and-3
+    setup: {swarm: false}
+    settings: {seed: "1", shrink: 0}
+    trace:
+      - {step: put}
+      - {label: a, value: {type: int, value: 7}}
+      - {label: b, value: {type: int, value: 3}}
+      - {label: b, value: {type: int, value: 4}}
+      - {label: pair, value: {type: list, of: int, value: [7, 3]}}
+
+  - id: pairs-fail-at-7-and-3/a-run-shrinks-to-one-pair
+    subject: pairs-fail-at-7-and-3
+    setup: {swarm: false}
+    settings: {seed: "1"}
+
+  - id: pairs-fail-at-7-and-3/a-trace-of-two-pairs-replays-their-draws
+    subject: pairs-fail-at-7-and-3
+    setup: {swarm: false}
+    settings: {seed: "1", shrink: 0}
+    trace:
+      - {step: put}
+      - {label: a, value: {type: int, value: 1}}
+      - {label: b, value: {type: int, value: 2}}
+      - {label: a, value: {type: int, value: 7}}
+      - {label: b, value: {type: int, value: 3}}
+      - label: pairs
+        value:
+          type: list
+          items:
+            - {type: list, of: int, value: [1, 2]}
+            - {type: list, of: int, value: [7, 3]}
+
+  - id: pairs-fail-at-7-and-3/a-stored-case-of-other-actions-replays-its-pairs
+    subject: pairs-fail-at-7-and-3
+    setup: {swarm: false}
+    settings:
+      seed: "1"
+      cases: 1
+      shrink: 0
+      stored:
+        - choices: [1, 0, 1, 7, 3, 0]
+          counterexample:
+            - {step: put}
+            - {label: a, value: {type: int, value: 7}}
+            - {label: b, value: {type: int, value: 3}}
+            - label: pairs
+              value:
+                type: list
+                items:
+                  - {type: list, of: int, value: [7, 3]}

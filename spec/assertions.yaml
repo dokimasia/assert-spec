@@ -20,7 +20,7 @@
 # assertion carries exactly these. got is what the assertion observed
 # and want is what it required, so an assertion whose failure holds
 # neither states no fields and reports the caller's message alone.
-version: "16.4.0"
+version: "16.5.0"
 
 # What a caller may change about equality, for one call.
 #
@@ -392,6 +392,18 @@ machines:
       composite draws an integer in [0, 9] under "a" and then one under
       "b", and returns the list of the two. put fails with the identity
       pair for the list [7, 3]. Neither action records a call.
+  "one-of-pair-fails-at-7-and-3":
+    summary: >
+      The machine of pair-fails-at-7-and-3, whose put draws its input under
+      "pair" through a one-of of an integer in [0, 9] and the composite
+      pair. put fails with the identity pair for the integer 7 and for the
+      list [7, 3]. Neither action records a call.
+  "pairs-fail-at-7-and-3":
+    summary: >
+      The machine of pair-fails-at-7-and-3, whose put draws its input under
+      "pairs" through a list of 0 to 3 composite pairs. put fails with the
+      identity pair when the list has the pair [7, 3]. Neither action
+      records a call.
 
 assertions:
   "equal":

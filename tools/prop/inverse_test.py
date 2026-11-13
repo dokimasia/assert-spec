@@ -12,9 +12,10 @@ import pytest
 
 from .case import Case, Generating, Generator, Rejected, Replaying
 from .choice import Choice
-from .generator import Composite, build
+from .collection import Sizes
+from .generator import Composite, Dict, List, OneOf, Optional, build
 from .generator_test import DIGIT, EVERY
-from .inverse import CannotInvert, NoInverse, invert, no_draw
+from .inverse import CannotInvert, NoInverse, invert, invert_through, no_draw
 from .shape import BUDGET, read
 from .shape_test import TREE, UINT8
 from .source import case_source
@@ -26,6 +27,11 @@ CASES = 60
 
 #: A map of a digit, which returns the digit and has no inverse.
 IDENTITY: dict[str, Any] = {"gen": "map", "of": DIGIT, "subject": "identity"}
+
+#: A composite of two digits drawn under a and b, whose value is their list.
+PAIR = Composite(
+    lambda case: [case.draw(build(DIGIT), "a"), case.draw(build(DIGIT), "b")]
+)
 
 #: One shape of each id, for the round trip.
 SHAPES: dict[str, dict[str, Any]] = {
@@ -387,3 +393,46 @@ class NoInverseTest(unittest.TestCase):
         with pytest.raises(CannotInvert) as raised:
             invert(build({"gen": "one-of", "of": [DIGIT]}), 11)
         assert not isinstance(raised.value, NoInverse)
+
+    def test_a_value_through_a_composite_inside_a_generator_has_no_inverse(
+        self,
+    ) -> None:
+        """The draws of the pair take their values from a trace, and invert has none."""
+        with pytest.raises(NoInverse, match="Composite does not run backwards"):
+            invert(OneOf((build(DIGIT), PAIR)), [7, 3])
+
+
+@final
+class InvertThroughTest(unittest.TestCase):
+    """invert_through: the choices of a generator around the composites inside it."""
+
+    def test_a_value_without_a_composite_has_the_choices_of_invert(self) -> None:
+        """The digit runs backwards on its own."""
+        assert invert_through(build(DIGIT), 7) == ((Choice("integer", 7),), False)
+
+    def test_a_composite_inside_a_generator_makes_no_choice(self) -> None:
+        """The one-of and the optional choose the pair, and the pair chooses nothing."""
+        assert invert_through(OneOf((build(DIGIT), PAIR)), [7, 3]) == (
+            (Choice("integer", 1),),
+            True,
+        )
+        assert invert_through(Optional(PAIR), [7, 3]) == ((Choice("integer", 1),), True)
+
+    def test_a_branch_without_a_composite_comes_first(self) -> None:
+        """The pair produces any value, and the digit after it produces 7."""
+        assert invert_through(OneOf((PAIR, build(DIGIT))), 7) == (
+            (Choice("integer", 1), Choice("integer", 7)),
+            False,
+        )
+
+    def test_a_unique_list_does_not_compare_the_values_of_its_composites(self) -> None:
+        """The recorded pairs are equal, and the decode discards a repeated pair."""
+        unique = List(PAIR, Sizes(0, 3), unique=True)
+        choices, through = invert_through(unique, [[1, 2], [1, 2]])
+        assert ([choice.value for choice in choices], through) == ([1, 1, 0], True)
+
+    def test_a_dict_through_a_composite_has_no_inverse(self) -> None:
+        """The value of a map does not state the order in which its pairs drew."""
+        pairs = Dict(build(DIGIT), PAIR, Sizes(0, 2))
+        with pytest.raises(NoInverse, match="order"):
+            invert_through(pairs, Pairs(((5, [1, 2]),)))

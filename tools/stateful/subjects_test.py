@@ -22,8 +22,10 @@ from .subjects import (
     COUNTER_OVERFLOWS,
     COUNTER_REFUSES_EVERY_THIRD,
     LOST,
+    ONE_OF_PAIR_FAILS_AT_7_AND_3,
     PAIR_FAILS_AT_7_AND_3,
     PAIR_FAILURE,
+    PAIRS_FAIL_AT_7_AND_3,
     QUEUE_LOSES_ON_WRAP,
     RACY_COUNTER,
     REGISTER_FLUSHES,
@@ -71,6 +73,11 @@ MINIMAL: dict[str, tuple[str, list[Entry]]] = {
     PAIR_FAILS_AT_7_AND_3: (
         PAIR_FAILURE,
         [Step("put"), Draw("a", 7), Draw("b", 3), Draw("pair", [7, 3])],
+    ),
+    ONE_OF_PAIR_FAILS_AT_7_AND_3: (PAIR_FAILURE, [Step("put"), Draw("pair", 7)]),
+    PAIRS_FAIL_AT_7_AND_3: (
+        PAIR_FAILURE,
+        [Step("put"), Draw("a", 7), Draw("b", 3), Draw("pairs", [[7, 3]])],
     ),
 }
 

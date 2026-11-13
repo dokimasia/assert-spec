@@ -12,8 +12,11 @@ import pytest
 
 from .case import Case, Replaying, Step
 from .choice import Choice, IntegerBounds
-from .generator import Composite, Integer, Optional
+from .collection import Sizes
+from .generator import Composite, Dict, Filter, Integer, List, OneOf, Optional
+from .predicate import predicate
 from .trace import UNSTATED, Draw, TraceError, Tracing, entries, states
+from .value import Pairs
 
 #: The generator most draws here use.
 DIGIT = Integer(IntegerBounds(0, 9))
@@ -194,6 +197,119 @@ class TracingTest(unittest.TestCase):
                 case.draw(PAIR, "pair")
             error = caught.value
             assert (error.entry, error.name, error.reason) == (2, "pair", "label")
+
+    def test_a_one_of_through_a_composite_takes_its_entry_after_the_draws(self) -> None:
+        """The pair decodes its draws, and the one-of takes its entry last."""
+        trace = Tracing([Draw("a", 7), Draw("b", 3), Draw("pair", [7, 3])])
+        case = Case(trace)
+        assert case.draw(OneOf((DIGIT, PAIR)), "pair") == [7, 3]
+        assert trace.finished()
+        assert case.choices == [
+            Choice("integer", 1),
+            Choice("integer", 7),
+            Choice("integer", 3),
+        ]
+
+    def test_a_one_of_takes_the_entry_of_an_alternative_without_a_composite_first(
+        self,
+    ) -> None:
+        """The digit produces 7, so the one-of does not run 7 through the pair."""
+        trace = Tracing([Draw("pair", 7), Draw("x", 5)])
+        case = Case(trace)
+        assert case.draw(OneOf((PAIR, DIGIT)), "pair") == 7
+        assert case.draw(DIGIT, "x") == 5
+        assert case.choices == [
+            Choice("integer", 1),
+            Choice("integer", 7),
+            Choice("integer", 5),
+        ]
+
+    def test_a_list_of_composites_serves_its_flags_around_their_draws(self) -> None:
+        """Each pair takes its own entries, and the list takes its entry last."""
+        trace = Tracing(
+            [
+                Draw("a", 1),
+                Draw("b", 2),
+                Draw("a", 7),
+                Draw("b", 3),
+                Draw("pairs", [[1, 2], [7, 3]]),
+            ]
+        )
+        case = Case(trace)
+        assert case.draw(List(PAIR, Sizes(0, 3)), "pairs") == [[1, 2], [7, 3]]
+        assert trace.finished()
+        assert [choice.value for choice in case.choices] == [1, 1, 2, 1, 7, 3, 0]
+
+    def test_an_optional_composite_takes_its_entry_after_the_draws(self) -> None:
+        """A present pair decodes its draws, and an absent one takes its entry first."""
+        for recorded, want in (
+            ([Draw("a", 7), Draw("b", 3), Draw("maybe", [7, 3])], [7, 3]),
+            ([Draw("maybe", None)], None),
+        ):
+            with self.subTest(want=want):
+                trace = Tracing(recorded)
+                assert Case(trace).draw(Optional(PAIR), "maybe") == want
+                assert trace.finished()
+
+    def test_a_filter_of_a_composite_does_not_test_the_recorded_value(self) -> None:
+        """The recorded value is too short for the predicate, and the pair is not."""
+        longer = Filter(PAIR, predicate({"kind": "length-at-least", "n": 2}))
+        trace = Tracing([Draw("a", 7), Draw("b", 3), Draw("pair", [7])])
+        assert Case(trace).draw(longer, "pair") == [7, 3]
+        assert trace.finished()
+
+    def test_a_draw_through_a_composite_that_leaves_an_entry_raises(self) -> None:
+        """The pair takes a and b, and leaves the second b before the one-of."""
+        trace = Tracing(
+            [Draw("a", 7), Draw("b", 3), Draw("b", 4), Draw("pair", [7, 3])]
+        )
+        with pytest.raises(TraceError) as caught:
+            Case(trace).draw(OneOf((DIGIT, PAIR)), "pair")
+        error = caught.value
+        assert (error.entry, error.name, error.reason) == (2, "pair", "label")
+
+    def test_a_draw_inside_that_takes_the_entry_of_the_draw_raises_at_it(self) -> None:
+        """The draw inside the composite shares the label pair, and takes entry 0."""
+        inner = Composite(lambda case: [case.draw(DIGIT, "pair")])
+        trace = Tracing([Draw("pair", 5), Draw("pair", [5])])
+        with pytest.raises(TraceError) as caught:
+            Case(trace).draw(OneOf((inner,)), "pair")
+        error = caught.value
+        assert (error.entry, error.name, error.reason) == (0, "pair", "label")
+
+    def test_a_draw_through_a_composite_looks_no_further_than_a_step(self) -> None:
+        """The entry of the one-of follows a step entry, so the first is refused."""
+        trace = Tracing([Draw("a", 7), Draw("b", 3), Step("put"), Draw("pair", [7, 3])])
+        with pytest.raises(TraceError) as caught:
+            Case(trace).draw(OneOf((DIGIT, PAIR)), "pair")
+        error = caught.value
+        assert (error.entry, error.name, error.reason) == (0, "pair", "label")
+
+    def test_a_later_entry_without_a_composite_raises_at_the_next_entry(self) -> None:
+        """The digit produces 5, so the entry of a belongs to no draw of the one-of."""
+        trace = Tracing([Draw("a", 7), Draw("pair", 5)])
+        with pytest.raises(TraceError) as caught:
+            Case(trace).draw(OneOf((DIGIT, PAIR)), "pair")
+        error = caught.value
+        assert (error.entry, error.name, error.reason) == (0, "pair", "label")
+
+    def test_a_draw_through_a_composite_refuses_an_entry_without_a_value(self) -> None:
+        """The structure around the pair comes from the value of the entry."""
+        trace = Tracing([Draw("a", 7), Draw("b", 3), Draw("pair", UNSTATED)])
+        with pytest.raises(TraceError) as caught:
+            Case(trace).draw(OneOf((DIGIT, PAIR)), "pair")
+        error = caught.value
+        assert (error.entry, error.name, error.reason) == (2, "pair", "value")
+
+    def test_a_dict_through_a_composite_refuses_its_entry(self) -> None:
+        """The value of a map does not state the order in which its pairs drew."""
+        trace = Tracing(
+            [Draw("a", 1), Draw("b", 2), Draw("map", Pairs(((5, [1, 2]),)))]
+        )
+        with pytest.raises(TraceError) as caught:
+            Case(trace).draw(Dict(DIGIT, PAIR, Sizes(0, 2)), "map")
+        error = caught.value
+        assert (error.entry, error.name, error.reason) == (2, "map", "value")
 
     def test_finished_reports_whether_every_entry_is_taken(self) -> None:
         """The draw takes the first entry, and the step the second."""

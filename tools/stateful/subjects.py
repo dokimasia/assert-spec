@@ -68,6 +68,13 @@ an empty list of keys, and completes it as ok with its output.
   "pair". The composite draws an integer under "a" and then one under
   "b", each from [0, 9], and returns the list of the two. put fails with
   the identity pair for the list [7, 3]. Neither action records a call.
+- one-of-pair-fails-at-7-and-3: the same machine, whose put draws its
+  input under "pair" through a one-of of an integer in [0, 9] and the
+  composite. put fails with the identity pair for the integer 7 and for
+  the list [7, 3].
+- pairs-fail-at-7-and-3: the same machine, whose put draws its input
+  under "pairs" through a list of 0 to 3 of the composite. put fails with
+  the identity pair when the list has the pair [7, 3].
 
 Each subject is built anew for every run, so a subject that counts over
 the cases of a run starts each run at 0. A subject that spawns tasks of
@@ -88,7 +95,8 @@ from history import equality
 from history.model import Model, Op
 from prop.case import Case
 from prop.choice import IntegerBounds
-from prop.generator import Composite, Integer
+from prop.collection import Sizes
+from prop.generator import Composite, Integer, List, OneOf
 from prop.value import as_type
 
 from .machine import Action, Machine, Options, steps
@@ -108,14 +116,18 @@ TICKER_SKIPS_ITS_FIRST_TICK: Final = "ticker-skips-its-first-tick"
 TICKER: Final = "ticker"
 SPINS_UNTIL_A_FLAG: Final = "spins-until-a-flag"
 PAIR_FAILS_AT_7_AND_3: Final = "pair-fails-at-7-and-3"
+ONE_OF_PAIR_FAILS_AT_7_AND_3: Final = "one-of-pair-fails-at-7-and-3"
+PAIRS_FAIL_AT_7_AND_3: Final = "pairs-fail-at-7-and-3"
 
 #: The identity of store-loses-on-crash's settle failure.
 LOST: Final = "lost-write"
 
-#: The identity of the failure of pair-fails-at-7-and-3, and the pair that
-#: its put fails for.
+#: The identity of the failure of the three subjects of the pair, the pair
+#: that their put fails for, and the integer that the put of the one-of
+#: fails for.
 PAIR_FAILURE: Final = "pair"
 FAILING_PAIR: Final = (7, 3)
+FAILING_DIGIT: Final = 7
 
 #: The count at which counter-overflows sets its count to 0.
 OVERFLOW: Final = 3
@@ -143,6 +155,8 @@ KEYS: Final = Integer(IntegerBounds(0, 3))
 MILLISECONDS: Final = Integer(IntegerBounds(0, 10))
 DIGITS: Final = Integer(IntegerBounds(0, 9))
 PAIRS: Final = Composite(lambda case: [case.draw(DIGITS, "a"), case.draw(DIGITS, "b")])
+DIGIT_OR_PAIR: Final = OneOf((DIGITS, PAIRS))
+PAIR_LISTS: Final = List(PAIRS, Sizes(0, 3))
 
 
 @dataclass(frozen=True)
@@ -409,21 +423,31 @@ def _store_loses_on_crash(case: Case, setup: Setup) -> None:
     steps(case, setup.marked(machine), setup.sequential())
 
 
-def _pair_fails(case: Case, setup: Setup) -> None:
-    """Run the machine whose put fails for the composite pair 7 and 3."""
+def _pair_fails(
+    case: Case, setup: Setup, generator: Composite | OneOf | List, label: str
+) -> None:
+    """Run the machine whose put draws its input from generator under label.
+
+    put fails for the pair 7 and 3, for the integer 7, and for a list that
+    has the pair, so each subject of the pair fails for the values that it
+    states.
+    """
 
     def noop(case: Case, client: int, value: object) -> None:
         del case, client, value
 
     def put(case: Case, client: int, value: object) -> None:
         del client
-        if tuple(as_type(value, list)) == FAILING_PAIR:
-            case.fail(PAIR_FAILURE, f"put of the pair {list(FAILING_PAIR)}")
+        pair = list(FAILING_PAIR)
+        if value == FAILING_DIGIT:
+            case.fail(PAIR_FAILURE, f"put of the integer {FAILING_DIGIT}")
+        elif value == pair or (isinstance(value, list) and pair in value):
+            case.fail(PAIR_FAILURE, f"put of the pair {pair}")
 
     machine = Machine(
         (
             Action("noop", noop),
-            Action("put", put, input=lambda case, _: case.draw(PAIRS, "pair")),
+            Action("put", put, input=lambda case, _: case.draw(generator, label)),
         )
     )
     steps(case, setup.marked(machine), setup.sequential())
@@ -600,7 +624,15 @@ SUBJECTS: Final[dict[str, Callable[[], Subject]]] = {
     ),
     TICKER: lambda: lambda case, setup: _ticker(case, setup, skips_first=False),
     SPINS_UNTIL_A_FLAG: lambda: _spinner,
-    PAIR_FAILS_AT_7_AND_3: lambda: _pair_fails,
+    PAIR_FAILS_AT_7_AND_3: lambda: (
+        lambda case, setup: _pair_fails(case, setup, PAIRS, "pair")
+    ),
+    ONE_OF_PAIR_FAILS_AT_7_AND_3: lambda: (
+        lambda case, setup: _pair_fails(case, setup, DIGIT_OR_PAIR, "pair")
+    ),
+    PAIRS_FAIL_AT_7_AND_3: lambda: (
+        lambda case, setup: _pair_fails(case, setup, PAIR_LISTS, "pairs")
+    ),
 }
 
 
