@@ -73,3 +73,5 @@ they record why not.
 | [0060](0060-the-steps-of-a-stored-case.md) | The steps of a stored case | Accepted, superseded in part by [RFC-0061](0061-a-composite-in-a-trace.md) |
 | [0061](0061-a-composite-in-a-trace.md) | A composite in a trace | Accepted, superseded in part by [RFC-0062](0062-a-draw-through-a-composite-in-a-trace.md) |
 | [0062](0062-a-draw-through-a-composite-in-a-trace.md) | A draw through a composite in a trace | Accepted |
+| [0063](0063-a-helper-that-reads-whether-its-test-failed.md) | A helper that reads whether its test failed | Accepted |
+| [0064](0064-a-check-that-continues-the-searches-of-a-growing-history.md) | A check that continues the searches of a growing history | Accepted |
