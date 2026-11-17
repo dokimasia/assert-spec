@@ -62,7 +62,7 @@ tools/history/         the history's and the checkers' executable reference
 tools/stateful/        the machines' and the scheduler's executable reference
 tools/files/           the trees' and the file assertions' executable reference
 .spec.yaml             the files an implementation vendors with spec
-VERSION                16.5.0
+VERSION                16.6.0
 ```
 
 People edit the YAML. `make render` produces the JSON, which is
@@ -158,11 +158,13 @@ generates, the choices that produce a value, the shape each fixture type
 reads as, a passing and a failing run of every property form but
 `prop-max-allocs`, the runs of a form's examples, and the call records of
 a property's runs, and the values that `prop.values` returns for a seed.
-The history and the checkers are data in and data out too. 112 vectors under
+The history and the checkers are data in and data out too. 119 vectors under
 `corpus/history/` pin the events that calls record, the entries that the
 history refuses, the verdict, steps and record of a check against each
 named spec, and the verdict and record of each isolation check over
-list-append and register transactions. So are
+list-append and register transactions. They also pin the calls of the
+spec's `next` that each check of a growing history makes with a
+checkpoint. So are
 the steps of a machine. 36 vectors under `corpus/stateful/` pin the run of
 each machine subject, the minimal steps of each fault, the traces that a
 run follows or refuses, and the step at which a replay of a subject whose
@@ -255,7 +257,9 @@ assertion with a unique id, decodable literals and options its assertion
 accepts, and that an overlay extends this version and diverges only from
 assertions that exist. It also checks that each overlay states where its
 language writes the call records and how it runs the concurrent section of
-a machine, that each history vector names a defined spec, that the
+a machine, that each history vector names a defined spec, that the resume
+vectors contain a check that continues a kept search and a check that
+searches again from the first call, that the
 vectors of each isolation level report every kind the level forbids, that
 each machine subject runs in a vector named for it, that the workspace and
 the golden tree of each files vector follow the rules of a tree, and that
@@ -291,7 +295,7 @@ differently.
 | TypeScript | [assert-typescript](https://github.com/dokimasia/assert-typescript) | 104 of 111 |
 
 Each count is what the language's overlay declares against version
-16.5.0. An implementation whose copy is behind has an open pull request
+16.6.0. An implementation whose copy is behind has an open pull request
 from spec with the new copy.
 
 Java and Kotlin ship from one repository and are named identically, so

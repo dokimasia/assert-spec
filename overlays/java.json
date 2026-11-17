@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@16.5.0",
+  "extends": "spec://assertions@16.6.0",
   "language": "java",
   "diverge": [
     {
@@ -72,6 +72,10 @@
     {
       "id": "cleanup",
       "why": "Seat gives cleanup() a default that ends the call with a fault, as it gives helper() a default, so a helper calls the member on any seat and needs no function to register a cleanup."
+    },
+    {
+      "id": "failed",
+      "why": "Seat gives failed() a default that ends the call with a fault, as it gives cleanup() one, so a helper calls the member on any seat and needs no function to read it."
     }
   ],
   "sections": ["tasks", "threads"],

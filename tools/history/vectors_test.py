@@ -161,6 +161,82 @@ class LinearizableTest(unittest.TestCase):
             compute("linearizable", {"spec": "register", "history": refused})
 
 
+#: A write of 1 that completes, then a read that outputs 1.
+READ_BACK: list[dict[str, Any]] = [
+    MISSED[0],
+    MISSED[1],
+    MISSED[2],
+    {"ok": 1, "output": {"type": "int", "value": 1}},
+]
+
+
+@final
+class ResumeTest(unittest.TestCase):
+    """resume: the checks of the prefixes of a history with one checkpoint."""
+
+    def test_states_the_verdict_the_detail_and_the_calls_of_next_of_each_check(
+        self,
+    ) -> None:
+        """The second check steps the read alone, and states the steps of both calls."""
+        got = compute(
+            "resume",
+            {
+                "spec": "register",
+                "history": READ_BACK,
+                "checks": [{"events": 2}, {"events": 4}],
+            },
+        )
+        assert [
+            (result["expect"], result["detail"]["steps"], result["next-calls"])
+            for result in got["results"]
+        ] == [("pass", 1, 1), ("pass", 2, 1)]
+
+    def test_reads_a_budget_of_each_check(self) -> None:
+        """A check under another budget steps every call again."""
+        got = compute(
+            "resume",
+            {
+                "spec": "register",
+                "history": READ_BACK,
+                "checks": [{"events": 2}, {"events": 4, "budget": 100}],
+            },
+        )
+        assert got["results"][1]["next-calls"] == 2
+
+    def test_refuses_a_count_of_events_outside_the_history(self) -> None:
+        """A check reads at least one event, and no more events than the history has."""
+        for count in (0, 5, "2"):
+            with pytest.raises(VectorError, match="events is"):
+                compute(
+                    "resume",
+                    {
+                        "spec": "register",
+                        "history": READ_BACK,
+                        "checks": [{"events": count}],
+                    },
+                )
+
+    def test_refuses_counts_that_fall(self) -> None:
+        """A check of a history follows the checks of its shorter prefixes."""
+        with pytest.raises(VectorError, match="fewer events than the check before"):
+            compute(
+                "resume",
+                {
+                    "spec": "register",
+                    "history": READ_BACK,
+                    "checks": [{"events": 4}, {"events": 2}],
+                },
+            )
+
+    def test_refuses_a_spec_that_is_not_named(self) -> None:
+        """A stack is no named spec."""
+        with pytest.raises(VectorError, match="'stack' is no named spec"):
+            compute(
+                "resume",
+                {"spec": "stack", "history": READ_BACK, "checks": [{"events": 2}]},
+            )
+
+
 def mop(function: str, key: str, value: dict[str, Any] | int | None) -> dict[str, Any]:
     """Return the typed literal of a micro-operation on a key.
 

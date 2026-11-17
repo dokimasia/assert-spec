@@ -1258,6 +1258,26 @@ class Validator(unittest.TestCase):
         )
         self.assert_caught("names spec 'stack', which the definition does not state")
 
+    def test_a_resume_vector_of_an_unknown_spec_is_caught(self) -> None:
+        """A resume vector names a spec of the definition."""
+        _edit(
+            self.tree / "corpus" / "history" / "resume.json",
+            lambda d: d["cases"][0].update(spec="stack"),
+        )
+        self.assert_caught("names spec 'stack', which the definition does not state")
+
+    def test_resume_vectors_without_a_restarted_search_are_caught(self) -> None:
+        """The resume vectors restart a search after a check, and continue one."""
+
+        def continues(case: dict[str, Any]) -> bool:
+            return all(
+                result["next-calls"] < result["detail"]["steps"]
+                for result in case["results"][1:]
+            )
+
+        self._history("resume", continues)
+        self.assert_caught("has no vector that covers 'resume:restarted'")
+
     def test_a_missing_history_vector_file_is_caught(self) -> None:
         """Every kind of history vector has a file."""
         (self.tree / "corpus" / "history" / "seam.json").unlink()

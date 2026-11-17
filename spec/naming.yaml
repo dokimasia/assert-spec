@@ -19,7 +19,7 @@
 # as its positive does. Each of these names takes the auxiliary that its
 # word takes in an English sentence: is before an adjective, has before a
 # noun and does before a verb.
-version: "16.5.0"
+version: "16.6.0"
 
 languages: [go, java, kotlin, php, python, rust, typescript]
 
@@ -648,6 +648,16 @@ relaxations:
 # close, because their recorder is an AutoCloseable that try-with-resources
 # and Kotlin's use close.
 #
+# A seat states whether its test, its case or its body failed through
+# failed. Go names the member Failed, which testing.TB declares, and the
+# helper failed finds it along the seats that Unwrap returns, as Skipf finds
+# Skipf. Python and TypeScript state the member as an optional read-only
+# property of the seat, because their recorders state failed as a property,
+# and the helper ends the call with a fault on a seat without it. Rust, Java
+# and Kotlin give the member a default on the seat that ends the call with
+# the same fault, so a helper reads the member and the three decline the
+# helper. The member of a recorder is its recorder-seat.failed.
+#
 # allocs-checked reports whether a run checks allocation ceilings. Go names
 # it AllocsChecked, and Java and Kotlin Check.allocsChecked. prop.values
 # returns the values of a generator for a seed, beside the other helpers
@@ -705,6 +715,10 @@ relaxations:
 # Each language constructs a history as it constructs any value: Go and
 # Rust through a function, Python and Kotlin by calling the class, and
 # TypeScript and Java with new. A scheduler is constructed the same way.
+# So is a checkpoint, except in Go, which declines checkpoint.new because
+# the zero Checkpoint does not keep a search. history.resume passes a
+# checkpoint to a check of linearizable, beside the other options of a
+# check.
 #
 # Machines, steps and its options, and the task scheduler are named in the
 # package stateful, as Hypothesis, jqwik and proptest give their state
@@ -917,6 +931,13 @@ surface:
       typescript: "history.Operation"
       java: "Operation"
       kotlin: "Operation"
+    "checkpoint":
+      go: "history.Checkpoint"
+      python: "history.Checkpoint"
+      rust: "history::Checkpoint"
+      typescript: "history.Checkpoint"
+      java: "Checkpoint"
+      kotlin: "Checkpoint"
     "machine":
       go: "stateful.Machine"
       python: "stateful.Machine"
@@ -1077,6 +1098,13 @@ surface:
       typescript: "cleanup"
       java: "cleanup"
       kotlin: "cleanup"
+    "seat.failed":
+      go: "Failed"
+      python: "failed"
+      rust: "failed"
+      typescript: "failed"
+      java: "failed"
+      kotlin: "failed"
     "clock.now":
       go: "Now"
       python: "now"
@@ -1380,6 +1408,12 @@ surface:
       typescript: "returned"
       java: "returned"
       kotlin: "returned"
+    "checkpoint.new":
+      python: "Checkpoint()"
+      rust: "Checkpoint::new"
+      typescript: "new Checkpoint()"
+      java: "new Checkpoint<>()"
+      kotlin: "Checkpoint()"
     "machine.spec":
       go: "Spec"
       python: "spec"
@@ -1626,6 +1660,10 @@ surface:
       typescript: "skip"
       java: "Check.skip"
       kotlin: "Check.skip"
+    "failed":
+      go: "Failed"
+      python: "failed"
+      typescript: "failed"
     "fault":
       go: "Fault"
       python: "fault"
@@ -2039,6 +2077,13 @@ surface:
       typescript: "history.workers"
       java: "History.workers"
       kotlin: "History.workers"
+    "history.resume":
+      go: "history.Resume"
+      python: "history.resume"
+      rust: "history::resume"
+      typescript: "history.resume"
+      java: "History.resume"
+      kotlin: "History.resume"
     "stateful.steps":
       go: "stateful.Steps"
       python: "stateful.steps"

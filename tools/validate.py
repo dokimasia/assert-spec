@@ -139,8 +139,13 @@ KIND = re.compile(r"dokimi\.[a-z][a-z0-9-]*")
 HISTORY_PREFIXES = {
     "seam": "history",
     "linearizable": "linearizable",
+    "resume": "resume",
     **{level.value: level.value for level in history.isolation.Level},
 }
+
+#: What the resume vectors cover between them: a later check that continues
+#: a kept search, and a later check that restarts every search it runs.
+RESUME_ENDS = ("resume:continued", "resume:restarted")
 
 #: What the seam vectors cover between them, through a script and through
 #: intervals: an event of every kind, a pending call, and a refused entry.
@@ -1187,9 +1192,10 @@ def check_history(specs: set[str], problems: Problems) -> int:
     Through a script and through intervals, the seam vectors record an
     event of every kind and a pending call, and refuse an entry. The
     checker's vectors end in every outcome, stop at every limit, and
-    include a pass and a violation of every named spec. The vectors of
-    each isolation level report every kind that the level forbids, and
-    include a pass.
+    include a pass and a violation of every named spec. The resume vectors
+    include a later check that continues a kept search, and one that
+    restarts every search it runs. The vectors of each isolation level
+    report every kind that the level forbids, and include a pass.
     """
     total = 0
     for kind, where, cases in _vector_files("history", history.vectors.KINDS, problems):
@@ -1199,14 +1205,15 @@ def check_history(specs: set[str], problems: Problems) -> int:
         for cid, _, case in _vector_cases(cases, named, where, problems):
             if kind == "seam":
                 covered.update(_seam_covers(case))
-            elif kind == "linearizable":
+            elif kind in {"linearizable", "resume"}:
                 named_spec = case.get("spec")
                 problems.unless(
                     named_spec in specs,
                     f"{where} [{cid}]",
                     f"names spec {named_spec!r}, which the definition does not state",
                 )
-                covered.update(_check_covers(case))
+                checked = _check_covers if kind == "linearizable" else _resume_covers
+                covered.update(checked(case))
             else:
                 covered.add(_isolation_covers(case))
         for end in _history_ends(kind, specs):
@@ -1221,7 +1228,32 @@ def _history_ends(kind: str, specs: set[str]) -> tuple[str, ...]:
     if kind == "linearizable":
         both = (f"{s}:{o}" for s in sorted(specs) for o in ("passed", "violated"))
         return (*CHECK_ENDS, *both)
+    if kind == "resume":
+        return RESUME_ENDS
     return ISOLATION_ENDS[kind]
+
+
+def _resume_covers(case: dict[str, Any]) -> list[str]:
+    """Return what one resume vector covers.
+
+    A check after the first continues a kept search when it calls next fewer
+    times than its steps state. It restarts every search that it runs when
+    it calls next as often as its steps state, and states at least one step.
+    """
+    results = case.get("results")
+    covered: list[str] = []
+    for result in results[1:] if isinstance(results, list) else []:
+        detail = result.get("detail") if isinstance(result, dict) else None
+        if not isinstance(detail, dict):
+            continue
+        calls, steps = result.get("next-calls"), detail.get("steps")
+        if not (isinstance(calls, int) and isinstance(steps, int)):
+            continue
+        if calls < steps:
+            covered.append("resume:continued")
+        elif steps > 0:
+            covered.append("resume:restarted")
+    return covered
 
 
 def _isolation_covers(case: dict[str, Any]) -> str:

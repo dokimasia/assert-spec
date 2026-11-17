@@ -7,11 +7,17 @@ from __future__ import annotations
 
 import math
 import unittest
-from typing import Any, final
+from dataclasses import replace
+from typing import TYPE_CHECKING, Any, final
 
-from .linearizable import Limit, Outcome, check, whole
+from prop.source import Source
+
+from .linearizable import BUDGET, MEMO_LIMIT, Checkpoint, Limit, Outcome, check, whole
 from .model import NAMED, Model, Op, Subject, model_from
 from .seam import Call, History
+
+if TYPE_CHECKING:
+    from collections.abc import Sequence
 
 REGISTER = NAMED["register"]
 
@@ -550,3 +556,187 @@ class WholeTest(unittest.TestCase):
             1,
         )
         assert states == ()
+
+
+def counted(model: Model[Any]) -> tuple[Model[Any], list[int]]:
+    """Return model with a counter of the calls of its step, and the counter."""
+    calls = [0]
+
+    def step(state: object, op: Op) -> Sequence[object]:
+        calls[0] += 1
+        return model.step(state, op)
+
+    return replace(model, step=step), calls
+
+
+@final
+class ResumeTest(unittest.TestCase):
+    """check() with a checkpoint: the searches it continues, and those it restarts."""
+
+    def resumed(
+        self,
+        history: History,
+        checkpoint: Checkpoint,
+        budget: int = BUDGET,
+        memo_limit: int = MEMO_LIMIT,
+    ) -> tuple[dict[str, Any], int]:
+        """Check history with checkpoint, and return the detail and the calls of step.
+
+        The detail is the detail of a check of every call, which the test
+        asserts beside the calls.
+        """
+        model, calls = counted(REGISTER)
+        verdict = check(history.events(), model, budget, memo_limit, checkpoint)
+        every = check(history.events(), REGISTER, budget, memo_limit)
+        assert verdict.detail() == every.detail()
+        return verdict.detail(), calls[0]
+
+    def test_a_resumed_check_steps_the_new_calls_alone(self) -> None:
+        """The second check takes one step for the second write."""
+        history, checkpoint = History(), Checkpoint()
+        write(history, 0, 1).ok(None)
+        assert self.resumed(history, checkpoint)[1] == 1
+        write(history, 0, 2).ok(None)
+        detail, calls = self.resumed(history, checkpoint)
+        assert (detail["outcome"], detail["steps"], calls) == ("passed", 2, 1)
+
+    def test_a_grown_search_backtracks_into_the_kept_calls(self) -> None:
+        """The read needs the second write first, so the search reorders the writes."""
+        history, checkpoint = History(), Checkpoint()
+        first, second = write(history, 0, 1), write(history, 1, 2)
+        first.ok(None)
+        second.ok(None)
+        self.resumed(history, checkpoint)
+        read(history, 0).ok(1)
+        detail, calls = self.resumed(history, checkpoint)
+        assert detail["outcome"] == "passed"
+        assert calls < detail["steps"]
+
+    def test_a_call_that_completes_after_a_check_searches_its_partition_again(
+        self,
+    ) -> None:
+        """The second write is pending at the first check, so the next one restarts."""
+        history, checkpoint = History(), Checkpoint()
+        write(history, 0, 1).ok(None)
+        pending = write(history, 1, 2)
+        self.resumed(history, checkpoint)
+        pending.ok(None)
+        read(history, 0).ok(2)
+        detail, calls = self.resumed(history, checkpoint)
+        assert calls == detail["steps"]
+
+    def test_a_call_that_fails_after_a_check_splits_its_partition(self) -> None:
+        """The write on x and y fails, so x and y each search from their first call."""
+        history, checkpoint = History(), Checkpoint()
+        write(history, 0, 1, "x").ok(None)
+        write(history, 1, 2, "y").ok(None)
+        both = write(history, 2, 3, "x", "y")
+        self.resumed(history, checkpoint)
+        both.fail("refused")
+        detail, calls = self.resumed(history, checkpoint)
+        assert (detail["partitions"], calls) == (2, 2)
+
+    def test_a_call_that_joins_two_partitions_searches_them_again(self) -> None:
+        """The read of x and y joins both partitions, so the check steps every call."""
+        history, checkpoint = History(), Checkpoint()
+        write(history, 0, 1, "x").ok(None)
+        write(history, 1, 2, "y").ok(None)
+        self.resumed(history, checkpoint)
+        read(history, 2, "x", "y").ok(2)
+        detail, calls = self.resumed(history, checkpoint)
+        assert (detail["partitions"], calls) == (1, detail["steps"])
+
+    def test_a_partition_without_new_calls_takes_no_step(self) -> None:
+        """Only x gains a call, so the check steps that call alone."""
+        history, checkpoint = History(), Checkpoint()
+        write(history, 0, 1, "x").ok(None)
+        write(history, 1, 2, "y").ok(None)
+        self.resumed(history, checkpoint)
+        write(history, 0, 3, "x").ok(None)
+        detail, calls = self.resumed(history, checkpoint)
+        assert (detail["steps"], calls) == (3, 1)
+
+    def test_a_check_that_does_not_pass_leaves_no_search(self) -> None:
+        """The violated check keeps nothing, so the next check steps every call."""
+        history, checkpoint = History(), Checkpoint()
+        write(history, 0, 1).ok(None)
+        read(history, 1).ok(2)
+        self.resumed(history, checkpoint)
+        write(history, 0, 3).ok(None)
+        detail, calls = self.resumed(history, checkpoint)
+        assert (detail["outcome"], calls) == ("violated", detail["steps"])
+
+    def test_another_budget_searches_every_partition_again(self) -> None:
+        """A search under another budget stops elsewhere, so it starts again."""
+        history, checkpoint = History(), Checkpoint()
+        write(history, 0, 1).ok(None)
+        self.resumed(history, checkpoint)
+        write(history, 0, 2).ok(None)
+        detail, calls = self.resumed(history, checkpoint, budget=100)
+        assert calls == detail["steps"]
+
+    def test_a_memo_past_the_grown_capacity_searches_again(self) -> None:
+        """Two kept configurations of three calls pass a limit of five bits."""
+        history, checkpoint = History(), Checkpoint()
+        write(history, 0, 1).ok(None)
+        write(history, 0, 2).ok(None)
+        assert self.resumed(history, checkpoint, memo_limit=5)[0]["outcome"] == "passed"
+        write(history, 0, 3).ok(None)
+        detail, calls = self.resumed(history, checkpoint, memo_limit=5)
+        assert (detail["outcome"], detail["limit"], calls) == (
+            "undecided",
+            "memo",
+            detail["steps"],
+        )
+
+    def test_a_resumed_check_reports_what_a_check_of_every_call_reports(self) -> None:
+        """Over 200 random histories, each check after an event returns the same detail.
+
+        A history has up to 24 events of three clients over the keys x and y,
+        with calls on one key, on both and on every key, and completions ok,
+        fail and unknown, and calls that stay pending.
+        """
+        for seed in range(200):
+            source = Source(seed)
+            history, checkpoint = History(), Checkpoint()
+            spec = NAMED[("register", "lossy-register")[source.below(2)]]
+            open_calls: dict[int, Call] = {}
+            for _ in range(24):
+                client = source.below(3)
+                call = open_calls.pop(client, None)
+                if call is None:
+                    keys = (("x",), ("y",), ("x", "y"), ())[source.below(4)]
+                    if source.coin(1, 2):
+                        value = 1 + source.below(3)
+                        open_calls[client] = history.invoke(
+                            client, "write", [value], list(keys)
+                        )
+                    else:
+                        open_calls[client] = history.invoke(
+                            client, "read", [], list(keys)
+                        )
+                else:
+                    end = source.below(20)
+                    if end < 14:
+                        call.ok((None, 1, 2, 3)[source.below(4)])
+                    elif end < 17:
+                        call.fail("refused")
+                    else:
+                        call.unknown("timeout")
+                with self.subTest(seed=seed, events=len(history.events())):
+                    resumed = check(history.events(), spec, checkpoint=checkpoint)
+                    assert resumed.detail() == check(history.events(), spec).detail()
+
+    def test_a_checkpoint_of_another_history_searches_every_partition_again(
+        self,
+    ) -> None:
+        """The calls of the second history differ, so its check steps every call."""
+        checkpoint = Checkpoint()
+        kept = History()
+        write(kept, 0, 1).ok(None)
+        self.resumed(kept, checkpoint)
+        other = History()
+        write(other, 0, 2).ok(None)
+        read(other, 1).ok(2)
+        detail, calls = self.resumed(other, checkpoint)
+        assert calls == detail["steps"] == 2

@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@16.5.0",
+  "extends": "spec://assertions@16.6.0",
   "language": "kotlin",
   "diverge": [
     {
@@ -80,6 +80,10 @@
     {
       "id": "cleanup",
       "why": "Kotlin uses the Seat of Java, which gives cleanup() a default that ends the call with a fault, so a helper calls the member on any seat and needs no function to register a cleanup."
+    },
+    {
+      "id": "failed",
+      "why": "Kotlin uses the Seat of Java, which gives failed() a default that ends the call with a fault, so a helper calls the member on any seat and needs no function to read it."
     },
     {
       "id": "scheduler.yield",

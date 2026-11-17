@@ -116,6 +116,19 @@ does not skip. Languages that give the member a default on every seat
 decline the helper. A skip is an input of a test, so no vector pins the
 helper. Each language checks it in its own tests.
 
+**How a seat reports that it failed.** The member `seat.failed` is true
+once its seat has received a failure, or a fault that ended a call. A
+noted fault does not count. The seat of a test, a case and the
+seat of a body record an error or a panic that ended their body before
+they run their cleanups. A cleanup then reads that end. A language whose
+test runner does not let its seat read that end declares a limit on the
+member.
+The helper `failed`
+returns the member, and ends the call with a fault on a seat without it.
+Languages that give the member a default on every seat decline the
+helper. The outcome of a test is an input of a test, so no vector pins
+the member. Each language checks it in its own tests.
+
 **How a seat observes a call.** The first seat of a test's chain that
 states `seat.observe-call` receives an `assertion-call`, with the assertion's
 id and the contract, for each call that a recorded run records, whatever
@@ -225,6 +238,25 @@ procedure. The history vectors pin the events, the entries that the
 history refuses, and the verdict, the steps and the record of each
 check. One history then gives one outcome and one record in every
 language.
+
+**How a check continues the searches of a growing history.** A check of
+`linearizable` with `history.resume(checkpoint)` continues the kept search
+of each partition over the calls that the history recorded since the kept
+check. It returns what a check of every call returns. A check that does not
+pass leaves the checkpoint without a search. The check searches a partition
+again from its first call in these cases:
+
+- The checkpoint does not keep a search, or it keeps the searches of
+  another history.
+- The check has another budget or another memo limit than the kept check.
+- A new event completes a call that the kept check read as pending.
+- A new call joins two or more partitions.
+- The memo contains more configurations than the grown partition may store
+  within the memo limit.
+
+The resume vectors pin the verdict, the record and the calls of the spec's
+`next` of each check of a growing history. One growing history then gives
+the same calls of `next` in every language.
 
 **What a tree of files is, and how the file assertions decide.** A tree
 states paths, the bytes of its files, the targets of its links, and the
@@ -398,7 +430,7 @@ other is the library's.
 | Fixed: the values of a failure record | The corpus: the record of every failing case states the case's assertion and the caller's message unchanged, and it contains exactly the fields that the assertion declares |
 | Fixed: two surfaces, readable outcome | The corpus needs both to run at all |
 | Fixed: the call record | The corpus, run with recording on: the call record of every case. The recording vectors: the call records of a property's runs |
-| Fixed: the history and the checkers | The history vectors: the events of a script or of intervals, the entry that the history refuses, and the verdict, the steps and the detail of each linearizability and isolation check |
+| Fixed: the history and the checkers | The history vectors: the events of a script or of intervals, the entry that the history refuses, the verdict, the steps and the detail of each linearizability and isolation check, and the calls of `next` of each check of a growing history with a checkpoint |
 | Fixed: machines and the task scheduler | The machines vectors: the detail of a run of each machine subject, the minimal steps of each fault, and the traces that a run follows or refuses |
 | Fixed: trees of files | The files vectors: the verdict and the detail of each assertion that reads files over a workspace, and the golden tree that an update leaves |
 | Named | The completeness gate, against the naming table, with each member's arity as far as the language can read it |

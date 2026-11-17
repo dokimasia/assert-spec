@@ -18,6 +18,11 @@ A linearizable vector names a model and states its history as a script,
 with an optional budget, memo limit and number of workers. Its outputs are
 whether the check passes and the detail of its record.
 
+A resume vector names a model, states its history as a script, and lists
+the checks of prefixes of the history that pass one checkpoint. Its
+outputs are each check's verdict, the detail of its record and the calls
+of the model's step that the check made.
+
 A serializable or snapshot-isolation vector states a history of list-append
 or register transactions as a script. Its outputs are whether the check at the level of
 its kind passes, and the detail of its record.
@@ -25,14 +30,15 @@ its kind passes, and the detail of its record.
 
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import TYPE_CHECKING, Any, Final
 
 from prop.literal import decode
 from prop.vectors import Vector, VectorError
 
 from . import isolation
-from .linearizable import BUDGET, MEMO_LIMIT, Outcome, check
-from .model import NAMED
+from .linearizable import BUDGET, MEMO_LIMIT, Checkpoint, Outcome, check
+from .model import NAMED, Model, Op
 from .seam import (
     Interval,
     IntervalError,
@@ -44,7 +50,7 @@ from .seam import (
 )
 
 if TYPE_CHECKING:
-    from collections.abc import Callable, Mapping
+    from collections.abc import Callable, Mapping, Sequence
 
 #: The completion kinds an interval entry may state.
 COMPLETIONS: Final = frozenset({Kind.OK, Kind.FAIL, Kind.UNKNOWN})
@@ -127,6 +133,69 @@ def linearizable(case: Mapping[str, Any]) -> Vector:
     return {"expect": expect, "detail": verdict.detail()}
 
 
+def resume(case: Mapping[str, Any]) -> Vector:
+    """Check prefixes of a history with one checkpoint, and return each check's outputs.
+
+    Each entry of checks states the number of events of the prefix that a
+    check reads, and may state a budget and a memo limit. Every check passes
+    one checkpoint. A check's outputs are its verdict, the detail of its
+    record and the calls of the spec's next that the check made.
+
+    Raises:
+        VectorError: the spec is not a named one, the history's script is
+            refused, a count of events is outside the history or falls, a
+            limit is not a positive integer, or a resumed check reports
+            another verdict than a check of every call.
+    """
+    model = NAMED.get(str(case["spec"]))
+    if model is None:
+        msg = f"history: {case['spec']!r} is no named spec"
+        raise VectorError(msg)
+    try:
+        events = record(case["history"])
+    except ScriptError as refused:
+        raise VectorError(str(refused)) from refused
+    checkpoint = Checkpoint()
+    results: list[dict[str, Any]] = []
+    read = 0
+    for entry in case["checks"]:
+        count = entry["events"]
+        if isinstance(count, bool) or not isinstance(count, int):
+            msg = f"history: events is {count!r}, not a count of events"
+            raise VectorError(msg)
+        if not 1 <= count <= len(events):
+            msg = f"history: events is {count}, outside a history of {len(events)}"
+            raise VectorError(msg)
+        if count < read:
+            msg = f"history: {count} events are fewer events than the check before"
+            raise VectorError(msg)
+        read = count
+        budget = _positive(entry, "budget", BUDGET)
+        memo_limit = _positive(entry, "memo-limit", MEMO_LIMIT)
+        counted, calls = _counted(model)
+        prefix = events[:count]
+        verdict = check(prefix, counted, budget, memo_limit, checkpoint)
+        if verdict.detail() != check(prefix, model, budget, memo_limit).detail():
+            msg = f"history: the resumed check of {count} events reports another detail"
+            raise VectorError(msg)
+        expect = "pass" if verdict.outcome is Outcome.PASSED else "fail"
+        results.append(
+            {"expect": expect, "detail": verdict.detail(), "next-calls": calls[0]}
+        )
+    return {"results": results}
+
+
+def _counted(model: Model[Any]) -> tuple[Model[Any], list[int]]:
+    """Return model with a counter of the calls of its step, and the counter."""
+    calls = [0]
+
+    def step(state: object, op: Op) -> Sequence[object]:
+        calls[0] += 1
+        return model.step(state, op)
+
+    return replace(model, step=step), calls
+
+
 def at_level(level: isolation.Level) -> Callable[[Mapping[str, Any]], Vector]:
     """Return the function that checks a vector's history at one isolation level."""
 
@@ -168,6 +237,7 @@ def _positive(case: Mapping[str, Any], name: str, default: int) -> int:
 KINDS: Final[dict[str, Callable[[Mapping[str, Any]], Vector]]] = {
     "seam": seam,
     "linearizable": linearizable,
+    "resume": resume,
     **{level.value: at_level(level) for level in isolation.Level},
 }
 

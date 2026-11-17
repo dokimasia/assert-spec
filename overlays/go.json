@@ -1,5 +1,5 @@
 {
-  "extends": "spec://assertions@16.5.0",
+  "extends": "spec://assertions@16.6.0",
   "language": "go",
   "diverge": [],
   "limits": [
@@ -57,6 +57,11 @@
       "id": "prop.of-shape",
       "what": "Decodes a map to a map[any]any, so a map whose key shape decodes to a slice, a map or a record fails to read. A zone resolves with the platform's time-zone database, as the prop.of entry states.",
       "why": "A key of a Go map must be comparable, and a slice, a map and the map[string]any of a record are not."
+    },
+    {
+      "id": "seat.failed",
+      "what": "A cleanup of a test whose function panicked reads false from Failed of a *testing.T, a *testing.B and a *testing.F, unless the test has a parallel subtest. A cleanup of a *prop.Case, of the check of Rejects and of an attempt of Eventually reads true after a panic of its body.",
+      "why": "The package testing of Go 1.27.4 runs the cleanups of a test without parallel subtests in a deferred call of tRunner that runs before the deferred call that recovers the panic and calls Fail. The runtime has no call that reports a panic in progress, so the library cannot read the panic in the cleanup."
     }
   ],
   "surface": [
@@ -79,6 +84,10 @@
     {
       "id": "skipper",
       "why": "testing.TB declares Skipf, and the library finds the method along the seats that Unwrap returns, as it finds Logf. A seat with the method needs no interface that names it."
+    },
+    {
+      "id": "checkpoint.new",
+      "why": "The zero Checkpoint does not keep a search, so a caller declares a Checkpoint and passes its address to Resume. A constructor would return the zero value, as a constructor of a sync.Mutex would."
     }
   ],
   "sections": ["tasks", "threads"],

@@ -169,22 +169,81 @@ class Verdict:
         }
 
 
+@final
+class Checkpoint:
+    """The searches of the last check of a history that passed with it.
+
+    A check with a checkpoint continues the search of each kept partition
+    over the calls that the history recorded since, and keeps its own
+    searches in the checkpoint when it passes. A check that does not pass
+    leaves the checkpoint without a search. A continued search takes the
+    steps that a search of every call takes after the order that the kept
+    search found, so the check returns what a check of every call returns.
+    """
+
+    def __init__(self) -> None:
+        """Return a checkpoint that does not keep a search."""
+        self._kept: _Kept | None = None
+
+    def searches(
+        self, events: Sequence[Event], budget: int, memo_limit: int
+    ) -> dict[int, _Search]:
+        """Return the kept search of each call, by the index of its invocation.
+
+        The searches continue only for the same history under the same
+        limits: the events that the kept check read must be the first events
+        of the history, and the budget and the memo limit must be the same.
+        """
+        kept = self._kept
+        if (
+            kept is None
+            or (kept.budget, kept.memo_limit) != (budget, memo_limit)
+            or tuple(events[: len(kept.events)]) != kept.events
+        ):
+            return {}
+        return {call.index: search for search in kept.searches for call in search.calls}
+
+    def keep(self, kept: _Kept | None) -> None:
+        """Keep the searches of a check that passed, or none after another check."""
+        self._kept = kept
+
+
+@dataclass(frozen=True)
+class _Kept:
+    """The searches of a check that passed, and the history and limits they need."""
+
+    events: tuple[Event, ...]
+    budget: int
+    memo_limit: int
+    searches: tuple[_Search, ...]
+
+
 def check(
     events: Sequence[Event],
     model: Model[Any],
     budget: int = BUDGET,
     memo_limit: int = MEMO_LIMIT,
+    checkpoint: Checkpoint | None = None,
 ) -> Verdict:
     """Return whether a history is linearizable with respect to a model.
 
     The check reports the first violated partition. When no partition is
-    violated, it reports the first undecided one, or passes.
+    violated, it reports the first undecided one, or passes. With a
+    checkpoint, the check continues the searches that the checkpoint keeps,
+    and keeps its own searches there when it passes.
     """
     partitions = _partitions(_calls(events))
+    kept = {} if checkpoint is None else checkpoint.searches(events, budget, memo_limit)
     steps = 0
     undecided: Verdict | None = None
+    violated: Verdict | None = None
+    searches: list[_Search] = []
     for keys, calls in partitions:
-        ending = _Search(calls, model, budget, memo_limit).run()
+        search = _continued(kept, calls, model, memo_limit) or _Search(
+            calls, model, budget, memo_limit
+        )
+        searches.append(search)
+        ending = search.run()
         steps += ending.steps
         if ending.outcome is Outcome.PASSED:
             continue
@@ -201,9 +260,44 @@ def check(
             ending.limit,
         )
         if ending.outcome is Outcome.VIOLATED:
-            return verdict
+            violated = verdict
+            break
         undecided = undecided or verdict
-    return undecided or Verdict(Outcome.PASSED, len(partitions), steps)
+    outcome = violated or undecided or Verdict(Outcome.PASSED, len(partitions), steps)
+    if checkpoint is not None:
+        searched = _Kept(tuple(events), budget, memo_limit, tuple(searches))
+        checkpoint.keep(searched if outcome.outcome is Outcome.PASSED else None)
+    return outcome
+
+
+def _continued(
+    kept: dict[int, _Search],
+    calls: Sequence[Call],
+    model: Model[Any],
+    memo_limit: int,
+) -> _Search | None:
+    """Return the kept search of a partition grown by its new calls, or None.
+
+    A kept search continues when its calls, unchanged, are the first calls
+    of the partition and every later call of the partition is new. A
+    completion of a call that the kept search read as pending changes the
+    call, and a call of another kept search joins two partitions, so either
+    makes the partition search again from its first call. So does a memo
+    that contains more configurations than the grown partition may store.
+    """
+    olds = [call for call in calls if call.index in kept]
+    if not olds:
+        return None
+    search = kept[olds[0].index]
+    count = len(search.calls)
+    if (
+        tuple(calls[:count]) != search.calls
+        or len(olds) != count
+        or search.configurations * len(calls) > memo_limit
+    ):
+        return None
+    search.grow(calls[count:], model)
+    return search
 
 
 def whole(
@@ -353,42 +447,30 @@ class _Search:
 
     The entries are a doubly linked list between a head and a tail, so that
     the search lifts a linearized call's entries out of the scan and puts
-    them back in constant time.
+    them back in constant time. The head and the tail are the entries 0 and
+    1, so a search that grows appends entries without moving any.
     """
+
+    _HEAD: Final = 0
+    _TAIL: Final = 1
 
     def __init__(
         self, calls: Sequence[Call], model: Model[Any], budget: int, memo_limit: int
     ) -> None:
         """Lay out the entries of calls in event order, before the first step."""
-        self._calls = calls
+        self._calls: list[Call] = []
         self._model = model
         self._budget = budget
         self._memo_limit = memo_limit
-        entries = sorted(
-            [(call.index, position, True) for position, call in enumerate(calls)]
-            + [
-                (call.completion, position, False)
-                for position, call in enumerate(calls)
-                if call.op.known and call.completion is not None
-            ]
-        )
-        self._head = len(entries)
-        chain = [self._head, *range(len(entries)), self._head + 1]
-        self._next = [0] * len(chain)
-        self._prev = [0] * len(chain)
-        for before, after in itertools.pairwise(chain):
-            self._next[before] = after
-            self._prev[after] = before
-        self._position = [position for _, position, _ in entries]
-        self._invokes = [invokes for _, _, invokes in entries]
-        self._invocation = [0] * len(calls)
-        self._completion: list[int | None] = [None] * len(calls)
-        for entry, (_, position, invokes) in enumerate(entries):
-            if invokes:
-                self._invocation[position] = entry
-            else:
-                self._completion[position] = entry
-        self._open = sum(1 for call in calls if call.op.known)
+        self._head = self._HEAD
+        self._next = [self._TAIL, self._TAIL]
+        self._prev = [self._HEAD, self._HEAD]
+        self._position = [-1, -1]
+        self._invokes = [False, False]
+        self._invocation: list[int] = []
+        self._completion: list[int | None] = []
+        self._open = 0
+        self._optional = 0
         self._steps = 0
         self._done = 0
         self._states: list[object] = [model.init()]
@@ -396,16 +478,72 @@ class _Search:
         self._memo: dict[
             tuple[int, frozenset[object]], list[tuple[int, list[object]]]
         ] = {}
-        self._optional = sum(
-            1 << position
-            for position, completion in enumerate(self._completion)
-            if completion is None
-        )
         self._configurations = 0
         self._linearized: tuple[Call, ...] = ()
         self._frontier: list[object] = self._states
         self._candidates: list[Call] = []
         self._at_frontier = True
+        self.grow(calls, model)
+
+    @property
+    def calls(self) -> tuple[Call, ...]:
+        """Return the calls of the search, in event order."""
+        return tuple(self._calls)
+
+    @property
+    def configurations(self) -> int:
+        """Return the number of configurations that the memo stores."""
+        return self._configurations
+
+    def grow(self, calls: Sequence[Call], model: Model[Any]) -> None:
+        """Add calls whose entries follow every entry of the search.
+
+        The new entries go between the last entry and the tail, in event
+        order. An entry that the search took out while the tail followed it
+        then points at the first new entry, so that a backtrack puts it back
+        before the new entries, as a search of every call does. model is the
+        model of the check that grows the search, and it takes the steps
+        from here on.
+        """
+        self._model = model
+        start = len(self._calls)
+        entries = sorted(
+            [(call.index, start + offset, True) for offset, call in enumerate(calls)]
+            + [
+                (call.completion, start + offset, False)
+                for offset, call in enumerate(calls)
+                if call.op.known and call.completion is not None
+            ]
+        )
+        if not entries:
+            return
+        first = len(self._next)
+        for entry in range(self._TAIL + 1, first):
+            if self._next[entry] == self._TAIL:
+                self._next[entry] = first
+        last = self._prev[self._TAIL]
+        self._next[last] = first
+        for offset, (_, position, invokes) in enumerate(entries):
+            entry = first + offset
+            self._prev.append(entry - 1 if offset else last)
+            self._next.append(entry + 1)
+            self._position.append(position)
+            self._invokes.append(invokes)
+        self._next[-1] = self._TAIL
+        self._prev[self._TAIL] = len(self._next) - 1
+        self._calls.extend(calls)
+        self._invocation.extend([0] * len(calls))
+        self._completion.extend([None] * len(calls))
+        for offset, (_, position, invokes) in enumerate(entries):
+            if invokes:
+                self._invocation[position] = first + offset
+            else:
+                self._completion[position] = first + offset
+        for offset, call in enumerate(calls):
+            if call.op.known and call.completion is not None:
+                self._open += 1
+            else:
+                self._optional |= 1 << (start + offset)
 
     def run(self) -> _Ending:
         """Search the partition, and return how the search ended.
